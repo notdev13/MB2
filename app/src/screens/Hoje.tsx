@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { CartaoClima } from '../components/CartaoClima';
 import { Icone } from '../components/Icone';
+import { carregarPrevisao, PrevisaoObra } from '../lib/clima';
 import { carregarResumo, lembrarObra, Resumo } from '../lib/dados';
 import { carregarDiariosRecentes, DiarioResumo, hojeISO, pendentes, sincronizar } from '../lib/diario';
 import { supabase } from '../lib/supabase';
@@ -30,9 +32,14 @@ function rotuloDia(iso: string) {
 const hora = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
 export type TelaObra = 'obra' | 'diario' | 'material' | 'ocorrencia' | 'equipe';
-type Props = { userId: string; onAbrir: (tela: TelaObra, obraId: string, obraNome: string) => void };
+type Props = {
+  userId: string;
+  onAbrir: (tela: TelaObra, obraId: string, obraNome: string) => void;
+  // Só para a diretoria: contas e convites.
+  acessos?: { pendentes: number; abrir: () => void };
+};
 
-export function Hoje({ userId, onAbrir }: Props) {
+export function Hoje({ userId, onAbrir, acessos }: Props) {
   const { t, escuro, alternar } = useTema();
   const insets = useSafeAreaInsets();
   const [dados, setDados] = useState<Resumo | null>(null);
@@ -42,6 +49,7 @@ export function Hoje({ userId, onAbrir }: Props) {
   const [diarios, setDiarios] = useState<DiarioResumo[]>([]);
   const [aberto, setAberto] = useState<string | null>(null);
   const [escolhendoObra, setEscolhendoObra] = useState(false);
+  const [previsao, setPrevisao] = useState<PrevisaoObra | null>(null);
   const hoje = new Date();
 
   const carregar = useCallback(async () => {
@@ -53,6 +61,7 @@ export function Hoje({ userId, onAbrir }: Props) {
     try {
       const resumo = await carregarResumo(userId);
       setDados(resumo);
+      if (resumo.obra) carregarPrevisao(resumo.obra.cidade).then(setPrevisao, () => {});
       setDiarios(resumo.obra ? await carregarDiariosRecentes(resumo.obra.id).catch(() => []) : []);
     } catch {
       setErro('Não foi possível carregar. Verifique a conexão e puxe para atualizar.');
@@ -69,6 +78,7 @@ export function Hoje({ userId, onAbrir }: Props) {
     await lembrarObra(id);
     setDados(null);
     setDiarios([]);
+    setPrevisao(null);
     setAberto(null);
     await carregar();
   }
@@ -132,6 +142,19 @@ export function Hoje({ userId, onAbrir }: Props) {
       {!dados && !erro && <ActivityIndicator color={t.accentText} style={{ marginTop: 40 }} />}
       {erro && <Text style={[s.aviso, { backgroundColor: t.warnBg, color: t.warnText }]}>{erro}</Text>}
 
+      {acessos && (
+        <Pressable onPress={acessos.abrir} accessibilityRole="button" style={[s.cartao, s.equipe, { backgroundColor: acessos.pendentes > 0 ? t.warnBg : t.surface }]}>
+          <Text style={[s.item, { color: acessos.pendentes > 0 ? t.warnText : t.text, flex: 1 }]}>
+            {acessos.pendentes === 0
+              ? 'Contas e convites'
+              : acessos.pendentes === 1
+                ? '1 conta aguardando aprovação'
+                : `${acessos.pendentes} contas aguardando aprovação`}
+          </Text>
+          <Icone nome="seta" cor={acessos.pendentes > 0 ? t.warnText : t.muted} />
+        </Pressable>
+      )}
+
       {dados && !dados.obra && (
         <View style={[s.cartao, { backgroundColor: t.surface }]}>
           <Text style={[s.item, { color: t.text }]}>Você ainda não está em nenhuma obra.</Text>
@@ -173,6 +196,8 @@ export function Hoje({ userId, onAbrir }: Props) {
             </View>
             <Text style={[s.heroLink, { color: t.heroText }]}>Ver cronograma ›</Text>
           </Pressable>
+
+          {previsao && <CartaoClima previsao={previsao} />}
 
           <View style={s.acoes}>
             {acoes.map((a) => (

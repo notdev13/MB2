@@ -5,7 +5,7 @@ export type Etapa = { percentual: number; inicio_previsto: string | null; fim_pr
 export type Pedido = { id: string; material: string; quantidade: number; unidade: string; fornecedor: string | null; entrega_em: string; status: string };
 export type Resumo = {
   nome: string;
-  obra: { id: string; nome: string; etapaAtual: string | null } | null;
+  obra: { id: string; nome: string; cidade: string | null; etapaAtual: string | null } | null;
   obras: { id: string; nome: string }[];
   executado: number;
   previsto: number;
@@ -38,7 +38,7 @@ export async function carregarResumo(userId: string): Promise<Resumo> {
   const nome = (perfil.data?.nome ?? '').split(/[\s@]/)[0];
 
   // O RLS já devolve só as obras em que a pessoa é membro.
-  const obras = await supabase.from('obras').select('id, nome').eq('arquivada', false).order('nome');
+  const obras = await supabase.from('obras').select('id, nome, cidade').eq('arquivada', false).order('nome');
   if (obras.error) throw obras.error;
   const listaObras = obras.data ?? [];
   const escolhida = await AsyncStorage.getItem(CHAVE_OBRA).catch(() => null);
@@ -70,8 +70,8 @@ export async function carregarResumo(userId: string): Promise<Resumo> {
   const atual = lista.find((e) => e.status === 'em_andamento') ?? null;
   return {
     nome,
-    obra: { id: obra.id, nome: obra.nome, etapaAtual: atual?.nome ?? null },
-    obras: listaObras,
+    obra: { id: obra.id, nome: obra.nome, cidade: obra.cidade ?? null, etapaAtual: atual?.nome ?? null },
+    obras: listaObras.map(({ id, nome }) => ({ id, nome })),
     ...progresso(lista),
     entregasHoje: (pedidos.data ?? []) as Pedido[],
     ocorrenciasAbertas: ocorrencias.count ?? 0,
