@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { CartaoClima } from '../components/CartaoClima';
 import { Icone } from '../components/Icone';
+import { carregarPrevisao, PrevisaoObra } from '../lib/clima';
 import { carregarResumo, Resumo } from '../lib/dados';
 import { carregarDiariosRecentes, DiarioResumo, hojeISO, pendentes, sincronizar } from '../lib/diario';
 import { supabase } from '../lib/supabase';
@@ -41,6 +43,7 @@ export function Hoje({ userId, onAbrir }: Props) {
   const [naFila, setNaFila] = useState(0);
   const [diarios, setDiarios] = useState<DiarioResumo[]>([]);
   const [aberto, setAberto] = useState<string | null>(null);
+  const [previsao, setPrevisao] = useState<PrevisaoObra | null>(null);
   const hoje = new Date();
 
   const carregar = useCallback(async () => {
@@ -52,6 +55,7 @@ export function Hoje({ userId, onAbrir }: Props) {
     try {
       const resumo = await carregarResumo(userId);
       setDados(resumo);
+      if (resumo.obra) carregarPrevisao(resumo.obra.cidade).then(setPrevisao, () => {});
       setDiarios(resumo.obra ? await carregarDiariosRecentes(resumo.obra.id).catch(() => []) : []);
     } catch {
       setErro('Não foi possível carregar. Verifique a conexão e puxe para atualizar.');
@@ -149,6 +153,8 @@ export function Hoje({ userId, onAbrir }: Props) {
             </View>
             <Text style={[s.heroLink, { color: t.heroText }]}>Ver cronograma ›</Text>
           </Pressable>
+
+          {previsao && <CartaoClima previsao={previsao} />}
 
           <View style={s.acoes}>
             {acoes.map((a) => (
