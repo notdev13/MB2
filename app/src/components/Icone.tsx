@@ -1,9 +1,11 @@
 import Svg, { Circle, Path } from 'react-native-svg';
 
-type Nome = 'diario' | 'foto' | 'material' | 'ocorrencia' | 'sol' | 'lua' | 'sair' | 'seta' | 'chuva' | 'calendario';
+export type Nome =
+  | 'diario' | 'foto' | 'material' | 'ocorrencia' | 'sol' | 'lua' | 'sair' | 'seta' | 'chuva' | 'calendario'
+  | 'inicio' | 'cronograma' | 'mais' | 'pontos' | 'check' | 'abrir' | 'equipe' | 'chave' | 'nuvem';
 
-export function Icone({ nome, cor, tamanho = 20 }: { nome: Nome; cor: string; tamanho?: number }) {
-  const p = { stroke: cor, strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, fill: 'none' };
+export function Icone({ nome, cor, tamanho = 20, espessura = 1.8 }: { nome: Nome; cor: string; tamanho?: number; espessura?: number }) {
+  const p = { stroke: cor, strokeWidth: espessura, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, fill: 'none' };
   return (
     <Svg width={tamanho} height={tamanho} viewBox="0 0 24 24">
       {nome === 'diario' && (<><Path d="M4 4h12l4 4v12H4z" {...p} /><Path d="M8 12h8M8 16h5" {...p} /></>)}
@@ -16,6 +18,15 @@ export function Icone({ nome, cor, tamanho = 20 }: { nome: Nome; cor: string; ta
       {nome === 'seta' && <Path d="m9 18 6-6-6-6" {...p} />}
       {nome === 'calendario' && (<><Path d="M4 6h16v14H4z" {...p} /><Path d="M4 10h16M8 3v4M16 3v4" {...p} /><Path d="M8 14h.01M12 14h.01M16 14h.01M8 17h.01M12 17h.01" {...p} /></>)}
       {nome === 'chuva' && (<><Path d="M17 17a4 4 0 0 0 0-8 6 6 0 0 0-11.6 2A3.5 3.5 0 0 0 6 17z" {...p} /><Path d="M8 20l1-2M12 21l1-2M16 20l1-2" {...p} /></>)}
+      {nome === 'inicio' && <Path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z" {...p} />}
+      {nome === 'cronograma' && <Path d="M4 6h10M4 12h16M4 18h7" {...p} />}
+      {nome === 'mais' && <Path d="M12 5v14M5 12h14" {...p} />}
+      {nome === 'pontos' && (<><Circle cx="5" cy="12" r="1.2" {...p} /><Circle cx="12" cy="12" r="1.2" {...p} /><Circle cx="19" cy="12" r="1.2" {...p} /></>)}
+      {nome === 'check' && <Path d="M5 12l5 5L20 7" {...p} />}
+      {nome === 'abrir' && <Path d="M6 9l6 6 6-6" {...p} />}
+      {nome === 'equipe' && (<><Circle cx="9" cy="8" r="3.5" {...p} /><Path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" {...p} /><Path d="M16 4.5a3.5 3.5 0 0 1 0 7M21 20c0-2.6-1.6-4.8-4-5.6" {...p} /></>)}
+      {nome === 'chave' && (<><Circle cx="8" cy="15" r="4" {...p} /><Path d="M11 12l9-9M17 6l3 3" {...p} /></>)}
+      {nome === 'nuvem' && <Path d="M17 18a4 4 0 0 0 0-8 6 6 0 0 0-11.6 2A3.5 3.5 0 0 0 6 18z" {...p} />}
     </Svg>
   );
 }

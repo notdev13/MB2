@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { ConvitePublico, ErroAcesso, formatarCodigo, FUNCOES, limparCodigo, verConvite } from '../lib/acesso';
 import { supabase } from '../lib/supabase';
-import { useTema } from '../theme';
+import { Marca } from '../components/Marca';
+import { fonte, useTema } from '../theme';
 
 export function Login({ codigoInicial }: { codigoInicial?: string | null }) {
   const { t } = useTema();
@@ -119,10 +120,9 @@ export function Login({ codigoInicial }: { codigoInicial?: string | null }) {
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[s.tela, { backgroundColor: t.bg }]}>
       <View style={s.conteudo}>
         <View style={s.marca}>
-          <View style={[s.quadrado, { backgroundColor: t.orange }]} />
-          <Text style={[s.mb2, { color: t.text }]}>MB2 <Text style={{ fontWeight: '300', color: t.muted }}>Obras</Text></Text>
+          <Marca grande />
         </View>
-        <Text style={[s.titulo, { color: t.text }]}>{criando ? 'Crie sua conta' : 'Entre para acompanhar suas obras'}</Text>
+        <Text style={[s.titulo, { color: t.text, fontFamily: fonte.tituloLeve }]}>{criando ? 'Crie sua conta' : 'Entre para acompanhar suas obras'}</Text>
 
         {criando && (
           <>
@@ -213,7 +213,7 @@ const s = StyleSheet.create({
   marca: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
   quadrado: { width: 18, height: 18, borderRadius: 4 },
   mb2: { fontSize: 20, fontWeight: '600' },
-  titulo: { fontSize: 28, fontWeight: '300', marginBottom: 24 },
+  titulo: { fontSize: 34, lineHeight: 38, marginBottom: 24 },
   rotulo: { fontSize: 13, fontWeight: '600', marginTop: 8 },
   campo: { height: 52, borderWidth: 1, borderRadius: 14, paddingHorizontal: 14, fontSize: 16 },
   erro: { fontSize: 14, marginTop: 8 },

@@ -36,7 +36,8 @@
           "cameraPermission": "O MB2 Obras usa a câmera para registrar fotos da obra no diário.",
           "microphonePermission": false
         }
-      ]
+      ],
+      "expo-font"
     ]
   }
 }

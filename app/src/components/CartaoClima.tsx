@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { PrevisaoObra } from '../lib/clima';
-import { useTema } from '../theme';
+import { fonte, useTema } from '../theme';
 import { Icone } from './Icone';
 
 const horaCurta = (ms: number) => `${new Date(ms).getHours()}h`;
@@ -11,7 +11,7 @@ export function CartaoClima({ previsao: p }: { previsao: PrevisaoObra }) {
   const amanha = p.amanha && `Amanhã: ${p.amanha.condicao}${p.amanha.prob != null ? `, ${p.amanha.prob}%` : ''}`;
   return (
     <View
-      style={[s.cartao, { backgroundColor: t.surface }]}
+      style={[s.cartao, { backgroundColor: t.surface, borderColor: t.border }]}
       accessible
       accessibilityLabel={`Previsão do tempo. Hoje ${p.agora} graus, máxima ${p.max}, mínima ${p.min}, ${p.condicao}.`}
     >
@@ -40,12 +40,12 @@ export function CartaoClima({ previsao: p }: { previsao: PrevisaoObra }) {
 }
 
 const s = StyleSheet.create({
-  cartao: { borderRadius: 18, padding: 16, gap: 8 },
+  cartao: { borderRadius: 18, borderWidth: 1, padding: 16, gap: 8 },
   linha: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   icone: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  temp: { fontSize: 15, fontWeight: '600' },
-  faixa: { fontSize: 13, fontWeight: '400' },
-  sub: { fontSize: 13 },
-  alerta: { borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, fontSize: 14, fontWeight: '500', overflow: 'hidden' },
-  fonte: { fontSize: 11 },
+  temp: { fontSize: 15, fontFamily: fonte.forte },
+  faixa: { fontSize: 13, fontFamily: fonte.texto },
+  sub: { fontSize: 13, fontFamily: fonte.texto },
+  alerta: { borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, fontSize: 14, fontFamily: fonte.media, overflow: 'hidden' },
+  fonte: { fontSize: 11, fontFamily: fonte.texto },
 });

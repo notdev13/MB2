@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, TextInputProps, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTema } from '../theme';
+import { fonte, useTema } from '../theme';
 
 // Estrutura comum das telas de registro: topo com Voltar, conteúdo rolável e botão fixo embaixo.
 export function TelaRegistro(props: {
@@ -122,28 +122,28 @@ export function BotaoPequeno(props: { rotulo: string; onPress: () => void; tom?:
 export const estilos = StyleSheet.create({
   cartao: { borderRadius: 16, overflow: 'hidden' },
   linha: { paddingHorizontal: 16, paddingVertical: 14, gap: 6 },
-  item: { fontSize: 15, fontWeight: '600' },
-  sub: { fontSize: 13 },
-  etiqueta: { fontSize: 12, fontWeight: '700', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, overflow: 'hidden', alignSelf: 'flex-start' },
+  item: { fontSize: 15, fontFamily: fonte.forte },
+  sub: { fontSize: 13, fontFamily: fonte.texto },
+  etiqueta: { fontSize: 12, fontFamily: fonte.negrito, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, overflow: 'hidden', alignSelf: 'flex-start' },
   acoes: { flexDirection: 'row', gap: 8, marginTop: 4 },
 });
 
 const s = StyleSheet.create({
   topo: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingBottom: 8 },
   voltar: { minWidth: 80, minHeight: 44, justifyContent: 'center', paddingHorizontal: 8 },
-  voltarTexto: { fontSize: 16, fontWeight: '600' },
-  topoTitulo: { fontSize: 16, fontWeight: '700' },
-  sub: { fontSize: 13 },
+  voltarTexto: { fontSize: 16, fontFamily: fonte.forte },
+  topoTitulo: { fontSize: 22, lineHeight: 26, fontFamily: fonte.titulo },
+  sub: { fontSize: 13, fontFamily: fonte.texto },
   conteudo: { padding: 20, gap: 10, paddingBottom: 40, maxWidth: 640, width: '100%', alignSelf: 'center' },
-  rotulo: { fontSize: 13, fontWeight: '700', letterSpacing: 0.8, marginTop: 10 },
-  campo: { borderWidth: 1, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, minHeight: 48 },
+  rotulo: { fontSize: 13, fontFamily: fonte.negrito, letterSpacing: 0.8, marginTop: 10 },
+  campo: { borderWidth: 1, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, fontFamily: fonte.texto, minHeight: 48 },
   campoAlto: { minHeight: 96, textAlignVertical: 'top' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { minHeight: 44, paddingHorizontal: 16, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  chipTexto: { fontSize: 15, fontWeight: '700' },
+  chipTexto: { fontSize: 15, fontFamily: fonte.negrito },
   pequeno: { minHeight: 44, paddingHorizontal: 16, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  pequenoTexto: { fontSize: 14, fontWeight: '700' },
+  pequenoTexto: { fontSize: 14, fontFamily: fonte.negrito },
   rodape: { paddingHorizontal: 20, paddingTop: 12, borderTopWidth: 1 },
   botao: { height: 54, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  botaoTexto: { fontSize: 17, fontWeight: '700' },
+  botaoTexto: { fontSize: 17, fontFamily: fonte.negrito },
 });
