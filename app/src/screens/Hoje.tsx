@@ -3,6 +3,7 @@ import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, StyleS
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icone } from '../components/Icone';
 import { carregarResumo, Resumo } from '../lib/dados';
+import { pendentes, sincronizar } from '../lib/diario';
 import { supabase } from '../lib/supabase';
 import { useTema } from '../theme';
 
@@ -15,16 +16,23 @@ function saudacao(d: Date) {
 }
 const hora = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-export function Hoje({ userId }: { userId: string }) {
+type Props = { userId: string; onAbrirDiario: (obraId: string, obraNome: string) => void };
+
+export function Hoje({ userId, onAbrirDiario }: Props) {
   const { t, escuro, alternar } = useTema();
   const insets = useSafeAreaInsets();
   const [dados, setDados] = useState<Resumo | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [atualizando, setAtualizando] = useState(false);
+  const [naFila, setNaFila] = useState(0);
   const hoje = new Date();
 
   const carregar = useCallback(async () => {
     setErro(null);
+    try {
+      await sincronizar();
+    } catch {}
+    setNaFila(await pendentes());
     try {
       setDados(await carregarResumo(userId));
     } catch {
@@ -124,7 +132,9 @@ export function Hoje({ userId }: { userId: string }) {
             {acoes.map((a) => (
               <Pressable
                 key={a.nome}
-                onPress={() => emBreve(a.rotulo)}
+                onPress={() =>
+                  a.nome === 'diario' && dados.obra ? onAbrirDiario(dados.obra.id, dados.obra.nome) : emBreve(a.rotulo)
+                }
                 accessibilityRole="button"
                 style={[s.acao, { backgroundColor: t.surface }]}
               >
@@ -135,6 +145,12 @@ export function Hoje({ userId }: { userId: string }) {
               </Pressable>
             ))}
           </View>
+
+          {naFila > 0 && (
+            <Text style={[s.aviso, { backgroundColor: t.warnBg, color: t.warnText }]}>
+              {naFila === 1 ? '1 diário' : `${naFila} diários`} salvo no aparelho, esperando sinal para enviar.
+            </Text>
+          )}
 
           {dados.ocorrenciasAbertas > 0 && (
             <Text style={[s.aviso, { backgroundColor: t.warnBg, color: t.warnText }]}>

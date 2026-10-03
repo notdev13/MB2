@@ -23,6 +23,16 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "scheme": "mb2obras"
+    "scheme": "mb2obras",
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "O MB2 Obras usa suas fotos para anexar ao diário da obra.",
+          "cameraPermission": "O MB2 Obras usa a câmera para registrar fotos da obra no diário.",
+          "microphonePermission": false
+        }
+      ]
+    ]
   }
 }
