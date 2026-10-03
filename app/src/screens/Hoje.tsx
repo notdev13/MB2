@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icone } from '../components/Icone';
 import { carregarResumo, Resumo } from '../lib/dados';
@@ -29,9 +29,10 @@ function rotuloDia(iso: string) {
 
 const hora = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-type Props = { userId: string; onAbrirDiario: (obraId: string, obraNome: string) => void };
+export type TelaObra = 'diario' | 'material' | 'ocorrencia';
+type Props = { userId: string; onAbrir: (tela: TelaObra, obraId: string, obraNome: string) => void };
 
-export function Hoje({ userId, onAbrirDiario }: Props) {
+export function Hoje({ userId, onAbrir }: Props) {
   const { t, escuro, alternar } = useTema();
   const insets = useSafeAreaInsets();
   const [dados, setDados] = useState<Resumo | null>(null);
@@ -60,8 +61,6 @@ export function Hoje({ userId, onAbrirDiario }: Props) {
   useEffect(() => {
     carregar();
   }, [carregar]);
-
-  const emBreve = (o: string) => Alert.alert(o, 'Essa tela entra na próxima versão.');
 
   const acoes = [
     { nome: 'diario' as const, rotulo: 'Diário', alerta: false },
@@ -149,9 +148,7 @@ export function Hoje({ userId, onAbrirDiario }: Props) {
             {acoes.map((a) => (
               <Pressable
                 key={a.nome}
-                onPress={() =>
-                  a.nome === 'diario' && dados.obra ? onAbrirDiario(dados.obra.id, dados.obra.nome) : emBreve(a.rotulo)
-                }
+                onPress={() => dados.obra && onAbrir(a.nome === 'foto' ? 'diario' : a.nome, dados.obra.id, dados.obra.nome)}
                 accessibilityRole="button"
                 style={[s.acao, { backgroundColor: t.surface }]}
               >
@@ -170,9 +167,11 @@ export function Hoje({ userId, onAbrirDiario }: Props) {
           )}
 
           {dados.ocorrenciasAbertas > 0 && (
-            <Text style={[s.aviso, { backgroundColor: t.warnBg, color: t.warnText }]}>
-              {dados.ocorrenciasAbertas === 1 ? '1 ocorrência aberta nesta obra.' : `${dados.ocorrenciasAbertas} ocorrências abertas nesta obra.`}
-            </Text>
+            <Pressable onPress={() => onAbrir('ocorrencia', dados.obra!.id, dados.obra!.nome)} accessibilityRole="button">
+              <Text style={[s.aviso, { backgroundColor: t.warnBg, color: t.warnText }]}>
+                {dados.ocorrenciasAbertas === 1 ? '1 ocorrência aberta nesta obra.' : `${dados.ocorrenciasAbertas} ocorrências abertas nesta obra.`} Toque para ver.
+              </Text>
+            </Pressable>
           )}
 
           <Text style={[s.secao, { color: t.text }]}>Entregas de hoje</Text>
@@ -225,7 +224,7 @@ export function Hoje({ userId, onAbrirDiario }: Props) {
                   <View style={s.diarioTopo}>
                     <Text style={[s.item, { color: t.text }]}>{rotuloDia(d.data)}</Text>
                     {ehHoje && dados.obra && (
-                      <Pressable onPress={() => onAbrirDiario(dados.obra!.id, dados.obra!.nome)} accessibilityRole="button" hitSlop={10}>
+                      <Pressable onPress={() => onAbrir('diario', dados.obra!.id, dados.obra!.nome)} accessibilityRole="button" hitSlop={10}>
                         <Text style={[s.editar, { color: t.accentText }]}>Editar</Text>
                       </Pressable>
                     )}
