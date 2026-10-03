@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icone } from '../components/Icone';
 import { carregarResumo, Resumo } from '../lib/dados';
-import { pendentes, sincronizar } from '../lib/diario';
+import { carregarDiariosRecentes, DiarioResumo, hojeISO, pendentes, sincronizar } from '../lib/diario';
 import { supabase } from '../lib/supabase';
 import { useTema } from '../theme';
 
@@ -14,6 +14,19 @@ function saudacao(d: Date) {
   const h = d.getHours();
   return h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite';
 }
+const CLIMA = { sol: 'Sol', nublado: 'Nublado', chuva: 'Chuva' } as const;
+
+function rotuloDia(iso: string) {
+  const hoje = new Date();
+  const ontem = new Date(hoje);
+  ontem.setDate(hoje.getDate() - 1);
+  if (iso === hojeISO(hoje)) return 'Hoje';
+  if (iso === hojeISO(ontem)) return 'Ontem';
+  const [a, m, d] = iso.split('-').map(Number);
+  const data = new Date(a, m - 1, d);
+  return `${DIAS[data.getDay()]}, ${d} de ${MESES[m - 1]}`;
+}
+
 const hora = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
 type Props = { userId: string; onAbrirDiario: (obraId: string, obraNome: string) => void };
@@ -25,6 +38,8 @@ export function Hoje({ userId, onAbrirDiario }: Props) {
   const [erro, setErro] = useState<string | null>(null);
   const [atualizando, setAtualizando] = useState(false);
   const [naFila, setNaFila] = useState(0);
+  const [diarios, setDiarios] = useState<DiarioResumo[]>([]);
+  const [aberto, setAberto] = useState<string | null>(null);
   const hoje = new Date();
 
   const carregar = useCallback(async () => {
@@ -34,7 +49,9 @@ export function Hoje({ userId, onAbrirDiario }: Props) {
     } catch {}
     setNaFila(await pendentes());
     try {
-      setDados(await carregarResumo(userId));
+      const resumo = await carregarResumo(userId);
+      setDados(resumo);
+      setDiarios(resumo.obra ? await carregarDiariosRecentes(resumo.obra.id).catch(() => []) : []);
     } catch {
       setErro('Não foi possível carregar. Verifique a conexão e puxe para atualizar.');
     }
@@ -185,6 +202,51 @@ export function Hoje({ userId, onAbrirDiario }: Props) {
               </View>
             ))}
           </View>
+
+          <Text style={[s.secao, { color: t.text }]}>Últimos diários</Text>
+          <View style={[s.cartao, { backgroundColor: t.surface, padding: 0 }]}>
+            {diarios.length === 0 && (
+              <Text style={[s.sub, { color: t.muted, padding: 16 }]}>Nenhum diário registrado ainda. Toque em Diário para fazer o de hoje.</Text>
+            )}
+            {diarios.map((d, i) => {
+              const ehHoje = d.data === hojeISO();
+              const expandido = aberto === d.id;
+              const detalhes = [d.clima && CLIMA[d.clima], d.efetivoTotal > 0 && `${d.efetivoTotal} ${d.efetivoTotal === 1 ? 'pessoa' : 'pessoas'}`, d.fotos.length > 0 && `${d.fotos.length} ${d.fotos.length === 1 ? 'foto' : 'fotos'}`]
+                .filter(Boolean)
+                .join(' · ');
+              return (
+                <Pressable
+                  key={d.id}
+                  onPress={() => setAberto(expandido ? null : d.id)}
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: expandido }}
+                  style={[s.diario, i > 0 && { borderTopWidth: 1, borderTopColor: t.divider }]}
+                >
+                  <View style={s.diarioTopo}>
+                    <Text style={[s.item, { color: t.text }]}>{rotuloDia(d.data)}</Text>
+                    {ehHoje && dados.obra && (
+                      <Pressable onPress={() => onAbrirDiario(dados.obra!.id, dados.obra!.nome)} accessibilityRole="button" hitSlop={10}>
+                        <Text style={[s.editar, { color: t.accentText }]}>Editar</Text>
+                      </Pressable>
+                    )}
+                  </View>
+                  {!!detalhes && <Text style={[s.sub, { color: t.muted }]}>{detalhes}</Text>}
+                  {!!d.atividades && (
+                    <Text style={[s.corpo, { color: t.text }]} numberOfLines={expandido ? undefined : 2}>
+                      {d.atividades}
+                    </Text>
+                  )}
+                  {d.fotos.length > 0 && (
+                    <View style={s.miniaturas}>
+                      {(expandido ? d.fotos : d.fotos.slice(0, 4)).map((url) => (
+                        <Image key={url} source={{ uri: url }} style={[expandido ? s.fotoGrande : s.miniatura, { backgroundColor: t.divider }]} />
+                      ))}
+                    </View>
+                  )}
+                </Pressable>
+              );
+            })}
+          </View>
         </>
       )}
     </ScrollView>
@@ -221,5 +283,12 @@ const s = StyleSheet.create({
   hora: { width: 52, fontSize: 15, fontWeight: '700' },
   item: { fontSize: 15, fontWeight: '600' },
   sub: { fontSize: 13 },
+  diario: { paddingHorizontal: 16, paddingVertical: 14, gap: 6 },
+  diarioTopo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  editar: { fontSize: 15, fontWeight: '600' },
+  corpo: { fontSize: 15, lineHeight: 21 },
+  miniaturas: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
+  miniatura: { width: 64, height: 64, borderRadius: 10 },
+  fotoGrande: { width: '100%', aspectRatio: 4 / 3, borderRadius: 12 },
   chip: { fontSize: 12, fontWeight: '700', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, overflow: 'hidden' },
 });
