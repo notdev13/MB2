@@ -6,7 +6,7 @@ import { Icone } from '../components/Icone';
 import { carregarDiarioDoDia, Clima, Efetivo, guardarFoto, hojeISO, novoId, salvarDiario } from '../lib/diario';
 import { useTema } from '../theme';
 
-const FUNCOES = ['Pedreiros', 'Serventes', 'Carpinteiros', 'Armadores', 'Eletricistas', 'Encanadores'];
+const FUNCOES = ['Pedreiros', 'Serventes', 'Pintores', 'Armadores', 'Eletricistas', 'Encanadores'];
 const CLIMAS: { valor: Clima; rotulo: string }[] = [
   { valor: 'sol', rotulo: 'Sol' },
   { valor: 'nublado', rotulo: 'Nublado' },
@@ -134,7 +134,7 @@ export function Diario({ obraId, obraNome, onVoltar }: Props) {
               value={novaFuncao}
               onChangeText={setNovaFuncao}
               onSubmitEditing={adicionarFuncao}
-              placeholder="Outra função (ex.: Pintores)"
+              placeholder="Outra função (ex.: Carpinteiros)"
               placeholderTextColor={t.muted}
               style={[s.funcao, { color: t.text, paddingVertical: 10 }]}
               accessibilityLabel="Nova função"
