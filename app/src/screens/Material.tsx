@@ -1,29 +1,28 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Calendario } from '../components/Calendario';
+import { Icone } from '../components/Icone';
 import { BotaoPequeno, Campo, Escolha, estilos, Rotulo, TelaRegistro } from '../components/Form';
 import { criarPedido, listarPedidos, mudarStatusPedido, Pedido, podeAprovar, StatusPedido } from '../lib/obra';
 import { useTema } from '../theme';
 
 const UNIDADES = ['sacos', 'm³', 'un', 'kg', 'm', 'barras', 'latas'].map((u) => ({ valor: u, rotulo: u }));
-const DIAS = [
-  { valor: '0', rotulo: 'Hoje' },
-  { valor: '1', rotulo: 'Amanhã' },
-  { valor: '2', rotulo: 'Depois de amanhã' },
-  { valor: 'x', rotulo: 'Sem data' },
-];
 const PERIODOS = [
   { valor: '8', rotulo: 'Manhã (8h)' },
   { valor: '13', rotulo: 'Tarde (13h)' },
 ];
 const STATUS: Record<StatusPedido, string> = { solicitado: 'Aguardando aprovação', aprovado: 'Aprovado', recusado: 'Recusado', entregue: 'Entregue' };
 
-function dataEntrega(dia: string, periodo: string) {
-  if (dia === 'x') return null;
-  const d = new Date();
-  d.setDate(d.getDate() + Number(dia));
+function dataEntrega(dia: Date | null, periodo: string) {
+  if (!dia) return null;
+  const d = new Date(dia);
   d.setHours(Number(periodo), 0, 0, 0);
   return d;
 }
+
+const SEMANA = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+const dataPorExtenso = (d: Date) => `${SEMANA[d.getDay()]}, ${d.getDate()} de ${MESES[d.getMonth()]}`;
 
 function quando(iso: string | null) {
   if (!iso) return 'Sem data de entrega';
@@ -39,7 +38,8 @@ export function Material({ obraId, obraNome, onVoltar }: Props) {
   const [quantidade, setQuantidade] = useState('');
   const [unidade, setUnidade] = useState<string>('sacos');
   const [fornecedor, setFornecedor] = useState('');
-  const [dia, setDia] = useState('1');
+  const [dia, setDia] = useState<Date | null>(null);
+  const [calendario, setCalendario] = useState(false);
   const [periodo, setPeriodo] = useState('8');
   const [salvando, setSalvando] = useState(false);
   const [pedidos, setPedidos] = useState<Pedido[] | null>(null);
@@ -96,8 +96,21 @@ export function Material({ obraId, obraNome, onVoltar }: Props) {
       <Escolha opcoes={UNIDADES} valor={unidade} onMudar={setUnidade} />
 
       <Rotulo>ENTREGA</Rotulo>
-      <Escolha opcoes={DIAS} valor={dia} onMudar={setDia} />
-      {dia !== 'x' && <Escolha opcoes={PERIODOS} valor={periodo} onMudar={setPeriodo} />}
+      <Pressable
+        onPress={() => setCalendario(true)}
+        accessibilityRole="button"
+        accessibilityLabel={dia ? `Data de entrega: ${dataPorExtenso(dia)}. Toque para mudar` : 'Escolher data de entrega'}
+        style={[s.data, { backgroundColor: t.surface, borderColor: dia ? t.accent : t.border }]}
+      >
+        <Icone nome="calendario" cor={t.accentText} tamanho={22} />
+        <View style={{ flex: 1 }}>
+          <Text style={[s.dataTitulo, { color: t.text }]}>{dia ? dataPorExtenso(dia) : 'Data de entrega'}</Text>
+          <Text style={[estilos.sub, { color: t.muted }]}>{dia ? 'Toque para mudar' : 'Toque para escolher no calendário'}</Text>
+        </View>
+        <Icone nome="seta" cor={t.muted} />
+      </Pressable>
+      {dia && <Escolha opcoes={PERIODOS} valor={periodo} onMudar={setPeriodo} />}
+      <Calendario visivel={calendario} valor={dia} onEscolher={setDia} onFechar={() => setCalendario(false)} />
 
       <Rotulo>FORNECEDOR (OPCIONAL)</Rotulo>
       <Campo value={fornecedor} onChangeText={setFornecedor} placeholder="Ex.: Casa do Construtor" accessibilityLabel="Fornecedor" />
@@ -140,3 +153,8 @@ export function Material({ obraId, obraNome, onVoltar }: Props) {
     </TelaRegistro>
   );
 }
+
+const s = StyleSheet.create({
+  data: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1.5, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, minHeight: 56 },
+  dataTitulo: { fontSize: 16, fontWeight: '600' },
+});
