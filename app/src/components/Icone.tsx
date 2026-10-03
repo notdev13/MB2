@@ -1,6 +1,6 @@
 import Svg, { Circle, Path } from 'react-native-svg';
 
-type Nome = 'diario' | 'foto' | 'material' | 'ocorrencia' | 'sol' | 'lua' | 'sair' | 'seta' | 'chuva';
+type Nome = 'diario' | 'foto' | 'material' | 'ocorrencia' | 'sol' | 'lua' | 'sair' | 'seta' | 'chuva' | 'calendario';
 
 export function Icone({ nome, cor, tamanho = 20 }: { nome: Nome; cor: string; tamanho?: number }) {
   const p = { stroke: cor, strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, fill: 'none' };
@@ -14,6 +14,7 @@ export function Icone({ nome, cor, tamanho = 20 }: { nome: Nome; cor: string; ta
       {nome === 'lua' && <Path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" {...p} />}
       {nome === 'sair' && (<><Path d="M15 4h4v16h-4" {...p} /><Path d="M10 8l-4 4 4 4M6 12h10" {...p} /></>)}
       {nome === 'seta' && <Path d="m9 18 6-6-6-6" {...p} />}
+      {nome === 'calendario' && (<><Path d="M4 6h16v14H4z" {...p} /><Path d="M4 10h16M8 3v4M16 3v4" {...p} /><Path d="M8 14h.01M12 14h.01M16 14h.01M8 17h.01M12 17h.01" {...p} /></>)}
       {nome === 'chuva' && (<><Path d="M17 17a4 4 0 0 0 0-8 6 6 0 0 0-11.6 2A3.5 3.5 0 0 0 6 17z" {...p} /><Path d="M8 20l1-2M12 21l1-2M16 20l1-2" {...p} /></>)}
     </Svg>
   );
