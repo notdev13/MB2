@@ -31,7 +31,7 @@ function rotuloDia(iso: string) {
 
 const hora = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-export type TelaObra = 'diario' | 'material' | 'ocorrencia';
+export type TelaObra = 'obra' | 'diario' | 'material' | 'ocorrencia';
 type Props = { userId: string; onAbrir: (tela: TelaObra, obraId: string, obraNome: string) => void };
 
 export function Hoje({ userId, onAbrir }: Props) {
@@ -134,7 +134,12 @@ export function Hoje({ userId, onAbrir }: Props) {
 
       {dados?.obra && (
         <>
-          <View style={[s.hero, { backgroundColor: t.hero, borderColor: t.heroBorder }]}>
+          <Pressable
+            onPress={() => onAbrir('obra', dados.obra!.id, dados.obra!.nome)}
+            accessibilityRole="button"
+            accessibilityLabel={`${dados.obra.nome}. Ver cronograma`}
+            style={[s.hero, { backgroundColor: t.hero, borderColor: t.heroBorder }]}
+          >
             <Text style={[s.heroRotulo, { color: t.heroText }]}>OBRA ATIVA</Text>
             <Text style={[s.heroNome, { color: t.heroText }]}>{dados.obra.nome}</Text>
             {dados.obra.etapaAtual && <Text style={[s.heroEtapa, { color: t.heroText }]}>{dados.obra.etapaAtual}</Text>}
@@ -146,7 +151,8 @@ export function Hoje({ userId, onAbrir }: Props) {
               <View style={[s.barra, { width: `${dados.executado}%`, backgroundColor: t.heroBar }]} />
               <View style={[s.marcador, { left: `${dados.previsto}%`, backgroundColor: t.orange }]} />
             </View>
-          </View>
+            <Text style={[s.heroLink, { color: t.heroText }]}>Ver cronograma ›</Text>
+          </Pressable>
 
           {previsao && <CartaoClima previsao={previsao} />}
 
@@ -273,6 +279,7 @@ const s = StyleSheet.create({
   heroNome: { fontSize: 20, fontWeight: '700' },
   heroEtapa: { fontSize: 14, opacity: 0.85 },
   heroLinha: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
+  heroLink: { fontSize: 14, fontWeight: '600', marginTop: 10 },
   heroNum: { fontSize: 13, fontWeight: '600' },
   trilha: { height: 8, borderRadius: 4, marginTop: 6 },
   barra: { position: 'absolute', left: 0, top: 0, bottom: 0, borderRadius: 4 },
