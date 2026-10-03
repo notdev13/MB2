@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { supabase } from './src/lib/supabase';
+import { Diario } from './src/screens/Diario';
 import { Hoje } from './src/screens/Hoje';
 import { Login } from './src/screens/Login';
 import { TemaProvider, useTema } from './src/theme';
@@ -11,6 +12,7 @@ import { TemaProvider, useTema } from './src/theme';
 function Raiz() {
   const { t, escuro } = useTema();
   const [sessao, setSessao] = useState<Session | null | undefined>(undefined);
+  const [diario, setDiario] = useState<{ obraId: string; obraNome: string } | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSessao(data.session));
@@ -23,8 +25,10 @@ function Raiz() {
       <StatusBar style={escuro ? 'light' : 'dark'} />
       {sessao === undefined ? (
         <ActivityIndicator style={{ flex: 1 }} color={t.accentText} />
+      ) : sessao && diario ? (
+        <Diario obraId={diario.obraId} obraNome={diario.obraNome} onVoltar={() => setDiario(null)} />
       ) : sessao ? (
-        <Hoje userId={sessao.user.id} />
+        <Hoje userId={sessao.user.id} onAbrirDiario={(obraId, obraNome) => setDiario({ obraId, obraNome })} />
       ) : (
         <Login />
       )}
