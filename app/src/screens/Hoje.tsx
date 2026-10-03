@@ -1,16 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ALTURA_ABAS, Folha, ItemFolha } from '../components/Abas';
 import { CartaoClima } from '../components/CartaoClima';
-import { Icone } from '../components/Icone';
+import { Icone, Nome } from '../components/Icone';
+import { Marca } from '../components/Marca';
 import { carregarPrevisao, PrevisaoObra } from '../lib/clima';
-import { carregarResumo, lembrarObra, Resumo } from '../lib/dados';
+import { carregarResumo, diasDeFolga, lembrarObra, Resumo } from '../lib/dados';
 import { carregarDiariosRecentes, DiarioResumo, hojeISO, pendentes, sincronizar } from '../lib/diario';
-import { supabase } from '../lib/supabase';
-import { useTema } from '../theme';
+import { fonte, Tema, useTema } from '../theme';
 
 const DIAS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+const MESES_CURTOS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 
 function saudacao(d: Date) {
   const h = d.getHours();
@@ -29,18 +31,36 @@ function rotuloDia(iso: string) {
   return `${DIAS[data.getDay()]}, ${d} de ${MESES[m - 1]}`;
 }
 
-const hora = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+const hora = (iso: string) => `${new Date(iso).getHours()}h${String(new Date(iso).getMinutes()).padStart(2, '0').replace(/^00$/, '')}`;
+const mesAno = (iso: string) => {
+  const [a, m] = iso.split('-').map(Number);
+  return `${MESES_CURTOS[m - 1]}/${a}`;
+};
+const plural = (n: number, um: string, varios: string) => (n === 1 ? `1 ${um}` : `${n} ${varios}`);
+
+// Selo do prazo em linguagem simples. Folga de até 1 dia conta como "no prazo".
+function seloPrazo(executado: number, previsto: number, folga: number | null) {
+  if (folga === null) return executado >= previsto ? { texto: 'No prazo', alerta: false } : { texto: 'Abaixo do previsto', alerta: true };
+  if (folga > 1) return { texto: `${folga} dias adiantada`, alerta: false };
+  if (folga < -1) return { texto: `${-folga} dias atrasada`, alerta: true };
+  return { texto: 'No prazo', alerta: false };
+}
 
 export type TelaObra = 'obra' | 'diario' | 'material' | 'ocorrencia' | 'equipe';
 type Props = {
   userId: string;
-  onAbrir: (tela: TelaObra, obraId: string, obraNome: string) => void;
+  versao: number; // muda ao voltar de um registro: recarrega
+  onAbrir: (tela: TelaObra) => void;
+  onObra: (obra: { id: string; nome: string } | null) => void;
+  onPerfil: () => void;
   // Só para a diretoria: contas e convites.
   acessos?: { pendentes: number; abrir: () => void };
 };
 
-export function Hoje({ userId, onAbrir, acessos }: Props) {
-  const { t, escuro, alternar } = useTema();
+type Pendencia = { chave: string; icone: Nome; titulo: string; sub: string; alerta: boolean; onPress: () => void };
+
+export function Hoje({ userId, versao, onAbrir, onObra, onPerfil, acessos }: Props) {
+  const { t } = useTema();
   const insets = useSafeAreaInsets();
   const [dados, setDados] = useState<Resumo | null>(null);
   const [erro, setErro] = useState<string | null>(null);
@@ -70,7 +90,13 @@ export function Hoje({ userId, onAbrir, acessos }: Props) {
 
   useEffect(() => {
     carregar();
-  }, [carregar]);
+  }, [carregar, versao]);
+
+  const obraId = dados?.obra?.id;
+  const obraNome = dados?.obra?.nome;
+  useEffect(() => {
+    if (dados) onObra(obraId && obraNome ? { id: obraId, nome: obraNome } : null);
+  }, [dados, obraId, obraNome, onObra]);
 
   async function trocarObra(id: string) {
     setEscolhendoObra(false);
@@ -83,306 +109,399 @@ export function Hoje({ userId, onAbrir, acessos }: Props) {
     await carregar();
   }
 
-  const acoes = [
-    { nome: 'diario' as const, rotulo: 'Diário', alerta: false },
-    { nome: 'foto' as const, rotulo: 'Foto', alerta: false },
-    { nome: 'material' as const, rotulo: 'Material', alerta: false },
-    { nome: 'ocorrencia' as const, rotulo: 'Ocorrência', alerta: true },
-  ];
+  const obra = dados?.obra;
+  const folga = obra ? diasDeFolga(dados.executado, dados.previsto, obra.inicio, obra.termino) : null;
+  const selo = dados && seloPrazo(dados.executado, dados.previsto, folga);
+  const diarioDeHojeFeito = diarios.some((d) => d.data === hojeISO());
+
+  // O que pede ação de quem abriu o app, do mais urgente ao menos.
+  const pendencias: Pendencia[] = [];
+  if (obra && dados.ocorrenciasAbertas > 0) {
+    pendencias.push({
+      chave: 'ocorrencias',
+      icone: 'ocorrencia',
+      titulo: plural(dados.ocorrenciasAbertas, 'ocorrência aberta', 'ocorrências abertas'),
+      sub: 'Nesta obra',
+      alerta: true,
+      onPress: () => onAbrir('ocorrencia'),
+    });
+  }
+  if (acessos && acessos.pendentes > 0) {
+    pendencias.push({
+      chave: 'contas',
+      icone: 'chave',
+      titulo: plural(acessos.pendentes, 'conta aguardando aprovação', 'contas aguardando aprovação'),
+      sub: 'Contas e convites',
+      alerta: false,
+      onPress: acessos.abrir,
+    });
+  }
+  if (obra && !diarioDeHojeFeito && naFila === 0) {
+    pendencias.push({
+      chave: 'diario',
+      icone: 'diario',
+      titulo: 'Diário de hoje ainda não feito',
+      sub: 'Atividades, efetivo, clima e fotos',
+      alerta: false,
+      onPress: () => onAbrir('diario'),
+    });
+  }
+  if (naFila > 0) {
+    pendencias.push({
+      chave: 'fila',
+      icone: 'nuvem',
+      titulo: `${plural(naFila, 'diário', 'diários')} esperando sinal`,
+      sub: 'Toque para tentar enviar agora',
+      alerta: false,
+      onPress: carregar,
+    });
+  }
 
   return (
-    <ScrollView
-      style={{ backgroundColor: t.bg }}
-      contentContainerStyle={[s.conteudo, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }]}
-      refreshControl={
-        <RefreshControl
-          refreshing={atualizando}
-          tintColor={t.muted}
-          onRefresh={async () => {
-            setAtualizando(true);
-            await carregar();
-            setAtualizando(false);
-          }}
-        />
-      }
-    >
-      <View style={s.topo}>
-        <View style={{ gap: 2, flexShrink: 1 }}>
-          <View style={s.marca}>
-            <View style={[s.quadrado, { backgroundColor: t.orange }]} />
-            <Text style={[s.mb2, { color: t.text }]}>MB2 <Text style={{ fontWeight: '300', color: t.muted }}>Obras</Text></Text>
+    <View style={{ flex: 1 }}>
+      <ScrollView
+        style={{ backgroundColor: t.bg }}
+        contentContainerStyle={[s.conteudo, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + ALTURA_ABAS + 28 }]}
+        refreshControl={
+          <RefreshControl
+            refreshing={atualizando}
+            tintColor={t.muted}
+            onRefresh={async () => {
+              setAtualizando(true);
+              await carregar();
+              setAtualizando(false);
+            }}
+          />
+        }
+      >
+        <View style={s.topo}>
+          <Marca />
+          <Pressable
+            onPress={onPerfil}
+            accessibilityRole="button"
+            accessibilityLabel="Perfil, tema e sair"
+            style={[s.avatar, { borderColor: t.border, backgroundColor: t.surface }]}
+          >
+            <Text style={[s.avatarTexto, { color: t.text }]}>{dados?.nome ? dados.nome.slice(0, 1).toUpperCase() : '·'}</Text>
+          </Pressable>
+        </View>
+
+        <View style={{ gap: 4 }}>
+          <Text style={[s.rotulo, { color: t.muted }]}>
+            {`${DIAS[hoje.getDay()]}, ${hoje.getDate()} de ${MESES[hoje.getMonth()]}`.toUpperCase()}
+          </Text>
+          <Text style={[s.saudacao, { color: t.text }]} accessibilityRole="header">
+            {saudacao(hoje)}
+            {dados?.nome ? `, ${dados.nome}` : ''}.
+          </Text>
+        </View>
+
+        {!dados && !erro && <ActivityIndicator color={t.accentText} style={{ marginTop: 40 }} />}
+        {erro && <Text style={[s.aviso, { backgroundColor: t.warnBg, color: t.warnText }]}>{erro}</Text>}
+
+        {dados && !obra && (
+          <View style={[s.cartao, { backgroundColor: t.surface, borderColor: t.border }]}>
+            <Text style={[s.item, { color: t.text }]}>Você ainda não está em nenhuma obra.</Text>
+            <Text style={[s.sub, { color: t.muted }]}>Peça à diretoria para incluir você na equipe de uma obra.</Text>
           </View>
-          <Text style={[s.data, { color: t.muted }]}>
-            {DIAS[hoje.getDay()]}, {hoje.getDate()} de {MESES[hoje.getMonth()]}
-          </Text>
-          <Text style={[s.titulo, { color: t.text }]}>
-            {saudacao(hoje)}{dados?.nome ? `, ${dados.nome}` : ''}
-          </Text>
-        </View>
-        <View style={s.botoesTopo}>
-          <Pressable
-            onPress={alternar}
-            accessibilityRole="button"
-            accessibilityLabel={escuro ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
-            style={[s.redondo, { borderColor: t.border, backgroundColor: t.surface }]}
-          >
-            <Icone nome={escuro ? 'sol' : 'lua'} cor={t.text} />
-          </Pressable>
-          <Pressable
-            onPress={() => supabase.auth.signOut()}
-            accessibilityRole="button"
-            accessibilityLabel="Sair"
-            style={[s.redondo, { borderColor: t.border, backgroundColor: t.surface }]}
-          >
-            <Icone nome="sair" cor={t.text} />
-          </Pressable>
-        </View>
-      </View>
+        )}
 
-      {!dados && !erro && <ActivityIndicator color={t.accentText} style={{ marginTop: 40 }} />}
-      {erro && <Text style={[s.aviso, { backgroundColor: t.warnBg, color: t.warnText }]}>{erro}</Text>}
+        {dados && obra && selo && (
+          <>
+            <View style={[s.obra, { backgroundColor: t.hero, borderColor: t.heroBorder }]}>
+              <View style={s.obraTopo}>
+                <Text style={[s.rotulo, { color: t.muted }]}>OBRA ATIVA</Text>
+                {dados.obras.length > 1 && (
+                  <Pressable
+                    onPress={() => setEscolhendoObra(true)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Trocar de obra. ${dados.obras.length} obras`}
+                    hitSlop={6}
+                    style={[s.trocar, { borderColor: t.border }]}
+                  >
+                    <Text style={[s.trocarTexto, { color: t.heroText }]}>Trocar</Text>
+                    <Icone nome="abrir" cor={t.heroText} tamanho={14} espessura={2} />
+                  </Pressable>
+                )}
+              </View>
 
-      {acessos && (
-        <Pressable onPress={acessos.abrir} accessibilityRole="button" style={[s.cartao, s.equipe, { backgroundColor: acessos.pendentes > 0 ? t.warnBg : t.surface }]}>
-          <Text style={[s.item, { color: acessos.pendentes > 0 ? t.warnText : t.text, flex: 1 }]}>
-            {acessos.pendentes === 0
-              ? 'Contas e convites'
-              : acessos.pendentes === 1
-                ? '1 conta aguardando aprovação'
-                : `${acessos.pendentes} contas aguardando aprovação`}
-          </Text>
-          <Icone nome="seta" cor={acessos.pendentes > 0 ? t.warnText : t.muted} />
-        </Pressable>
-      )}
+              <View style={{ gap: 2 }}>
+                <Text style={[s.obraNome, { color: t.heroText }]}>{obra.nome}</Text>
+                {obra.etapaAtual && (
+                  <Text style={[s.sub, { color: t.muted, fontSize: 14 }]}>
+                    {obra.etapaNumero ? `Etapa ${obra.etapaNumero} de ${obra.etapasTotal} · ` : ''}
+                    {obra.etapaAtual}
+                  </Text>
+                )}
+              </View>
 
-      {dados && !dados.obra && (
-        <View style={[s.cartao, { backgroundColor: t.surface }]}>
-          <Text style={[s.item, { color: t.text }]}>Você ainda não está em nenhuma obra.</Text>
-          <Text style={[s.sub, { color: t.muted }]}>Peça à diretoria para incluir você na equipe de uma obra.</Text>
-        </View>
-      )}
+              <View style={s.numeros}>
+                <View accessible accessibilityLabel={`${dados.executado} por cento executado`}>
+                  <Text style={[s.percentual, { color: t.heroText }]}>
+                    {dados.executado}
+                    <Text style={[s.percentualSinal, { color: t.bronze }]}>%</Text>
+                  </Text>
+                  <Text style={[s.sub, { color: t.muted, fontSize: 12 }]}>executado</Text>
+                </View>
+                <View style={[s.selo, { backgroundColor: selo.alerta ? t.warnBg : t.okBg }]}>
+                  <Icone nome={selo.alerta ? 'ocorrencia' : 'check'} cor={selo.alerta ? t.warnText : t.okText} tamanho={14} espessura={2.2} />
+                  <Text style={[s.seloTexto, { color: selo.alerta ? t.warnText : t.okText }]}>{selo.texto}</Text>
+                </View>
+              </View>
 
-      {dados?.obra && (
-        <>
-          <Pressable
-            onPress={() => onAbrir('obra', dados.obra!.id, dados.obra!.nome)}
-            accessibilityRole="button"
-            accessibilityLabel={`${dados.obra.nome}. Ver cronograma`}
-            style={[s.hero, { backgroundColor: t.hero, borderColor: t.heroBorder }]}
-          >
-            <View style={s.heroTopo}>
-              <Text style={[s.heroRotulo, { color: t.heroText }]}>OBRA ATIVA</Text>
-              {dados.obras.length > 1 && (
-                <Pressable
-                  onPress={() => setEscolhendoObra(true)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Trocar de obra. ${dados.obras.length} obras`}
-                  hitSlop={8}
-                  style={[s.trocar, { borderColor: t.heroText }]}
+              <View style={{ gap: 8 }}>
+                <View
+                  style={[s.trilha, { backgroundColor: t.heroTrack }]}
+                  accessible
+                  accessibilityLabel={`Executado ${dados.executado}%, previsto para hoje ${dados.previsto}%`}
                 >
-                  <Text style={[s.trocarTexto, { color: t.heroText }]}>Trocar obra ⌄</Text>
+                  <View style={[s.barra, { width: `${dados.executado}%`, backgroundColor: t.heroBar }]} />
+                  <View style={[s.marcador, { left: `${dados.previsto}%`, backgroundColor: t.marcador }]} />
+                </View>
+                <View style={s.legenda}>
+                  <Text style={[s.sub, { color: t.muted, fontSize: 12 }]}>Previsto para hoje: {dados.previsto}%</Text>
+                  {obra.termino && <Text style={[s.sub, { color: t.muted, fontSize: 12 }]}>Entrega: {mesAno(obra.termino)}</Text>}
+                </View>
+              </View>
+
+              <Pressable
+                onPress={() => onAbrir('obra')}
+                accessibilityRole="button"
+                style={({ pressed }) => [s.verCronograma, { borderTopColor: t.border }, pressed && { opacity: 0.7 }]}
+              >
+                <Text style={[s.link, { color: t.accentText }]}>Ver cronograma</Text>
+                <Icone nome="seta" cor={t.accentText} tamanho={16} />
+              </Pressable>
+            </View>
+
+            <View style={{ gap: 10 }}>
+              <View style={s.secaoTopo}>
+                <Text style={[s.rotulo, { color: t.muted }]}>PRECISA DE VOCÊ</Text>
+                {pendencias.length > 0 && (
+                  <View style={[s.contador, { backgroundColor: t.orange }]}>
+                    <Text style={[s.contadorTexto, { color: t.bg }]}>{pendencias.length}</Text>
+                  </View>
+                )}
+              </View>
+              <View style={[s.lista, { backgroundColor: t.surface, borderColor: t.border }]}>
+                {pendencias.length === 0 && (
+                  <View style={s.pendencia}>
+                    <View style={[s.pendenciaIcone, { backgroundColor: t.okBg }]}>
+                      <Icone nome="check" cor={t.okText} />
+                    </View>
+                    <Text style={[s.item, { color: t.text, flex: 1 }]}>Tudo em dia por aqui.</Text>
+                  </View>
+                )}
+                {pendencias.map((p, i) => (
+                  <Pressable
+                    key={p.chave}
+                    onPress={p.onPress}
+                    accessibilityRole="button"
+                    style={({ pressed }) => [s.pendencia, i > 0 && { borderTopWidth: 1, borderTopColor: t.divider }, pressed && { opacity: 0.7 }]}
+                  >
+                    <View style={[s.pendenciaIcone, { backgroundColor: p.alerta ? t.warnBg : t.tint }]}>
+                      <Icone nome={p.icone} cor={p.alerta ? t.warnText : t.accentText} />
+                    </View>
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <Text style={[s.item, { color: t.text }]}>{p.titulo}</Text>
+                      <Text style={[s.sub, { color: t.muted }]}>{p.sub}</Text>
+                    </View>
+                    <Icone nome="seta" cor={t.muted} tamanho={16} />
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+
+            <View style={s.atalhos}>
+              {(
+                [
+                  { nome: 'diario', rotulo: 'Diário', tela: 'diario', alerta: false },
+                  { nome: 'foto', rotulo: 'Foto', tela: 'diario', alerta: false },
+                  { nome: 'material', rotulo: 'Material', tela: 'material', alerta: false },
+                  { nome: 'ocorrencia', rotulo: 'Ocorrência', tela: 'ocorrencia', alerta: true },
+                ] as const
+              ).map((a) => (
+                <Pressable
+                  key={a.nome}
+                  onPress={() => onAbrir(a.tela)}
+                  accessibilityRole="button"
+                  style={({ pressed }) => [s.atalho, { backgroundColor: t.surface, borderColor: t.border }, pressed && { opacity: 0.7 }]}
+                >
+                  <Icone nome={a.nome} cor={a.alerta ? t.orange : t.accentText} tamanho={22} />
+                  <Text style={[s.atalhoTexto, { color: t.text }]}>{a.rotulo}</Text>
                 </Pressable>
+              ))}
+            </View>
+
+            {previsao && <CartaoClima previsao={previsao} />}
+
+            <View style={{ gap: 10 }}>
+              <Text style={[s.rotulo, { color: t.muted }]}>ENTREGAS DE HOJE</Text>
+              {dados.entregasHoje.length === 0 ? (
+                <Text style={[s.sub, { color: t.muted }]}>Nenhuma entrega marcada para hoje.</Text>
+              ) : (
+                <View>
+                  {dados.entregasHoje.map((p, i) => {
+                    const ultima = i === dados.entregasHoje.length - 1;
+                    return (
+                      <View key={p.id} style={s.entrega}>
+                        <View style={s.entregaHora}>
+                          <Text style={[s.horaTexto, { color: t.text }]}>{hora(p.entrega_em)}</Text>
+                          {!ultima && <View style={[s.fio, { backgroundColor: t.border }]} />}
+                        </View>
+                        <View style={[s.entregaCorpo, !ultima && { paddingBottom: 18 }]}>
+                          <View style={{ flex: 1, gap: 2 }}>
+                            <Text style={[s.item, { color: t.text }]}>{p.material}</Text>
+                            <Text style={[s.sub, { color: t.muted }]}>
+                              {p.quantidade} {p.unidade}
+                              {p.fornecedor ? ` · ${p.fornecedor}` : ''}
+                            </Text>
+                          </View>
+                          <EtiquetaEntrega status={p.status} t={t} />
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
               )}
             </View>
-            <Text style={[s.heroNome, { color: t.heroText }]}>{dados.obra.nome}</Text>
-            {dados.obra.etapaAtual && <Text style={[s.heroEtapa, { color: t.heroText }]}>{dados.obra.etapaAtual}</Text>}
-            <View style={s.heroLinha}>
-              <Text style={[s.heroNum, { color: t.heroText }]}>Executado {dados.executado}%</Text>
-              <Text style={[s.heroNum, { color: t.heroText, opacity: 0.8 }]}>Previsto {dados.previsto}%</Text>
-            </View>
-            <View style={[s.trilha, { backgroundColor: t.heroTrack }]}>
-              <View style={[s.barra, { width: `${dados.executado}%`, backgroundColor: t.heroBar }]} />
-              <View style={[s.marcador, { left: `${dados.previsto}%`, backgroundColor: t.orange }]} />
-            </View>
-            <Text style={[s.heroLink, { color: t.heroText }]}>Ver cronograma ›</Text>
-          </Pressable>
 
-          {previsao && <CartaoClima previsao={previsao} />}
-
-          <View style={s.acoes}>
-            {acoes.map((a) => (
-              <Pressable
-                key={a.nome}
-                onPress={() => dados.obra && onAbrir(a.nome === 'foto' ? 'diario' : a.nome, dados.obra.id, dados.obra.nome)}
-                accessibilityRole="button"
-                style={[s.acao, { backgroundColor: t.surface }]}
-              >
-                <View style={[s.acaoIcone, { backgroundColor: a.alerta ? t.warnBg : t.tint }]}>
-                  <Icone nome={a.nome} cor={a.alerta ? t.warnText : t.accentText} />
-                </View>
-                <Text style={[s.acaoTexto, { color: t.text }]}>{a.rotulo}</Text>
-              </Pressable>
-            ))}
-          </View>
-
-          <Pressable
-            onPress={() => onAbrir('equipe', dados.obra!.id, dados.obra!.nome)}
-            accessibilityRole="button"
-            style={[s.cartao, s.equipe, { backgroundColor: t.surface }]}
-          >
-            <Text style={[s.item, { color: t.text, flex: 1 }]}>Equipe da obra</Text>
-            <Icone nome="seta" cor={t.muted} />
-          </Pressable>
-
-          {naFila > 0 && (
-            <Text style={[s.aviso, { backgroundColor: t.warnBg, color: t.warnText }]}>
-              {naFila === 1 ? '1 diário' : `${naFila} diários`} salvo no aparelho, esperando sinal para enviar.
-            </Text>
-          )}
-
-          {dados.ocorrenciasAbertas > 0 && (
-            <Pressable onPress={() => onAbrir('ocorrencia', dados.obra!.id, dados.obra!.nome)} accessibilityRole="button">
-              <Text style={[s.aviso, { backgroundColor: t.warnBg, color: t.warnText }]}>
-                {dados.ocorrenciasAbertas === 1 ? '1 ocorrência aberta nesta obra.' : `${dados.ocorrenciasAbertas} ocorrências abertas nesta obra.`} Toque para ver.
-              </Text>
-            </Pressable>
-          )}
-
-          <Text style={[s.secao, { color: t.text }]}>Entregas de hoje</Text>
-          <View style={[s.cartao, { backgroundColor: t.surface, padding: 0 }]}>
-            {dados.entregasHoje.length === 0 && (
-              <Text style={[s.sub, { color: t.muted, padding: 16 }]}>Nenhuma entrega marcada para hoje.</Text>
-            )}
-            {dados.entregasHoje.map((p, i) => (
-              <View key={p.id} style={[s.linha, i > 0 && { borderTopWidth: 1, borderTopColor: t.divider }]}>
-                <Text style={[s.hora, { color: t.text }]}>{hora(p.entrega_em)}</Text>
-                <View style={{ flex: 1, gap: 2 }}>
-                  <Text style={[s.item, { color: t.text }]}>{p.material}</Text>
-                  <Text style={[s.sub, { color: t.muted }]}>
-                    {p.quantidade} {p.unidade}{p.fornecedor ? ` · ${p.fornecedor}` : ''}
-                  </Text>
-                </View>
-                <Text
-                  style={[
-                    s.chip,
-                    p.status === 'aprovado' || p.status === 'entregue'
-                      ? { backgroundColor: t.okBg, color: t.okText }
-                      : { backgroundColor: t.warnBg, color: t.warnText },
-                  ]}
-                >
-                  {p.status === 'entregue' ? 'Entregue' : p.status === 'aprovado' ? 'Confirmada' : 'Aguardando'}
-                </Text>
+            <View style={{ gap: 10 }}>
+              <Text style={[s.rotulo, { color: t.muted }]}>ÚLTIMOS DIÁRIOS</Text>
+              <View style={[s.lista, { backgroundColor: t.surface, borderColor: t.border }]}>
+                {diarios.length === 0 && (
+                  <Text style={[s.sub, { color: t.muted, padding: 16 }]}>Nenhum diário registrado ainda. Toque no + para fazer o de hoje.</Text>
+                )}
+                {diarios.map((d, i) => {
+                  const ehHoje = d.data === hojeISO();
+                  const expandido = aberto === d.id;
+                  const detalhes = [
+                    d.clima && CLIMA[d.clima],
+                    d.efetivoTotal > 0 && plural(d.efetivoTotal, 'pessoa', 'pessoas'),
+                    d.fotos.length > 0 && plural(d.fotos.length, 'foto', 'fotos'),
+                  ]
+                    .filter(Boolean)
+                    .join(' · ');
+                  return (
+                    <Pressable
+                      key={d.id}
+                      onPress={() => setAberto(expandido ? null : d.id)}
+                      accessibilityRole="button"
+                      accessibilityState={{ expanded: expandido }}
+                      style={[s.diario, i > 0 && { borderTopWidth: 1, borderTopColor: t.divider }]}
+                    >
+                      <View style={s.diarioTopo}>
+                        <Text style={[s.item, { color: t.text }]}>{rotuloDia(d.data)}</Text>
+                        {ehHoje && (
+                          <Pressable onPress={() => onAbrir('diario')} accessibilityRole="button" hitSlop={10}>
+                            <Text style={[s.link, { color: t.accentText }]}>Editar</Text>
+                          </Pressable>
+                        )}
+                      </View>
+                      {!!detalhes && <Text style={[s.sub, { color: t.muted }]}>{detalhes}</Text>}
+                      {!!d.atividades && (
+                        <Text style={[s.corpo, { color: t.text }]} numberOfLines={expandido ? undefined : 2}>
+                          {d.atividades}
+                        </Text>
+                      )}
+                      {d.fotos.length > 0 && (
+                        <View style={s.miniaturas}>
+                          {(expandido ? d.fotos : d.fotos.slice(0, 4)).map((url) => (
+                            <Image key={url} source={{ uri: url }} style={[expandido ? s.fotoGrande : s.miniatura, { backgroundColor: t.divider }]} />
+                          ))}
+                        </View>
+                      )}
+                    </Pressable>
+                  );
+                })}
               </View>
-            ))}
-          </View>
+            </View>
+          </>
+        )}
+      </ScrollView>
 
-          <Text style={[s.secao, { color: t.text }]}>Últimos diários</Text>
-          <View style={[s.cartao, { backgroundColor: t.surface, padding: 0 }]}>
-            {diarios.length === 0 && (
-              <Text style={[s.sub, { color: t.muted, padding: 16 }]}>Nenhum diário registrado ainda. Toque em Diário para fazer o de hoje.</Text>
-            )}
-            {diarios.map((d, i) => {
-              const ehHoje = d.data === hojeISO();
-              const expandido = aberto === d.id;
-              const detalhes = [d.clima && CLIMA[d.clima], d.efetivoTotal > 0 && `${d.efetivoTotal} ${d.efetivoTotal === 1 ? 'pessoa' : 'pessoas'}`, d.fotos.length > 0 && `${d.fotos.length} ${d.fotos.length === 1 ? 'foto' : 'fotos'}`]
-                .filter(Boolean)
-                .join(' · ');
-              return (
-                <Pressable
-                  key={d.id}
-                  onPress={() => setAberto(expandido ? null : d.id)}
-                  accessibilityRole="button"
-                  accessibilityState={{ expanded: expandido }}
-                  style={[s.diario, i > 0 && { borderTopWidth: 1, borderTopColor: t.divider }]}
-                >
-                  <View style={s.diarioTopo}>
-                    <Text style={[s.item, { color: t.text }]}>{rotuloDia(d.data)}</Text>
-                    {ehHoje && dados.obra && (
-                      <Pressable onPress={() => onAbrir('diario', dados.obra!.id, dados.obra!.nome)} accessibilityRole="button" hitSlop={10}>
-                        <Text style={[s.editar, { color: t.accentText }]}>Editar</Text>
-                      </Pressable>
-                    )}
-                  </View>
-                  {!!detalhes && <Text style={[s.sub, { color: t.muted }]}>{detalhes}</Text>}
-                  {!!d.atividades && (
-                    <Text style={[s.corpo, { color: t.text }]} numberOfLines={expandido ? undefined : 2}>
-                      {d.atividades}
-                    </Text>
-                  )}
-                  {d.fotos.length > 0 && (
-                    <View style={s.miniaturas}>
-                      {(expandido ? d.fotos : d.fotos.slice(0, 4)).map((url) => (
-                        <Image key={url} source={{ uri: url }} style={[expandido ? s.fotoGrande : s.miniatura, { backgroundColor: t.divider }]} />
-                      ))}
-                    </View>
-                  )}
-                </Pressable>
-              );
-            })}
-          </View>
-        </>
-      )}
-      <Modal visible={escolhendoObra} transparent animationType="slide" onRequestClose={() => setEscolhendoObra(false)}>
-        <Pressable style={s.fundo} onPress={() => setEscolhendoObra(false)} accessibilityLabel="Fechar lista de obras" />
-        <View style={[s.folha, { backgroundColor: t.surface, paddingBottom: insets.bottom + 16 }]}>
-          <Text style={[s.secao, { color: t.text, marginBottom: 8 }]}>Suas obras</Text>
-          <ScrollView style={{ maxHeight: 420 }}>
-            {dados?.obras.map((o, i) => {
-              const atual = o.id === dados.obra?.id;
-              return (
-                <Pressable
-                  key={o.id}
-                  onPress={() => trocarObra(o.id)}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: atual }}
-                  style={[s.opcaoObra, i > 0 && { borderTopWidth: 1, borderTopColor: t.divider }]}
-                >
-                  <Text style={[s.item, { color: atual ? t.accentText : t.text, flex: 1 }]}>{o.nome}</Text>
-                  {atual && <Text style={[s.item, { color: t.accentText }]}>✓</Text>}
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        </View>
-      </Modal>
-    </ScrollView>
+      <Folha visivel={escolhendoObra} onFechar={() => setEscolhendoObra(false)} titulo="Suas obras">
+        {dados?.obras.map((o, i) => (
+          <ItemFolha
+            key={o.id}
+            primeiro={i === 0}
+            icone="cronograma"
+            rotulo={o.nome}
+            selecionado={o.id === dados.obra?.id}
+            onPress={() => trocarObra(o.id)}
+          />
+        ))}
+      </Folha>
+    </View>
+  );
+}
+
+function EtiquetaEntrega({ status, t }: { status: string; t: Tema }) {
+  const confirmada = status === 'aprovado' || status === 'entregue';
+  const texto = status === 'entregue' ? 'Entregue' : status === 'aprovado' ? 'Confirmada' : 'Aguardando';
+  return (
+    <Text
+      style={[
+        s.etiqueta,
+        confirmada ? { backgroundColor: t.okBg, color: t.okText } : { borderWidth: 1, borderColor: t.orange, color: t.orange },
+      ]}
+    >
+      {texto}
+    </Text>
   );
 }
 
 const s = StyleSheet.create({
-  conteudo: { paddingHorizontal: 20, gap: 18, maxWidth: 640, width: '100%', alignSelf: 'center' },
+  conteudo: { paddingHorizontal: 20, gap: 22, maxWidth: 640, width: '100%', alignSelf: 'center' },
   topo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  marca: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
-  quadrado: { width: 14, height: 14, borderRadius: 3 },
-  mb2: { fontSize: 15, fontWeight: '600' },
-  data: { fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.8 },
-  titulo: { fontSize: 28, fontWeight: '300' },
-  botoesTopo: { flexDirection: 'row', gap: 8 },
-  redondo: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  hero: { borderRadius: 20, borderWidth: 1.5, padding: 18, gap: 4 },
-  heroTopo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  trocar: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, minHeight: 32, justifyContent: 'center' },
-  trocarTexto: { fontSize: 13, fontWeight: '700' },
-  fundo: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' },
-  folha: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20 },
-  opcaoObra: { flexDirection: 'row', alignItems: 'center', minHeight: 52, paddingVertical: 12 },
-  heroRotulo: { fontSize: 12, fontWeight: '600', letterSpacing: 0.8, opacity: 0.8 },
-  heroNome: { fontSize: 20, fontWeight: '700' },
-  heroEtapa: { fontSize: 14, opacity: 0.85 },
-  heroLinha: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
-  heroLink: { fontSize: 14, fontWeight: '600', marginTop: 10 },
-  heroNum: { fontSize: 13, fontWeight: '600' },
-  trilha: { height: 8, borderRadius: 4, marginTop: 6 },
-  barra: { position: 'absolute', left: 0, top: 0, bottom: 0, borderRadius: 4 },
-  marcador: { position: 'absolute', top: -3, width: 2, height: 14 },
-  acoes: { flexDirection: 'row', gap: 10 },
-  acao: { flex: 1, borderRadius: 16, paddingVertical: 12, alignItems: 'center', gap: 8, minHeight: 44 },
-  acaoIcone: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  acaoTexto: { fontSize: 12, fontWeight: '600' },
-  equipe: { flexDirection: 'row', alignItems: 'center', minHeight: 52, paddingVertical: 12, marginTop: -6 },
-  aviso: { borderRadius: 14, padding: 14, fontSize: 14, fontWeight: '500', overflow: 'hidden' },
-  secao: { fontSize: 18, fontWeight: '700' },
-  cartao: { borderRadius: 18, padding: 16, gap: 4 },
-  linha: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14 },
-  hora: { width: 52, fontSize: 15, fontWeight: '700' },
-  item: { fontSize: 15, fontWeight: '600' },
-  sub: { fontSize: 13 },
+  avatar: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  avatarTexto: { fontFamily: fonte.forte, fontSize: 16 },
+  rotulo: { fontFamily: fonte.forte, fontSize: 11, letterSpacing: 2.5 },
+  saudacao: { fontFamily: fonte.tituloLeve, fontSize: 36, lineHeight: 40 },
+  aviso: { borderRadius: 14, padding: 14, fontFamily: fonte.media, fontSize: 14, overflow: 'hidden' },
+  cartao: { borderRadius: 18, padding: 16, gap: 4, borderWidth: 1 },
+
+  obra: { borderRadius: 22, borderWidth: 1, padding: 20, paddingBottom: 0, gap: 14 },
+  obraTopo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  trocar: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 18, paddingHorizontal: 12, minHeight: 36 },
+  trocarTexto: { fontFamily: fonte.forte, fontSize: 13 },
+  obraNome: { fontFamily: fonte.titulo, fontSize: 30, lineHeight: 34 },
+  numeros: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
+  percentual: { fontFamily: fonte.titulo, fontSize: 56, lineHeight: 58 },
+  percentualSinal: { fontFamily: fonte.titulo, fontSize: 28 },
+  selo: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14 },
+  seloTexto: { fontFamily: fonte.forte, fontSize: 13 },
+  trilha: { height: 6, borderRadius: 3 },
+  barra: { position: 'absolute', left: 0, top: 0, bottom: 0, borderRadius: 3 },
+  marcador: { position: 'absolute', top: -5, width: 2, height: 16, marginLeft: -1 },
+  legenda: { flexDirection: 'row', justifyContent: 'space-between' },
+  verCronograma: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', minHeight: 50, borderTopWidth: 1, marginHorizontal: -20, paddingHorizontal: 20 },
+  link: { fontFamily: fonte.forte, fontSize: 14 },
+
+  secaoTopo: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  contador: { minWidth: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
+  contadorTexto: { fontFamily: fonte.negrito, fontSize: 11 },
+  lista: { borderRadius: 18, borderWidth: 1, overflow: 'hidden' },
+  pendencia: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 14, minHeight: 64 },
+  pendenciaIcone: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+
+  atalhos: { flexDirection: 'row', gap: 10 },
+  atalho: { flex: 1, borderRadius: 16, borderWidth: 1, paddingVertical: 14, alignItems: 'center', gap: 8, minHeight: 76 },
+  atalhoTexto: { fontFamily: fonte.forte, fontSize: 12 },
+
+  entrega: { flexDirection: 'row', gap: 14 },
+  entregaHora: { width: 48, alignItems: 'center' },
+  horaTexto: { fontFamily: fonte.titulo, fontSize: 20, lineHeight: 24 },
+  fio: { flex: 1, width: 1, marginTop: 6 },
+  entregaCorpo: { flex: 1, flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  etiqueta: { fontFamily: fonte.forte, fontSize: 12, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, overflow: 'hidden' },
+
+  item: { fontFamily: fonte.forte, fontSize: 15 },
+  sub: { fontFamily: fonte.texto, fontSize: 13 },
   diario: { paddingHorizontal: 16, paddingVertical: 14, gap: 6 },
   diarioTopo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  editar: { fontSize: 15, fontWeight: '600' },
-  corpo: { fontSize: 15, lineHeight: 21 },
+  corpo: { fontFamily: fonte.texto, fontSize: 15, lineHeight: 21 },
   miniaturas: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
   miniatura: { width: 64, height: 64, borderRadius: 10 },
   fotoGrande: { width: '100%', aspectRatio: 4 / 3, borderRadius: 12 },
-  chip: { fontSize: 12, fontWeight: '700', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, overflow: 'hidden' },
 });

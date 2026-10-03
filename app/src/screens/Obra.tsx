@@ -3,6 +3,7 @@ import { ActivityIndicator, Alert, Modal, Pressable, RefreshControl, ScrollView,
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { atualizarPercentual, carregarObra, diasDeAtraso, Etapa, ObraDetalhe, previstoHoje, totalGasto } from '../lib/cronograma';
 import { podeAprovar } from '../lib/obra';
+import { ALTURA_ABAS } from '../components/Abas';
 import { useTema } from '../theme';
 
 const MES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
@@ -11,9 +12,10 @@ const diaMes = (iso: string) => `${Number(iso.slice(8, 10))} ${MES[Number(iso.sl
 const PASSOS = [0, 10, 25, 50, 75, 90, 100];
 const reais = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 
-type Props = { obraId: string; onVoltar: () => void };
+// comAbas: aberta pela barra de abas (sem Voltar, com espaço para a barra embaixo).
+type Props = { obraId: string; onVoltar: () => void; comAbas?: boolean };
 
-export function Obra({ obraId, onVoltar }: Props) {
+export function Obra({ obraId, onVoltar, comAbas }: Props) {
   const { t } = useTema();
   const insets = useSafeAreaInsets();
   const [obra, setObra] = useState<ObraDetalhe | null>(null);
@@ -79,13 +81,15 @@ export function Obra({ obraId, onVoltar }: Props) {
   return (
     <View style={{ flex: 1, backgroundColor: t.bg }}>
       <View style={[s.topo, { paddingTop: insets.top + 8 }]}>
-        <Pressable onPress={onVoltar} accessibilityRole="button" style={s.voltar}>
-          <Text style={[s.voltarTexto, { color: t.accentText }]}>Voltar</Text>
-        </Pressable>
+        {!comAbas && (
+          <Pressable onPress={onVoltar} accessibilityRole="button" style={s.voltar}>
+            <Text style={[s.voltarTexto, { color: t.accentText }]}>Voltar</Text>
+          </Pressable>
+        )}
       </View>
 
       <ScrollView
-        contentContainerStyle={[s.conteudo, { paddingBottom: insets.bottom + 24 }]}
+        contentContainerStyle={[s.conteudo, { paddingBottom: insets.bottom + (comAbas ? ALTURA_ABAS + 16 : 24) }]}
         refreshControl={
           <RefreshControl
             refreshing={atualizando}
@@ -160,7 +164,7 @@ export function Obra({ obraId, onVoltar }: Props) {
                       <Text style={[s.chip, { backgroundColor: chip.fundo, color: chip.cor }]}>{chip.texto}</Text>
                     </View>
                     <View style={[s.trilha, { backgroundColor: t.divider }]}>
-                      <View style={[s.barra, { width: `${e.percentual}%`, backgroundColor: atraso > 0 ? t.orange : t.accent }]} />
+                      <View style={[s.barra, { width: `${e.percentual}%`, backgroundColor: atraso > 0 ? t.orange : t.bronze }]} />
                       {prev !== null && prev > 0 && prev < 100 && <View style={[s.marcador, { left: `${prev}%`, backgroundColor: t.text }]} />}
                     </View>
                   </Pressable>

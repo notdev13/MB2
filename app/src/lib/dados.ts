@@ -5,7 +5,16 @@ export type Etapa = { percentual: number; inicio_previsto: string | null; fim_pr
 export type Pedido = { id: string; material: string; quantidade: number; unidade: string; fornecedor: string | null; entrega_em: string; status: string };
 export type Resumo = {
   nome: string;
-  obra: { id: string; nome: string; cidade: string | null; etapaAtual: string | null } | null;
+  obra: {
+    id: string;
+    nome: string;
+    cidade: string | null;
+    etapaAtual: string | null;
+    etapaNumero: number | null; // posição da etapa atual (1 = primeira)
+    etapasTotal: number;
+    inicio: string | null; // menor início previsto entre as etapas
+    termino: string | null; // maior fim previsto entre as etapas
+  } | null;
   obras: { id: string; nome: string }[];
   executado: number;
   previsto: number;
@@ -26,6 +35,16 @@ export function progresso(etapas: Etapa[], hoje = new Date()) {
       return s + Math.min(100, Math.max(0, ((hoje.getTime() - ini) / (fim - ini)) * 100));
     }, 0) / etapas.length;
   return { executado: Math.round(executado), previsto: Math.round(previsto) };
+}
+
+// Diferença entre executado e previsto convertida em dias do cronograma total.
+// É uma estimativa (o progresso é média simples das etapas): serve para dar a ordem de grandeza.
+// Positivo = adiantada, negativo = atrasada, null = sem datas para calcular.
+export function diasDeFolga(executado: number, previsto: number, inicio: string | null, termino: string | null) {
+  if (!inicio || !termino) return null;
+  const duracao = (new Date(termino).getTime() - new Date(inicio).getTime()) / 86_400_000;
+  if (!(duracao > 0)) return null;
+  return Math.round(((executado - previsto) / 100) * duracao);
 }
 
 // Última obra escolhida neste aparelho.
@@ -67,10 +86,22 @@ export async function carregarResumo(userId: string): Promise<Resumo> {
   if (ocorrencias.error) throw ocorrencias.error;
 
   const lista = etapas.data ?? [];
-  const atual = lista.find((e) => e.status === 'em_andamento') ?? null;
+  const indiceAtual = lista.findIndex((e) => e.status === 'em_andamento');
+  const atual = indiceAtual >= 0 ? lista[indiceAtual] : null;
+  const inicios = lista.map((e) => e.inicio_previsto).filter((d): d is string => !!d).sort();
+  const fins = lista.map((e) => e.fim_previsto).filter((d): d is string => !!d).sort();
   return {
     nome,
-    obra: { id: obra.id, nome: obra.nome, cidade: obra.cidade ?? null, etapaAtual: atual?.nome ?? null },
+    obra: {
+      id: obra.id,
+      nome: obra.nome,
+      cidade: obra.cidade ?? null,
+      etapaAtual: atual?.nome ?? null,
+      etapaNumero: indiceAtual >= 0 ? indiceAtual + 1 : null,
+      etapasTotal: lista.length,
+      inicio: inicios[0] ?? null,
+      termino: fins[fins.length - 1] ?? null,
+    },
     obras: listaObras.map(({ id, nome }) => ({ id, nome })),
     ...progresso(lista),
     entregasHoje: (pedidos.data ?? []) as Pedido[],

@@ -3,6 +3,15 @@ import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Linking, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+// Importa só os pesos usados (o pacote inteiro somaria ~20 arquivos de fonte ao app).
+import { CormorantGaramond_500Medium } from '@expo-google-fonts/cormorant-garamond/500Medium';
+import { CormorantGaramond_600SemiBold } from '@expo-google-fonts/cormorant-garamond/600SemiBold';
+import { Manrope_400Regular } from '@expo-google-fonts/manrope/400Regular';
+import { Manrope_500Medium } from '@expo-google-fonts/manrope/500Medium';
+import { Manrope_600SemiBold } from '@expo-google-fonts/manrope/600SemiBold';
+import { Manrope_700Bold } from '@expo-google-fonts/manrope/700Bold';
+import { useFonts } from 'expo-font';
+import { Aba, BarraAbas, Folha, ItemFolha } from './src/components/Abas';
 import { codigoDoLink, contarPendentes, Funcao, minhaSituacao, Situacao } from './src/lib/acesso';
 import { supabase } from './src/lib/supabase';
 import { Acessos } from './src/screens/Acessos';
@@ -18,13 +27,17 @@ import { Login } from './src/screens/Login';
 import { TemaProvider, useTema } from './src/theme';
 
 function Raiz() {
-  const { t, escuro } = useTema();
+  const { t, escuro, alternar } = useTema();
   const [sessao, setSessao] = useState<Session | null | undefined>(undefined);
-  const [tela, setTela] = useState<{ tipo: TelaObra; obraId: string; obraNome: string } | null>(null);
+  const [tela, setTela] = useState<{ tipo: Exclude<TelaObra, 'obra'>; obraId: string; obraNome: string } | null>(null);
   const [acessos, setAcessos] = useState(false);
   const [conta, setConta] = useState<{ situacao: Situacao; papel: Funcao } | null | undefined>(undefined);
   const [pendentes, setPendentes] = useState(0);
   const [codigoLink, setCodigoLink] = useState<string | null>(null);
+  const [aba, setAba] = useState<Aba>('hoje');
+  const [folha, setFolha] = useState<'registrar' | 'mais' | null>(null);
+  const [obraAtual, setObraAtual] = useState<{ id: string; nome: string } | null>(null);
+  const [versao, setVersao] = useState(0);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSessao(data.session));
@@ -55,56 +68,142 @@ function Raiz() {
     setConta(undefined);
     setTela(null);
     setAcessos(false);
+    setAba('hoje');
+    setFolha(null);
     verificarConta();
   }, [verificarConta]);
 
   const senhaProvisoria = sessao?.user.user_metadata?.senha_provisoria === true;
+  const fecharTela = () => {
+    setTela(null);
+    setVersao((v) => v + 1); // a tela Hoje recarrega ao voltar de um registro
+  };
+  const abrir = (tipo: TelaObra) => {
+    setFolha(null);
+    if (!obraAtual) return;
+    if (tipo === 'obra') return setAba('obra');
+    setTela({ tipo, obraId: obraAtual.id, obraNome: obraAtual.nome });
+  };
+  const diretoria = conta?.papel === 'diretoria';
+
+  if (sessao === undefined || (sessao && conta === undefined)) {
+    return (
+      <View style={{ flex: 1, backgroundColor: t.bg }}>
+        <ActivityIndicator style={{ flex: 1 }} color={t.accentText} />
+      </View>
+    );
+  }
+  if (!sessao) return <Login codigoInicial={codigoLink} />;
+  if (senhaProvisoria) return <TrocarSenha />;
+  if (conta && conta.situacao !== 'ativo') {
+    return <Aguardando bloqueada={conta.situacao === 'bloqueado'} codigoInicial={codigoLink} onVerificar={verificarConta} />;
+  }
+  if (acessos) {
+    return (
+      <Acessos
+        onVoltar={() => {
+          setAcessos(false);
+          verificarConta();
+        }}
+      />
+    );
+  }
+  if (tela) {
+    const props = { obraId: tela.obraId, obraNome: tela.obraNome, onVoltar: fecharTela };
+    if (tela.tipo === 'material') return <Material {...props} />;
+    if (tela.tipo === 'ocorrencia') return <Ocorrencia {...props} />;
+    if (tela.tipo === 'equipe') return <Equipe {...props} />;
+    return <Diario {...props} />;
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: t.bg }}>
-      <StatusBar style={escuro ? 'light' : 'dark'} />
-      {sessao === undefined || (sessao && conta === undefined) ? (
-        <ActivityIndicator style={{ flex: 1 }} color={t.accentText} />
-      ) : sessao && senhaProvisoria ? (
-        <TrocarSenha />
-      ) : sessao && conta && conta.situacao !== 'ativo' ? (
-        <Aguardando bloqueada={conta.situacao === 'bloqueado'} codigoInicial={codigoLink} onVerificar={verificarConta} />
-      ) : sessao && acessos ? (
-        <Acessos
-          onVoltar={() => {
-            setAcessos(false);
-            verificarConta();
-          }}
-        />
-      ) : sessao && tela ? (
-        tela.tipo === 'obra' ? (
-          <Obra obraId={tela.obraId} onVoltar={() => setTela(null)} />
-        ) : tela.tipo === 'material' ? (
-          <Material obraId={tela.obraId} obraNome={tela.obraNome} onVoltar={() => setTela(null)} />
-        ) : tela.tipo === 'ocorrencia' ? (
-          <Ocorrencia obraId={tela.obraId} obraNome={tela.obraNome} onVoltar={() => setTela(null)} />
-        ) : tela.tipo === 'equipe' ? (
-          <Equipe obraId={tela.obraId} obraNome={tela.obraNome} onVoltar={() => setTela(null)} />
-        ) : (
-          <Diario obraId={tela.obraId} obraNome={tela.obraNome} onVoltar={() => setTela(null)} />
-        )
-      ) : sessao ? (
+      {/* Hoje fica montada ao trocar de aba, para não recarregar tudo a cada toque. */}
+      <View style={{ flex: 1, display: aba === 'hoje' ? 'flex' : 'none' }}>
         <Hoje
           userId={sessao.user.id}
-          onAbrir={(tipo, obraId, obraNome) => setTela({ tipo, obraId, obraNome })}
-          acessos={conta?.papel === 'diretoria' ? { pendentes, abrir: () => setAcessos(true) } : undefined}
+          versao={versao}
+          onAbrir={(tipo) => abrir(tipo)}
+          onObra={setObraAtual}
+          onPerfil={() => setFolha('mais')}
+          acessos={diretoria ? { pendentes, abrir: () => setAcessos(true) } : undefined}
         />
-      ) : (
-        <Login codigoInicial={codigoLink} />
-      )}
+      </View>
+      {aba === 'obra' &&
+        (obraAtual ? (
+          <Obra obraId={obraAtual.id} onVoltar={() => setAba('hoje')} comAbas />
+        ) : (
+          <ActivityIndicator style={{ flex: 1 }} color={t.accentText} />
+        ))}
+
+      <BarraAbas
+        ativa={aba}
+        onAba={setAba}
+        onRegistrar={() => setFolha('registrar')}
+        onMais={() => setFolha('mais')}
+        avisoMais={diretoria && pendentes > 0}
+      />
+
+      <Folha visivel={folha === 'registrar'} onFechar={() => setFolha(null)} titulo={obraAtual ? `Registrar · ${obraAtual.nome}` : 'Registrar'}>
+        <ItemFolha primeiro icone="diario" rotulo="Diário de hoje" sub="Atividades, efetivo e clima" onPress={() => abrir('diario')} />
+        <ItemFolha icone="foto" rotulo="Foto" sub="Anexada ao diário de hoje" onPress={() => abrir('diario')} />
+        <ItemFolha icone="material" rotulo="Pedir material" sub="Com data de entrega" onPress={() => abrir('material')} />
+        <ItemFolha icone="ocorrencia" alerta rotulo="Ocorrência" sub="Problema, risco ou não conformidade" onPress={() => abrir('ocorrencia')} />
+      </Folha>
+
+      <Folha visivel={folha === 'mais'} onFechar={() => setFolha(null)} titulo="Mais">
+        <ItemFolha primeiro icone="equipe" rotulo="Equipe da obra" sub={obraAtual?.nome} onPress={() => abrir('equipe')} />
+        {diretoria && (
+          <ItemFolha
+            icone="chave"
+            alerta={pendentes > 0}
+            rotulo="Contas e convites"
+            sub={pendentes === 0 ? 'Aprovar contas e gerar convites' : pendentes === 1 ? '1 conta aguardando aprovação' : `${pendentes} contas aguardando aprovação`}
+            onPress={() => {
+              setFolha(null);
+              setAcessos(true);
+            }}
+          />
+        )}
+        <ItemFolha
+          icone={escuro ? 'sol' : 'lua'}
+          rotulo={escuro ? 'Usar tema claro' : 'Usar tema escuro'}
+          sub={escuro ? 'Melhor no sol forte' : 'Mais confortável à noite'}
+          onPress={alternar}
+        />
+        <ItemFolha
+          icone="sair"
+          rotulo="Sair"
+          onPress={() => {
+            setFolha(null);
+            supabase.auth.signOut();
+          }}
+        />
+      </Folha>
     </View>
   );
 }
 
+function BarraStatus() {
+  const { escuro } = useTema();
+  return <StatusBar style={escuro ? 'light' : 'dark'} />;
+}
+
 export default function App() {
+  // Se a fonte falhar, o app segue com a do sistema em vez de travar na abertura.
+  const [fontesOk, erroFontes] = useFonts({
+    Manrope_400Regular,
+    Manrope_500Medium,
+    Manrope_600SemiBold,
+    Manrope_700Bold,
+    CormorantGaramond_500Medium,
+    CormorantGaramond_600SemiBold,
+  });
+  if (!fontesOk && !erroFontes) return null;
   return (
     <SafeAreaProvider>
       <TemaProvider>
+        <BarraStatus />
         <Raiz />
       </TemaProvider>
     </SafeAreaProvider>
