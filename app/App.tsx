@@ -7,6 +7,7 @@ import { supabase } from './src/lib/supabase';
 import { Diario } from './src/screens/Diario';
 import { Hoje, TelaObra } from './src/screens/Hoje';
 import { Material } from './src/screens/Material';
+import { Obra } from './src/screens/Obra';
 import { Ocorrencia } from './src/screens/Ocorrencia';
 import { Login } from './src/screens/Login';
 import { TemaProvider, useTema } from './src/theme';
@@ -28,7 +29,9 @@ function Raiz() {
       {sessao === undefined ? (
         <ActivityIndicator style={{ flex: 1 }} color={t.accentText} />
       ) : sessao && tela ? (
-        tela.tipo === 'material' ? (
+        tela.tipo === 'obra' ? (
+          <Obra obraId={tela.obraId} onVoltar={() => setTela(null)} />
+        ) : tela.tipo === 'material' ? (
           <Material obraId={tela.obraId} obraNome={tela.obraNome} onVoltar={() => setTela(null)} />
         ) : tela.tipo === 'ocorrencia' ? (
           <Ocorrencia obraId={tela.obraId} obraNome={tela.obraNome} onVoltar={() => setTela(null)} />
