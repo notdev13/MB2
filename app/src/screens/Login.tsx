@@ -1,17 +1,49 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ConvitePublico, ErroAcesso, formatarCodigo, FUNCOES, limparCodigo, verConvite } from '../lib/acesso';
 import { supabase } from '../lib/supabase';
 import { useTema } from '../theme';
 
-export function Login() {
+export function Login({ codigoInicial }: { codigoInicial?: string | null }) {
   const { t } = useTema();
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [erro, setErro] = useState<string | null>(null);
   const [entrando, setEntrando] = useState(false);
-  const [criando, setCriando] = useState(false);
+  const [criando, setCriando] = useState(!!codigoInicial);
   const [nome, setNome] = useState('');
   const [aviso, setAviso] = useState<string | null>(null);
+  const [codigo, setCodigo] = useState(codigoInicial ? formatarCodigo(codigoInicial) : '');
+  const [convite, setConvite] = useState<ConvitePublico | null>(null);
+  const [erroCodigo, setErroCodigo] = useState<string | null>(null);
+
+  // Link de convite aberto com o app já na tela de entrar.
+  useEffect(() => {
+    if (codigoInicial) {
+      setCriando(true);
+      setCodigo(formatarCodigo(codigoInicial));
+    }
+  }, [codigoInicial]);
+
+  // Com 8 caracteres, confere o convite e preenche nome e e-mail.
+  const limpo = limparCodigo(codigo);
+  useEffect(() => {
+    setConvite(null);
+    setErroCodigo(null);
+    if (limpo.length !== 8) return;
+    let vivo = true;
+    verConvite(limpo)
+      .then((c) => {
+        if (!vivo) return;
+        setConvite(c);
+        setNome((n) => n || c.nome);
+        if (c.email) setEmail(c.email);
+      })
+      .catch((e) => vivo && setErroCodigo(e instanceof ErroAcesso ? e.message : 'Não foi possível conferir o código agora.'));
+    return () => {
+      vivo = false;
+    };
+  }, [limpo]);
 
   function trocarModo() {
     setCriando(!criando);
@@ -43,11 +75,19 @@ export function Login() {
       setErro('A senha precisa ter pelo menos 6 letras ou números.');
       return;
     }
+    if (limpo && !convite) {
+      setErro(erroCodigo ?? 'Confira o código de convite (8 letras e números) ou apague o campo.');
+      return;
+    }
+    if (convite?.email && convite.email.toLowerCase() !== email.trim().toLowerCase()) {
+      setErro(`Este convite é para o e-mail ${convite.email}.`);
+      return;
+    }
     setEntrando(true);
     const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password: senha,
-      options: { data: { nome: nome.trim() } },
+      options: { data: convite ? { nome: nome.trim(), convite: limpo } : { nome: nome.trim() } },
     });
     setEntrando(false);
     if (error) {
@@ -86,6 +126,24 @@ export function Login() {
 
         {criando && (
           <>
+            <Text style={[s.rotulo, { color: t.muted }]}>Código de convite (se recebeu)</Text>
+            <TextInput
+              value={codigo}
+              onChangeText={setCodigo}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              placeholder="ABCD-2345"
+              placeholderTextColor={t.muted}
+              style={[s.campo, { backgroundColor: t.surface, borderColor: t.border, color: t.text, letterSpacing: 2 }]}
+              accessibilityLabel="Código de convite"
+            />
+            {convite && (
+              <Text style={[s.aviso, { backgroundColor: t.okBg, color: t.okText }]}>
+                Convite para {convite.nome} como {FUNCOES[convite.papel]}
+                {convite.obras.length > 0 ? ` em ${convite.obras.join(', ')}` : ''}.
+              </Text>
+            )}
+            {erroCodigo && <Text style={[s.erro, { color: t.danger }]}>{erroCodigo}</Text>}
             <Text style={[s.rotulo, { color: t.muted }]}>Nome</Text>
             <TextInput
               value={nome}
@@ -104,6 +162,7 @@ export function Login() {
         <TextInput
           value={email}
           onChangeText={setEmail}
+          editable={!(criando && convite?.email)}
           autoCapitalize="none"
           autoComplete="email"
           keyboardType="email-address"
@@ -138,7 +197,9 @@ export function Login() {
         </Pressable>
         <Text style={[s.ajuda, { color: t.muted }]}>
           {criando
-            ? 'Conta nova não vê nenhuma obra. Depois de criar, peça ao engenheiro ou à diretoria para adicionar seu e-mail na equipe da obra.'
+            ? convite
+              ? 'Com o convite, sua conta já entra liberada.'
+              : 'Sem código de convite, sua conta fica aguardando a diretoria da MB2 aprovar.'
             : 'Não vê sua obra? Peça à diretoria da MB2 para incluir você na equipe.'}
         </Text>
       </View>

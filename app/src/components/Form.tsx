@@ -82,6 +82,29 @@ export function Escolha<T extends string>(props: { opcoes: { valor: T; rotulo: s
   );
 }
 
+// Como Escolha, mas marca várias opções.
+export function EscolhaVarias(props: { opcoes: { valor: string; rotulo: string }[]; valores: string[]; onMudar: (v: string[]) => void }) {
+  const { t } = useTema();
+  return (
+    <View style={s.chips}>
+      {props.opcoes.map((o) => {
+        const ativo = props.valores.includes(o.valor);
+        return (
+          <Pressable
+            key={o.valor}
+            onPress={() => props.onMudar(ativo ? props.valores.filter((v) => v !== o.valor) : [...props.valores, o.valor])}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: ativo }}
+            style={[s.chip, ativo ? { backgroundColor: t.accent } : { backgroundColor: t.surface, borderColor: t.border, borderWidth: 1 }]}
+          >
+            <Text style={[s.chipTexto, { color: ativo ? t.onAccent : t.text }]}>{ativo ? '✓ ' : ''}{o.rotulo}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 export function BotaoPequeno(props: { rotulo: string; onPress: () => void; tom?: 'principal' | 'neutro' }) {
   const { t } = useTema();
   const principal = props.tom !== 'neutro';

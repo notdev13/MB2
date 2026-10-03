@@ -30,9 +30,14 @@ function rotuloDia(iso: string) {
 const hora = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
 export type TelaObra = 'obra' | 'diario' | 'material' | 'ocorrencia' | 'equipe';
-type Props = { userId: string; onAbrir: (tela: TelaObra, obraId: string, obraNome: string) => void };
+type Props = {
+  userId: string;
+  onAbrir: (tela: TelaObra, obraId: string, obraNome: string) => void;
+  // Só para a diretoria: contas e convites.
+  acessos?: { pendentes: number; abrir: () => void };
+};
 
-export function Hoje({ userId, onAbrir }: Props) {
+export function Hoje({ userId, onAbrir, acessos }: Props) {
   const { t, escuro, alternar } = useTema();
   const insets = useSafeAreaInsets();
   const [dados, setDados] = useState<Resumo | null>(null);
@@ -120,6 +125,19 @@ export function Hoje({ userId, onAbrir }: Props) {
 
       {!dados && !erro && <ActivityIndicator color={t.accentText} style={{ marginTop: 40 }} />}
       {erro && <Text style={[s.aviso, { backgroundColor: t.warnBg, color: t.warnText }]}>{erro}</Text>}
+
+      {acessos && (
+        <Pressable onPress={acessos.abrir} accessibilityRole="button" style={[s.cartao, s.equipe, { backgroundColor: acessos.pendentes > 0 ? t.warnBg : t.surface }]}>
+          <Text style={[s.item, { color: acessos.pendentes > 0 ? t.warnText : t.text, flex: 1 }]}>
+            {acessos.pendentes === 0
+              ? 'Contas e convites'
+              : acessos.pendentes === 1
+                ? '1 conta aguardando aprovação'
+                : `${acessos.pendentes} contas aguardando aprovação`}
+          </Text>
+          <Icone nome="seta" cor={acessos.pendentes > 0 ? t.warnText : t.muted} />
+        </Pressable>
+      )}
 
       {dados && !dados.obra && (
         <View style={[s.cartao, { backgroundColor: t.surface }]}>
