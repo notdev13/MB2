@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icone } from '../components/Icone';
-import { carregarResumo, Resumo } from '../lib/dados';
+import { carregarResumo, lembrarObra, Resumo } from '../lib/dados';
 import { carregarDiariosRecentes, DiarioResumo, hojeISO, pendentes, sincronizar } from '../lib/diario';
 import { supabase } from '../lib/supabase';
 import { useTema } from '../theme';
@@ -41,6 +41,7 @@ export function Hoje({ userId, onAbrir }: Props) {
   const [naFila, setNaFila] = useState(0);
   const [diarios, setDiarios] = useState<DiarioResumo[]>([]);
   const [aberto, setAberto] = useState<string | null>(null);
+  const [escolhendoObra, setEscolhendoObra] = useState(false);
   const hoje = new Date();
 
   const carregar = useCallback(async () => {
@@ -61,6 +62,16 @@ export function Hoje({ userId, onAbrir }: Props) {
   useEffect(() => {
     carregar();
   }, [carregar]);
+
+  async function trocarObra(id: string) {
+    setEscolhendoObra(false);
+    if (id === dados?.obra?.id) return;
+    await lembrarObra(id);
+    setDados(null);
+    setDiarios([]);
+    setAberto(null);
+    await carregar();
+  }
 
   const acoes = [
     { nome: 'diario' as const, rotulo: 'Diário', alerta: false },
@@ -136,7 +147,20 @@ export function Hoje({ userId, onAbrir }: Props) {
             accessibilityLabel={`${dados.obra.nome}. Ver cronograma`}
             style={[s.hero, { backgroundColor: t.hero, borderColor: t.heroBorder }]}
           >
-            <Text style={[s.heroRotulo, { color: t.heroText }]}>OBRA ATIVA</Text>
+            <View style={s.heroTopo}>
+              <Text style={[s.heroRotulo, { color: t.heroText }]}>OBRA ATIVA</Text>
+              {dados.obras.length > 1 && (
+                <Pressable
+                  onPress={() => setEscolhendoObra(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Trocar de obra. ${dados.obras.length} obras`}
+                  hitSlop={8}
+                  style={[s.trocar, { borderColor: t.heroText }]}
+                >
+                  <Text style={[s.trocarTexto, { color: t.heroText }]}>Trocar obra ⌄</Text>
+                </Pressable>
+              )}
+            </View>
             <Text style={[s.heroNome, { color: t.heroText }]}>{dados.obra.nome}</Text>
             {dados.obra.etapaAtual && <Text style={[s.heroEtapa, { color: t.heroText }]}>{dados.obra.etapaAtual}</Text>}
             <View style={s.heroLinha}>
@@ -263,6 +287,29 @@ export function Hoje({ userId, onAbrir }: Props) {
           </View>
         </>
       )}
+      <Modal visible={escolhendoObra} transparent animationType="slide" onRequestClose={() => setEscolhendoObra(false)}>
+        <Pressable style={s.fundo} onPress={() => setEscolhendoObra(false)} accessibilityLabel="Fechar lista de obras" />
+        <View style={[s.folha, { backgroundColor: t.surface, paddingBottom: insets.bottom + 16 }]}>
+          <Text style={[s.secao, { color: t.text, marginBottom: 8 }]}>Suas obras</Text>
+          <ScrollView style={{ maxHeight: 420 }}>
+            {dados?.obras.map((o, i) => {
+              const atual = o.id === dados.obra?.id;
+              return (
+                <Pressable
+                  key={o.id}
+                  onPress={() => trocarObra(o.id)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: atual }}
+                  style={[s.opcaoObra, i > 0 && { borderTopWidth: 1, borderTopColor: t.divider }]}
+                >
+                  <Text style={[s.item, { color: atual ? t.accentText : t.text, flex: 1 }]}>{o.nome}</Text>
+                  {atual && <Text style={[s.item, { color: t.accentText }]}>✓</Text>}
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -278,6 +325,12 @@ const s = StyleSheet.create({
   botoesTopo: { flexDirection: 'row', gap: 8 },
   redondo: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   hero: { borderRadius: 20, borderWidth: 1.5, padding: 18, gap: 4 },
+  heroTopo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  trocar: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, minHeight: 32, justifyContent: 'center' },
+  trocarTexto: { fontSize: 13, fontWeight: '700' },
+  fundo: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' },
+  folha: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20 },
+  opcaoObra: { flexDirection: 'row', alignItems: 'center', minHeight: 52, paddingVertical: 12 },
   heroRotulo: { fontSize: 12, fontWeight: '600', letterSpacing: 0.8, opacity: 0.8 },
   heroNome: { fontSize: 20, fontWeight: '700' },
   heroEtapa: { fontSize: 14, opacity: 0.85 },

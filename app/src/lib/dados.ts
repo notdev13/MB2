@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from './supabase';
 
 export type Etapa = { percentual: number; inicio_previsto: string | null; fim_previsto: string | null };
@@ -5,6 +6,7 @@ export type Pedido = { id: string; material: string; quantidade: number; unidade
 export type Resumo = {
   nome: string;
   obra: { id: string; nome: string; etapaAtual: string | null } | null;
+  obras: { id: string; nome: string }[];
   executado: number;
   previsto: number;
   entregasHoje: Pedido[];
@@ -26,16 +28,22 @@ export function progresso(etapas: Etapa[], hoje = new Date()) {
   return { executado: Math.round(executado), previsto: Math.round(previsto) };
 }
 
+// Última obra escolhida neste aparelho.
+const CHAVE_OBRA = 'mb2:obra-escolhida';
+export const lembrarObra = (obraId: string) => AsyncStorage.setItem(CHAVE_OBRA, obraId).catch(() => {});
+
 export async function carregarResumo(userId: string): Promise<Resumo> {
   const perfil = await supabase.from('perfis').select('nome').eq('id', userId).maybeSingle();
   if (perfil.error) throw perfil.error;
   const nome = (perfil.data?.nome ?? '').split(/[\s@]/)[0];
 
   // O RLS já devolve só as obras em que a pessoa é membro.
-  const obras = await supabase.from('obras').select('id, nome').eq('arquivada', false).order('criado_em').limit(1);
+  const obras = await supabase.from('obras').select('id, nome').eq('arquivada', false).order('nome');
   if (obras.error) throw obras.error;
-  const obra = obras.data?.[0];
-  if (!obra) return { nome, obra: null, executado: 0, previsto: 0, entregasHoje: [], ocorrenciasAbertas: 0 };
+  const listaObras = obras.data ?? [];
+  const escolhida = await AsyncStorage.getItem(CHAVE_OBRA).catch(() => null);
+  const obra = listaObras.find((o) => o.id === escolhida) ?? listaObras[0];
+  if (!obra) return { nome, obra: null, obras: [], executado: 0, previsto: 0, entregasHoje: [], ocorrenciasAbertas: 0 };
 
   const inicioDia = new Date();
   inicioDia.setHours(0, 0, 0, 0);
@@ -63,6 +71,7 @@ export async function carregarResumo(userId: string): Promise<Resumo> {
   return {
     nome,
     obra: { id: obra.id, nome: obra.nome, etapaAtual: atual?.nome ?? null },
+    obras: listaObras,
     ...progresso(lista),
     entregasHoje: (pedidos.data ?? []) as Pedido[],
     ocorrenciasAbertas: ocorrencias.count ?? 0,
