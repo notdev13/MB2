@@ -29,7 +29,7 @@ function rotuloDia(iso: string) {
 
 const hora = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-export type TelaObra = 'obra' | 'diario' | 'material' | 'ocorrencia';
+export type TelaObra = 'obra' | 'diario' | 'material' | 'ocorrencia' | 'equipe';
 type Props = { userId: string; onAbrir: (tela: TelaObra, obraId: string, obraNome: string) => void };
 
 export function Hoje({ userId, onAbrir }: Props) {
@@ -166,6 +166,15 @@ export function Hoje({ userId, onAbrir }: Props) {
             ))}
           </View>
 
+          <Pressable
+            onPress={() => onAbrir('equipe', dados.obra!.id, dados.obra!.nome)}
+            accessibilityRole="button"
+            style={[s.cartao, s.equipe, { backgroundColor: t.surface }]}
+          >
+            <Text style={[s.item, { color: t.text, flex: 1 }]}>Equipe da obra</Text>
+            <Icone nome="seta" cor={t.muted} />
+          </Pressable>
+
           {naFila > 0 && (
             <Text style={[s.aviso, { backgroundColor: t.warnBg, color: t.warnText }]}>
               {naFila === 1 ? '1 diário' : `${naFila} diários`} salvo no aparelho, esperando sinal para enviar.
@@ -282,6 +291,7 @@ const s = StyleSheet.create({
   acao: { flex: 1, borderRadius: 16, paddingVertical: 12, alignItems: 'center', gap: 8, minHeight: 44 },
   acaoIcone: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   acaoTexto: { fontSize: 12, fontWeight: '600' },
+  equipe: { flexDirection: 'row', alignItems: 'center', minHeight: 52, paddingVertical: 12, marginTop: -6 },
   aviso: { borderRadius: 14, padding: 14, fontSize: 14, fontWeight: '500', overflow: 'hidden' },
   secao: { fontSize: 18, fontWeight: '700' },
   cartao: { borderRadius: 18, padding: 16, gap: 4 },

@@ -5,6 +5,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { supabase } from './src/lib/supabase';
 import { Diario } from './src/screens/Diario';
+import { Equipe } from './src/screens/Equipe';
 import { Hoje, TelaObra } from './src/screens/Hoje';
 import { Material } from './src/screens/Material';
 import { Obra } from './src/screens/Obra';
@@ -35,6 +36,8 @@ function Raiz() {
           <Material obraId={tela.obraId} obraNome={tela.obraNome} onVoltar={() => setTela(null)} />
         ) : tela.tipo === 'ocorrencia' ? (
           <Ocorrencia obraId={tela.obraId} obraNome={tela.obraNome} onVoltar={() => setTela(null)} />
+        ) : tela.tipo === 'equipe' ? (
+          <Equipe obraId={tela.obraId} obraNome={tela.obraNome} onVoltar={() => setTela(null)} />
         ) : (
           <Diario obraId={tela.obraId} obraNome={tela.obraNome} onVoltar={() => setTela(null)} />
         )
