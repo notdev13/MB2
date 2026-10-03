@@ -18,8 +18,10 @@ export function Toast({ toast, onFechar, baixo }: { toast: Toast; onFechar: () =
   }, [toast, onFechar]);
 
   if (!toast) return null;
-  const fundo = escuro ? t.text : '#15120F';
-  const letra = escuro ? t.bg : '#F4EFE7';
+  // Aviso em contraste com a tela: escuro no tema claro, claro no tema escuro.
+  const fundo = t.text;
+  const letra = t.bg;
+  const acao = escuro ? '#7A532E' : '#6FD49A';
   return (
     <View accessibilityLiveRegion="polite" accessibilityRole="alert" style={[s.caixa, { bottom: baixo, backgroundColor: fundo }]}>
       <Text style={[s.texto, { color: letra }]} numberOfLines={2}>
@@ -35,7 +37,7 @@ export function Toast({ toast, onFechar, baixo }: { toast: Toast; onFechar: () =
           hitSlop={8}
           style={s.botao}
         >
-          <Text style={[s.botaoTexto, { color: escuro ? t.accentText : '#E2BE8F' }]}>Desfazer</Text>
+          <Text style={[s.botaoTexto, { color: acao }]}>Desfazer</Text>
         </Pressable>
       )}
     </View>

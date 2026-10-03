@@ -38,7 +38,7 @@ export function BarraAbas({ ativa, onAba, onRegistrar, onMais, avisoMais, penden
           {aviso && numero === 0 && <View style={[s.ponto, { backgroundColor: t.orange, borderColor: t.bg }]} />}
           {numero > 0 && (
             <View style={[s.numero, { backgroundColor: t.orange, borderColor: t.bg }]}>
-              <Text style={[s.numeroTexto, { color: t.bg }]}>{numero > 99 ? '99+' : numero}</Text>
+              <Text style={[s.numeroTexto, { color: t.onOrange }]}>{numero > 99 ? '99+' : numero}</Text>
             </View>
           )}
         </View>
@@ -100,7 +100,7 @@ export function MenuLateral(props: {
         </View>
         {numero > 0 && (
           <View style={[s.numero, { position: 'relative', top: 0, right: 0, backgroundColor: t.orange, borderColor: 'transparent' }]}>
-            <Text style={[s.numeroTexto, { color: t.bg }]}>{numero > 99 ? '99+' : numero}</Text>
+            <Text style={[s.numeroTexto, { color: t.onOrange }]}>{numero > 99 ? '99+' : numero}</Text>
           </View>
         )}
       </Pressable>

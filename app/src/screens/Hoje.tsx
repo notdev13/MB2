@@ -60,7 +60,7 @@ type Props = {
 type Pendencia = { chave: string; icone: Nome; titulo: string; sub: string; alerta: boolean; onPress: () => void };
 
 export function Hoje({ userId, versao, onAbrir, onObra, onPerfil, acessos }: Props) {
-  const { t } = useTema();
+  const { t, escuro, alternar } = useTema();
   const insets = useSafeAreaInsets();
   const [dados, setDados] = useState<Resumo | null>(null);
   const [erro, setErro] = useState<string | null>(null);
@@ -176,14 +176,24 @@ export function Hoje({ userId, versao, onAbrir, onObra, onPerfil, acessos }: Pro
       >
         <View style={s.topo}>
           <Marca />
-          <Pressable
-            onPress={onPerfil}
-            accessibilityRole="button"
-            accessibilityLabel="Perfil, tema e sair"
-            style={[s.avatar, { borderColor: t.border, backgroundColor: t.surface }]}
-          >
-            <Text style={[s.avatarTexto, { color: t.text }]}>{dados?.nome ? dados.nome.slice(0, 1).toUpperCase() : '·'}</Text>
-          </Pressable>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <Pressable
+              onPress={alternar}
+              accessibilityRole="button"
+              accessibilityLabel={escuro ? 'Usar tema claro' : 'Usar tema escuro'}
+              style={[s.avatar, { borderColor: t.border, backgroundColor: t.surface }]}
+            >
+              <Icone nome={escuro ? 'sol' : 'lua'} cor={t.text} />
+            </Pressable>
+            <Pressable
+              onPress={onPerfil}
+              accessibilityRole="button"
+              accessibilityLabel="Perfil, tema e sair"
+              style={[s.avatar, { borderColor: t.border, backgroundColor: t.surface }]}
+            >
+              <Text style={[s.avatarTexto, { color: t.text }]}>{dados?.nome ? dados.nome.slice(0, 1).toUpperCase() : '·'}</Text>
+            </Pressable>
+          </View>
         </View>
 
         <View style={{ gap: 4 }}>
@@ -272,14 +282,14 @@ export function Hoje({ userId, versao, onAbrir, onObra, onPerfil, acessos }: Pro
                 <Text style={[s.link, { color: t.accentText }]}>Ver cronograma</Text>
                 <Icone nome="seta" cor={t.accentText} tamanho={16} />
               </Pressable>
-            </View>
+          </View>
 
             <View style={{ gap: 10 }}>
               <View style={s.secaoTopo}>
                 <Text style={[s.rotulo, { color: t.muted }]}>PRECISA DE VOCÊ</Text>
                 {pendencias.length > 0 && (
                   <View style={[s.contador, { backgroundColor: t.orange }]}>
-                    <Text style={[s.contadorTexto, { color: t.bg }]}>{pendencias.length}</Text>
+                    <Text style={[s.contadorTexto, { color: t.onOrange }]}>{pendencias.length}</Text>
                   </View>
                 )}
               </View>
@@ -443,7 +453,7 @@ function EtiquetaEntrega({ status, t }: { status: string; t: Tema }) {
     <Text
       style={[
         s.etiqueta,
-        confirmada ? { backgroundColor: t.okBg, color: t.okText } : { borderWidth: 1, borderColor: t.orange, color: t.orange },
+        confirmada ? { backgroundColor: t.okBg, color: t.okText } : { borderWidth: 1, borderColor: t.orange, color: t.warnText },
       ]}
     >
       {texto}
