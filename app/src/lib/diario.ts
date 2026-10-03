@@ -152,3 +152,47 @@ export async function sincronizar() {
     sincronizando = false;
   }
 }
+
+export type DiarioResumo = {
+  id: string;
+  data: string;
+  clima: Clima | null;
+  atividades: string | null;
+  efetivoTotal: number;
+  fotos: string[]; // links assinados, válidos por 1 hora
+};
+
+// Últimos diários da obra, do mais novo para o mais antigo, com as fotos prontas para exibir.
+export async function carregarDiariosRecentes(obraId: string, limite = 7): Promise<DiarioResumo[]> {
+  const { data, error } = await supabase
+    .from('diarios')
+    .select('id, data, clima, atividades, diario_efetivo(quantidade), fotos(caminho)')
+    .eq('obra_id', obraId)
+    .order('data', { ascending: false })
+    .limit(limite);
+  if (error) throw error;
+  const linhas = (data ?? []) as {
+    id: string;
+    data: string;
+    clima: Clima | null;
+    atividades: string | null;
+    diario_efetivo: { quantidade: number }[];
+    fotos: { caminho: string }[];
+  }[];
+
+  const caminhos = linhas.flatMap((l) => l.fotos.map((f) => f.caminho));
+  const links = new Map<string, string>();
+  if (caminhos.length) {
+    const { data: assinados } = await supabase.storage.from('fotos-obra').createSignedUrls(caminhos, 3600);
+    for (const a of assinados ?? []) if (a.path && a.signedUrl) links.set(a.path, a.signedUrl);
+  }
+
+  return linhas.map((l) => ({
+    id: l.id,
+    data: l.data,
+    clima: l.clima,
+    atividades: l.atividades,
+    efetivoTotal: l.diario_efetivo.reduce((s, e) => s + e.quantidade, 0),
+    fotos: l.fotos.map((f) => links.get(f.caminho)).filter((u): u is string => !!u),
+  }));
+}
