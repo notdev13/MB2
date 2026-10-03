@@ -1,7 +1,7 @@
 import type { Session } from '@supabase/supabase-js';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Linking, View } from 'react-native';
+import { ActivityIndicator, Linking, useWindowDimensions, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 // Importa só os pesos usados (o pacote inteiro somaria ~20 arquivos de fonte ao app).
 import { CormorantGaramond_500Medium } from '@expo-google-fonts/cormorant-garamond/500Medium';
@@ -11,8 +11,10 @@ import { Manrope_500Medium } from '@expo-google-fonts/manrope/500Medium';
 import { Manrope_600SemiBold } from '@expo-google-fonts/manrope/600SemiBold';
 import { Manrope_700Bold } from '@expo-google-fonts/manrope/700Bold';
 import { useFonts } from 'expo-font';
-import { Aba, BarraAbas, Folha, ItemFolha } from './src/components/Abas';
+import { Aba, BarraAbas, Folha, ItemFolha, MenuLateral } from './src/components/Abas';
 import { codigoDoLink, contarPendentes, Funcao, minhaSituacao, Situacao } from './src/lib/acesso';
+import { lembrarObra } from './src/lib/dados';
+import { carregarPendencias } from './src/lib/pendencias';
 import { supabase } from './src/lib/supabase';
 import { Acessos } from './src/screens/Acessos';
 import { Aguardando } from './src/screens/Aguardando';
@@ -23,11 +25,15 @@ import { Hoje, TelaObra } from './src/screens/Hoje';
 import { Material } from './src/screens/Material';
 import { Obra } from './src/screens/Obra';
 import { Ocorrencia } from './src/screens/Ocorrencia';
+import { Painel } from './src/screens/Painel';
+import { Pendencias } from './src/screens/Pendencias';
 import { Login } from './src/screens/Login';
 import { TemaProvider, useTema } from './src/theme';
 
 function Raiz() {
   const { t, escuro, alternar } = useTema();
+  // Computador ou tablet deitado: menu lateral e Painel da carteira.
+  const largo = useWindowDimensions().width >= 1024;
   const [sessao, setSessao] = useState<Session | null | undefined>(undefined);
   const [tela, setTela] = useState<{ tipo: Exclude<TelaObra, 'obra'>; obraId: string; obraNome: string } | null>(null);
   const [acessos, setAcessos] = useState(false);
@@ -38,6 +44,7 @@ function Raiz() {
   const [folha, setFolha] = useState<'registrar' | 'mais' | null>(null);
   const [obraAtual, setObraAtual] = useState<{ id: string; nome: string } | null>(null);
   const [versao, setVersao] = useState(0);
+  const [nPendencias, setNPendencias] = useState(0);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSessao(data.session));
@@ -68,10 +75,19 @@ function Raiz() {
     setConta(undefined);
     setTela(null);
     setAcessos(false);
-    setAba('hoje');
+    setAba(largo ? 'painel' : 'hoje');
     setFolha(null);
     verificarConta();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a aba inicial só é escolhida ao entrar
   }, [verificarConta]);
+
+  const diretoria = conta?.papel === 'diretoria';
+  const contaAtiva = conta?.situacao === 'ativo';
+  // Número no ícone de Pendências, mesmo antes de abrir a aba.
+  useEffect(() => {
+    if (!userId || !contaAtiva) return setNPendencias(0);
+    carregarPendencias(diretoria).then((l) => setNPendencias(l.length), () => {});
+  }, [userId, contaAtiva, diretoria, versao]);
 
   const senhaProvisoria = sessao?.user.user_metadata?.senha_provisoria === true;
   const fecharTela = () => {
@@ -84,7 +100,16 @@ function Raiz() {
     if (tipo === 'obra') return setAba('obra');
     setTela({ tipo, obraId: obraAtual.id, obraNome: obraAtual.nome });
   };
-  const diretoria = conta?.papel === 'diretoria';
+  const abrirObraDoPainel = async (o: { id: string; nome: string }) => {
+    await lembrarObra(o.id);
+    setObraAtual(o);
+    setVersao((v) => v + 1); // Hoje passa a mostrar a obra escolhida
+    setAba('obra');
+  };
+  const abrirDePendencias = (tipo: 'material' | 'ocorrencia', o: { id: string; nome: string }) =>
+    setTela({ tipo, obraId: o.id, obraNome: o.nome });
+  // No celular não existe Painel: cai em Hoje.
+  const abaVisivel: Aba = !largo && aba === 'painel' ? 'hoje' : aba;
 
   if (sessao === undefined || (sessao && conta === undefined)) {
     return (
@@ -116,10 +141,13 @@ function Raiz() {
     return <Diario {...props} />;
   }
 
-  return (
-    <View style={{ flex: 1, backgroundColor: t.bg }}>
+  const telas = (
+    <View style={{ flex: 1 }}>
+      {largo && abaVisivel === 'painel' && (
+        <Painel versao={versao} pendencias={nPendencias} onAbrirObra={abrirObraDoPainel} onPendencias={() => setAba('pendencias')} />
+      )}
       {/* Hoje fica montada ao trocar de aba, para não recarregar tudo a cada toque. */}
-      <View style={{ flex: 1, display: aba === 'hoje' ? 'flex' : 'none' }}>
+      <View style={{ flex: 1, display: abaVisivel === 'hoje' ? 'flex' : 'none' }}>
         <Hoje
           userId={sessao.user.id}
           versao={versao}
@@ -129,20 +157,54 @@ function Raiz() {
           acessos={diretoria ? { pendentes, abrir: () => setAcessos(true) } : undefined}
         />
       </View>
-      {aba === 'obra' &&
+      {abaVisivel === 'obra' &&
         (obraAtual ? (
           <Obra obraId={obraAtual.id} onVoltar={() => setAba('hoje')} comAbas />
         ) : (
           <ActivityIndicator style={{ flex: 1 }} color={t.accentText} />
         ))}
+      {abaVisivel === 'pendencias' && (
+        <Pendencias
+          diretoria={diretoria}
+          versao={versao}
+          largo={largo}
+          onContagem={setNPendencias}
+          onAbrir={abrirDePendencias}
+          onContas={() => setAcessos(true)}
+        />
+      )}
+    </View>
+  );
 
-      <BarraAbas
-        ativa={aba}
-        onAba={setAba}
-        onRegistrar={() => setFolha('registrar')}
-        onMais={() => setFolha('mais')}
-        avisoMais={diretoria && pendentes > 0}
-      />
+  return (
+    <View style={{ flex: 1, backgroundColor: t.bg, flexDirection: largo ? 'row' : 'column' }}>
+      {largo && (
+        <MenuLateral
+          ativa={abaVisivel}
+          onAba={setAba}
+          onRegistrar={() => setFolha('registrar')}
+          obraNome={obraAtual?.nome ?? null}
+          pendencias={nPendencias}
+          extras={[
+            { icone: 'equipe', rotulo: 'Equipe da obra', onPress: () => abrir('equipe') },
+            ...(diretoria ? [{ icone: 'chave' as const, rotulo: 'Contas e convites', aviso: pendentes > 0, onPress: () => setAcessos(true) }] : []),
+            { icone: escuro ? 'sol' : 'lua', rotulo: escuro ? 'Tema claro' : 'Tema escuro', onPress: alternar },
+            { icone: 'sair', rotulo: 'Sair', onPress: () => supabase.auth.signOut() },
+          ]}
+        />
+      )}
+      {telas}
+
+      {!largo && (
+        <BarraAbas
+          ativa={abaVisivel}
+          onAba={setAba}
+          onRegistrar={() => setFolha('registrar')}
+          onMais={() => setFolha('mais')}
+          avisoMais={diretoria && pendentes > 0}
+          pendencias={nPendencias}
+        />
+      )}
 
       <Folha visivel={folha === 'registrar'} onFechar={() => setFolha(null)} titulo={obraAtual ? `Registrar · ${obraAtual.nome}` : 'Registrar'}>
         <ItemFolha primeiro icone="diario" rotulo="Diário de hoje" sub="Atividades, efetivo e clima" onPress={() => abrir('diario')} />
