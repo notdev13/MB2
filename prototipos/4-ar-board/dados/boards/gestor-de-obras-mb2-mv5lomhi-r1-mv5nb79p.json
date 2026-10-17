@@ -1,0 +1,122 @@
+{
+  "brief": "Dez direções diferentes de interface e fluxo para um gestor de obras simples da MB2, todas com edição de dados por comando de voz. Variam em estrutura, tom e ponto de partida do usuário.",
+  "createdAt": "2026-10-12T19:29:07.213Z",
+  "items": [
+    {
+      "id": "o01",
+      "preview": "<style>.m{background:#f5f3ee;font-family:'Instrument Sans';color:#1d1d1b;padding:3cqw;box-sizing:border-box}.h{font-family:'Bricolage Grotesque';font-size:4cqw;font-weight:700;margin-bottom:2cqw}.g{display:flex;gap:2cqw}.c{flex:1;background:#fff;border-radius:1.5cqw;padding:2cqw;border-left:1.2cqw solid}.c b{font-size:2.4cqw;display:block}.c span{font-size:1.9cqw}.v{border-color:#2e9e5b}.a{border-color:#e0a800}.r{border-color:#d33}.mic{position:absolute;right:3cqw;bottom:3cqw;background:#1d1d1b;color:#fff;border-radius:5cqw;padding:1.5cqw 3cqw;font-size:2cqw}</style><div class=\"m\"><div class=\"h\">Obras MB2</div><div class=\"g\"><div class=\"c v\"><b>[Obra A]</b><span>No prazo · [%] concluído</span></div><div class=\"c a\"><b>[Obra B]</b><span>Atenção · material atrasado</span></div><div class=\"c r\"><b>[Obra C]</b><span>Crítica · [x] dias de atraso</span></div></div><div class=\"mic\">🎤 Fale para atualizar</div></div>",
+      "tags": [
+        "painel",
+        "status",
+        "simples"
+      ],
+      "text": "Home com cartões de obras em verde, amarelo e vermelho, para ver de relance o que exige atenção. Funciona porque o gestor decide em segundos onde agir.",
+      "title": "Painel Semáforo"
+    },
+    {
+      "id": "o02",
+      "preview": "<style>.m{background:#111;color:#fff;font-family:'Instrument Sans';padding:4cqw;box-sizing:border-box;display:flex;flex-direction:column;justify-content:flex-end;gap:2cqw}.b{background:#2a2a2a;border-radius:2cqw;padding:2cqw;font-size:2.4cqw;max-width:70%}.u{align-self:flex-end;background:#e8590c}.i{border:.3cqw solid #555;border-radius:6cqw;padding:2cqw 3cqw;font-size:2.2cqw;color:#aaa}</style><div class=\"m\"><div class=\"b u\">Obra B, alvenaria 60%</div><div class=\"b\">Atualizar alvenaria da [Obra B] para 60%? Confirmar</div><div class=\"i\">🎤 Toque e fale…</div></div>",
+      "tags": [
+        "voz",
+        "chat",
+        "minimalista"
+      ],
+      "text": "A tela principal é um campo de voz e texto: o usuário fala 'Obra B, alvenaria 60%' e o sistema confirma. Reduz telas e cliques ao mínimo.",
+      "title": "Conversa primeiro"
+    },
+    {
+      "id": "o03",
+      "preview": "<style>.m{background:#fff;font-family:'Instrument Sans';color:#222;padding:3cqw;box-sizing:border-box}.t{font-family:'Fraunces';font-size:3.6cqw;margin-bottom:2cqw}.r{display:flex;align-items:center;margin-bottom:1.6cqw;font-size:2cqw}.r i{width:18cqw;font-style:normal}.k{height:2.6cqw;border-radius:1cqw;background:#1f6feb}</style><div class=\"m\"><div class=\"t\">Cronograma · [Obra]</div><div class=\"r\"><i>Fundação</i><div class=\"k\" style=\"width:20cqw\"></div></div><div class=\"r\"><i>Estrutura</i><div class=\"k\" style=\"width:35cqw;margin-left:10cqw\"></div></div><div class=\"r\"><i>Alvenaria</i><div class=\"k\" style=\"width:25cqw;margin-left:30cqw;background:#e0a800\"></div></div><div class=\"r\"><i>Acabamento</i><div class=\"k\" style=\"width:20cqw;margin-left:55cqw;background:#999\"></div></div></div>",
+      "tags": [
+        "cronograma",
+        "gantt",
+        "prazo"
+      ],
+      "text": "Cronograma horizontal simplificado com etapas arrastáveis e ajuste por voz. Dá a visão de prazo que todo gestor espera, sem a complexidade de um MS Project.",
+      "title": "Linha do tempo Gantt leve"
+    },
+    {
+      "id": "o04",
+      "preview": "<style>.m{background:#ffd60a;font-family:'Archivo Black';color:#111;padding:3cqw;box-sizing:border-box;display:flex;gap:2cqw;flex-wrap:wrap}.b{width:46%;height:16cqw;background:#111;color:#ffd60a;border-radius:2cqw;display:flex;align-items:center;justify-content:center;font-size:2.8cqw;text-align:center}.t{width:100%;font-size:3.4cqw}</style><div class=\"m\"><div class=\"t\">HOJE NA OBRA</div><div class=\"b\">🎤 FALAR</div><div class=\"b\">📷 FOTO</div><div class=\"b\">👷 EQUIPE</div><div class=\"b\">📦 MATERIAL</div></div>",
+      "tags": [
+        "mobile",
+        "campo",
+        "voz"
+      ],
+      "text": "Interface para celular, com botões enormes, alto contraste e voz, pensada para o mestre de obras usando luvas ao sol. Funciona porque o dado nasce onde a obra acontece.",
+      "title": "Modo Canteiro"
+    },
+    {
+      "id": "o05",
+      "preview": "<style>.m{background:#faf6ee;font-family:'Instrument Sans';color:#2b2b2b;padding:3cqw;box-sizing:border-box}.t{font-family:'Young Serif';font-size:3.6cqw;margin-bottom:2cqw}.n{font-family:'Caveat';font-size:3.2cqw;background:#fff;padding:2cqw;border-radius:1cqw;margin-bottom:2cqw}.f{display:flex;gap:1.5cqw;font-size:1.9cqw}.f span{background:#e6dfd0;padding:1cqw 2cqw;border-radius:3cqw}</style><div class=\"m\"><div class=\"t\">Diário · [data]</div><div class=\"n\">“Concretamos a laje do 3º andar, choveu à tarde, faltou areia…”</div><div class=\"f\"><span>Etapa: laje</span><span>Clima: chuva</span><span>Pendência: areia</span></div></div>",
+      "tags": [
+        "diário",
+        "voz",
+        "registro"
+      ],
+      "text": "O eixo é o diário diário: o usuário dita o que aconteceu e o sistema extrai etapas, equipe, clima e pendências em campos editáveis. Aproveita um hábito que já existe na obra.",
+      "title": "Diário de Obra Falado"
+    },
+    {
+      "id": "o06",
+      "preview": "<style>.m{background:#eef1f5;font-family:'Bricolage Grotesque';padding:3cqw;box-sizing:border-box;display:flex;gap:2cqw}.col{flex:1;background:#dde3ea;border-radius:1.5cqw;padding:1.5cqw;font-size:2cqw;font-weight:700}.k{background:#fff;border-radius:1cqw;padding:1.3cqw;margin-top:1.3cqw;font-weight:400;font-size:1.8cqw}</style><div class=\"m\"><div class=\"col\">A fazer<div class=\"k\">Reboco</div><div class=\"k\">Pintura</div></div><div class=\"col\">Fazendo<div class=\"k\">Alvenaria</div></div><div class=\"col\">Feito<div class=\"k\">Fundação</div><div class=\"k\">Estrutura</div></div></div>",
+      "tags": [
+        "kanban",
+        "etapas",
+        "intuitivo"
+      ],
+      "text": "Cada obra tem colunas A fazer, Fazendo e Feito, e as etapas se movem por arraste ou voz. Visual familiar e quase sem curva de aprendizado.",
+      "title": "Kanban de etapas"
+    },
+    {
+      "id": "o07",
+      "preview": "<style>.m{background:#0f2a24;color:#e9f5ef;font-family:'Instrument Sans';padding:3cqw;box-sizing:border-box}.t{font-family:'Fraunces';font-size:3.6cqw;margin-bottom:2cqw}.n{font-family:'JetBrains Mono';font-size:2.4cqw;margin-bottom:1.5cqw}.bar{height:2.4cqw;background:#25473d;border-radius:2cqw;margin-bottom:2.5cqw}.bar div{height:100%;width:68%;background:#4ade80;border-radius:2cqw}.s{font-size:2cqw;opacity:.8}</style><div class=\"m\"><div class=\"t\">[Obra] · Custos</div><div class=\"n\">Orçado [valor] · Realizado [valor]</div><div class=\"bar\"><div></div></div><div class=\"s\">🎤 “Lançar [valor] de cimento, fornecedor [nome]”</div></div>",
+      "tags": [
+        "custos",
+        "orçamento",
+        "incorporadora"
+      ],
+      "text": "Home centrada em orçado x realizado por obra, com lançamento de gastos por voz. Atende o ponto que mais pesa para uma incorporadora: custo.",
+      "title": "Financeiro em primeiro plano"
+    },
+    {
+      "id": "o08",
+      "preview": "<style>.m{background:#f2f2f2;font-family:'Instrument Sans';padding:3cqw;box-sizing:border-box;display:flex;gap:3cqw}.p{width:45%;display:flex;flex-direction:column;gap:.8cqw}.a{height:6cqw;border-radius:.8cqw;color:#fff;font-size:1.8cqw;display:flex;align-items:center;padding-left:1.5cqw}.d{flex:1;background:#fff;border-radius:1.5cqw;padding:2cqw;font-size:2cqw}.d b{font-family:'Bricolage Grotesque';font-size:2.8cqw;display:block;margin-bottom:1cqw}</style><div class=\"m\"><div class=\"p\"><div class=\"a\" style=\"background:#999\">3º pav. · não iniciado</div><div class=\"a\" style=\"background:#e0a800\">2º pav. · em andamento</div><div class=\"a\" style=\"background:#2e9e5b\">1º pav. · concluído</div></div><div class=\"d\"><b>2º pavimento</b>Alvenaria: [%]<br>Equipe: [nº]<br>🎤 Editar por voz</div></div>",
+      "tags": [
+        "planta",
+        "visual",
+        "unidades"
+      ],
+      "text": "A navegação parte da planta ou da fachada do empreendimento: toca-se no pavimento ou unidade para ver e editar o andamento. Torna o sistema visual e fácil de entender para quem não é técnico.",
+      "title": "Planta como mapa"
+    },
+    {
+      "id": "o09",
+      "preview": "<style>.m{background:#1b1030;color:#fff;font-family:'Bricolage Grotesque';padding:4cqw;box-sizing:border-box}.t{font-size:3.4cqw;font-weight:700;margin-bottom:2cqw}.c{background:#2e1d52;border-radius:2cqw;padding:2.2cqw;font-size:2.2cqw;margin-bottom:2cqw}.x{display:flex;gap:2cqw}.x span{background:#a78bfa;color:#1b1030;border-radius:3cqw;padding:1.2cqw 3cqw;font-size:2cqw}</style><div class=\"m\"><div class=\"t\">Assistente MB2</div><div class=\"c\">“A etapa de alvenaria da [Obra B] está sem atualização há [x] dias. Qual o status?”</div><div class=\"x\"><span>🎤 Responder</span><span>Adiar</span></div></div>",
+      "tags": [
+        "arriscada",
+        "proativo",
+        "IA"
+      ],
+      "text": "Arriscada: testa o limite da proatividade. O sistema liga ou pergunta por voz ao responsável cobrando atualizações atrasadas e propondo ajustes de cronograma, o que pode ser útil ou invasivo.",
+      "title": "Assistente que cobra (arriscada)"
+    },
+    {
+      "id": "o10",
+      "preview": "<style>.m{background:#000;color:#fff;font-family:'Instrument Sans';display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2cqw}.o{width:16cqw;height:16cqw;border-radius:50%;background:#e8590c;box-shadow:0 0 0 3cqw #4a2208;display:flex;align-items:center;justify-content:center;font-size:6cqw}.t{font-family:'Fraunces';font-size:3cqw}.s{font-size:2cqw;color:#aaa}</style><div class=\"m\"><div class=\"o\">🎤</div><div class=\"t\">“Resumo das obras de hoje”</div><div class=\"s\">“[Obra A] no prazo, [Obra B] com 1 pendência…”</div></div>",
+      "tags": [
+        "arriscada",
+        "voz",
+        "radical"
+      ],
+      "text": "Arriscada: testa o limite de uma interface quase sem telas. Tudo se faz falando, e o painel é só um resumo lido em voz alta, o que pode ser ágil ou frustrante sem feedback visual.",
+      "title": "Só voz, sem telas (arriscada)"
+    }
+  ],
+  "profile": "design",
+  "project": "gestor-de-obras-mb2-mv5lomhi",
+  "request": "preciso elaborar um gestão de obras personalizado para a MB2 incorporadora, que seja simples, funcional, intuitivo, com as principais funcionalidades de um gestor de obras porém simplificado (caso necessário vou aprofundando sessão por sessão, item por item...)  e que tenha a funcionalidade de alterar dados com comando de voz",
+  "round": 1,
+  "source": "painel",
+  "title": "Conceitos de gestor de obras MB2"
+}

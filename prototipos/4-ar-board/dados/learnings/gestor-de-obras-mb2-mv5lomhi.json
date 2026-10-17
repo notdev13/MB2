@@ -1,0 +1,16 @@
+{
+  "profile": "design",
+  "project": "gestor-de-obras-mb2-mv5lomhi",
+  "rules": [
+    "Priorizar entrada de dados por voz e texto, com confirmação do sistema, em vez de formulários e muitas telas.",
+    "Oferecer visão de relance do status das obras, como painel com semáforo verde, amarelo e vermelho.",
+    "Incluir um modo de campo para celular, com botões grandes, alto contraste e voz, pensado para o mestre de obras.",
+    "Usar o diário de obra falado como eixo de registro, extraindo etapas, equipe, clima e pendências em campos editáveis.",
+    "Dar destaque ao financeiro (orçado x realizado por obra), com lançamento de gastos por voz.",
+    "Navegar pela planta ou fachada do empreendimento, tocando em pavimento ou unidade para ver e editar o andamento.",
+    "Evitar visões de cronograma ou etapas no formato Gantt ou Kanban como estrutura central; o prazo pode aparecer de outras formas.",
+    "Manter sempre feedback visual; não propor interface só por voz, sem telas.",
+    "Testar a proatividade da IA (cobrar atualizações atrasadas e propor ajustes de cronograma) com cuidado, pois foi aprovada como ideia arriscada."
+  ],
+  "updatedAt": "2026-10-12T20:13:53.248Z"
+}

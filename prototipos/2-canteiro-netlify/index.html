@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Canteiro MB2</title>
+<meta name="theme-color" content="#0b0b0b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Canteiro">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Canteiro: alto contraste fixo para sol forte. Amarelo de segurança = ação; vermelho = gravando. */
+:root{
+  --y:#ffd21f; --k:#0b0b0b; --w:#ffffff; --g:#f0f0ec; --l:#d4d4cc; --m:#4a4a46; --r:#d0261a; --ok:#0f7a3a;
+  --f-display:'Archivo','Arial Narrow',system-ui,sans-serif; --f-body:'IBM Plex Sans',-apple-system,system-ui,sans-serif; --f-mono:'IBM Plex Mono',ui-monospace,monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{margin:0;background:var(--w);color:var(--k);font-family:var(--f-body);font-size:17px;line-height:1.4;overscroll-behavior:none}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--r);outline-offset:2px}
+.app{max-width:520px;margin:0 auto;min-height:100%;display:grid;grid-template-rows:auto 1fr auto}
+
+header{position:sticky;top:0;z-index:5;background:var(--k);color:var(--w);padding:calc(12px + env(safe-area-inset-top,0px)) 16px 12px;display:grid;gap:10px}
+.hrow{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.hrow b{font-family:var(--f-display);font-weight:900;font-size:21px;letter-spacing:.02em;text-transform:uppercase}
+.hrow b span{color:var(--y)}
+.diag{font-family:var(--f-mono);font-size:11px;color:#bdbdb4;text-align:right;line-height:1.3}
+.diag i{font-style:normal;color:var(--y)}
+.obras{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+.obras button{flex:none;border:2px solid #3a3a37;background:transparent;color:var(--w);border-radius:10px;padding:8px 12px;font-weight:700;font-size:15px}
+.obras button[aria-pressed="true"]{background:var(--y);color:var(--k);border-color:var(--y)}
+
+main{padding:16px;display:grid;gap:12px;align-content:start}
+.empty{border:3px dashed var(--l);border-radius:18px;padding:22px 18px;display:grid;gap:8px;text-align:center;color:var(--m)}
+.empty b{font-family:var(--f-display);font-size:22px;color:var(--k);line-height:1.1}
+.warn{background:#fff0ee;color:var(--r);border:2px solid var(--r);border-radius:12px;padding:10px 12px;font-size:15px;font-weight:600}
+.reg{border:2px solid var(--k);border-radius:16px;padding:14px;display:grid;gap:8px}
+.reg .when{font-family:var(--f-mono);font-size:12px;color:var(--m);letter-spacing:.04em;text-transform:uppercase}
+.reg .txt{font-size:16px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips span{font-family:var(--f-mono);font-size:12px;background:var(--g);border-radius:6px;padding:2px 7px}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:2px solid var(--k);background:var(--w);border-radius:12px;padding:10px 14px;font-weight:700;font-size:15px;text-decoration:none;color:var(--k);display:inline-flex;align-items:center;gap:6px}
+.btn.y{background:var(--y)}
+.btn.k{background:var(--k);color:var(--w)}
+h2{margin:4px 0 0;font-family:var(--f-display);font-weight:900;font-size:15px;letter-spacing:.06em;text-transform:uppercase;color:var(--m)}
+
+/* barra do microfone, estilo WhatsApp */
+.dock{position:sticky;bottom:0;z-index:6;background:var(--w);border-top:2px solid var(--k);padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center}
+.hint{font-size:15px;color:var(--m);min-width:0}
+.hint b{color:var(--k)}
+.rec{display:none;grid-template-columns:auto auto minmax(0,1fr);gap:10px;align-items:center;min-width:0}
+.rec .dot{width:12px;height:12px;border-radius:50%;background:var(--r);animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.25}}
+.rec .time{font-family:var(--f-mono);font-weight:600;font-size:16px;font-variant-numeric:tabular-nums}
+.rec .slide{font-size:14px;color:var(--m);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:transform .05s linear}
+.dock.recording .hint{display:none}.dock.recording .rec{display:grid}
+.mic{position:relative;width:76px;height:76px;border-radius:50%;border:3px solid var(--k);background:var(--y);color:var(--k);display:grid;place-items:center;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;transition:transform .12s,background .12s}
+.mic svg{width:34px;height:34px;pointer-events:none}
+.dock.recording .mic{background:var(--r);color:var(--w);transform:scale(1.18)}
+.lockhint{position:absolute;bottom:calc(100% + 14px);left:50%;transform:translateX(-50%);display:none;flex-direction:column;align-items:center;gap:4px;background:var(--k);color:var(--w);border-radius:99px;padding:10px 8px;pointer-events:none}
+.lockhint svg{width:20px;height:20px}
+.lockhint small{font-size:10px;font-weight:700;writing-mode:vertical-rl;letter-spacing:.06em;text-transform:uppercase}
+.dock.recording:not(.locked) .lockhint{display:flex}
+
+/* painel ao vivo enquanto grava */
+.live{position:fixed;left:0;right:0;bottom:calc(200px + env(safe-area-inset-bottom,0px));z-index:7;display:none;justify-content:center;padding:0 12px;pointer-events:none}
+.live .card{width:min(100%,496px);background:var(--k);color:var(--w);border-radius:18px;padding:14px;display:grid;gap:10px;box-shadow:0 12px 30px -10px rgba(0,0,0,.5);pointer-events:auto}
+.live canvas{width:100%;height:56px;display:block}
+.live .tr{font-size:17px;min-height:1.4em;max-height:30vh;overflow:auto}
+.live .tr em{color:#bdbdb4;font-style:normal}
+.live .tr.muted{color:#bdbdb4;font-size:15px}
+.live .lockrow{display:none;gap:8px}
+.live .lockrow button{flex:1;border:2px solid var(--w);border-radius:12px;padding:12px;font-weight:800;font-size:16px;background:transparent;color:var(--w)}
+.live .lockrow button.send{background:var(--y);color:var(--k);border-color:var(--y)}
+body.is-rec .live{display:flex}
+body.is-locked .live .lockrow{display:flex}
+body.is-locked .dock{visibility:hidden}
+body.is-locked .live{bottom:calc(24px + env(safe-area-inset-bottom,0px))}
+
+/* tela de conferência */
+.sheet{position:fixed;inset:0;z-index:20;background:var(--w);overflow:auto;display:none}
+.sheet.open{display:block}
+.sheet .in{max-width:520px;margin:0 auto;padding:calc(16px + env(safe-area-inset-top,0px)) 16px calc(24px + env(safe-area-inset-bottom,0px));display:grid;gap:12px}
+.sheet h3{margin:0;font-family:var(--f-display);font-weight:900;font-size:26px;text-transform:uppercase}
+.sheet audio{width:100%}
+.frow{display:grid;gap:4px}
+.frow label{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.frow select,.frow input,.frow textarea{border:2px solid var(--k);border-radius:12px;padding:10px 12px;font-size:18px;background:var(--w);width:100%;min-width:0}
+.frow textarea{min-height:110px;resize:vertical}
+.two{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:8px}
+.step{display:grid;grid-template-columns:56px minmax(0,1fr) 56px;gap:8px}
+.step button{border:2px solid var(--k);background:var(--g);border-radius:12px;font-size:24px;font-weight:900}
+.step input{text-align:center;font-weight:700}
+.pend{display:grid;gap:6px}
+.pend div{display:grid;grid-template-columns:minmax(0,1fr) 48px;gap:6px}
+.pend button{border:2px solid var(--k);background:var(--w);border-radius:10px;font-weight:900}
+.big{border:3px solid var(--k);background:var(--y);color:var(--k);border-radius:16px;padding:16px;font-family:var(--f-display);font-weight:900;font-size:20px;text-transform:uppercase;width:100%}
+.big.line{background:var(--w)}
+.est{font-size:12px;font-weight:700;background:var(--y);border-radius:5px;padding:1px 6px;margin-left:6px;text-transform:none;letter-spacing:0}
+.note{font-size:13px;color:var(--m);margin:0}
+
+.toast{position:fixed;left:50%;top:calc(16px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:30;background:var(--k);color:var(--w);border-radius:12px;padding:12px 16px;font-weight:600;font-size:15px;width:min(92vw,460px);display:none}
+.toast.on{display:block}
+.toast.good{background:var(--ok)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="hrow"><b>Canteiro <span>MB2</span></b><span class="diag" id="diag"></span></div>
+    <div class="obras" id="obras" role="group" aria-label="Obra"></div>
+  </header>
+  <main id="list"></main>
+  <div class="dock" id="dock">
+    <div class="hint" id="hint"><b>Segure o botão e fale.</b> Solte para enviar. Deslize para a esquerda para cancelar; para cima, para gravar sem segurar.</div>
+    <div class="rec" aria-live="polite"><i class="dot"></i><span class="time" id="time">0:00</span><span class="slide" id="slide">‹ deslize para cancelar</span></div>
+    <button class="mic" id="mic" aria-label="Segure para gravar um áudio">
+      <span class="lockhint" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><small>travar</small></span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2.5" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3.5"/></svg>
+    </button>
+  </div>
+</div>
+
+<div class="live" id="live"><div class="card">
+  <canvas id="wave" width="900" height="112" aria-hidden="true"></canvas>
+  <div class="tr muted" id="tr">Ouvindo…</div>
+  <div class="lockrow"><button id="lcancel">Cancelar</button><button class="send" id="lsend">Enviar</button></div>
+</div></div>
+
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t"><div class="in" id="sheetin"></div></div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function(){
+/* ---------- dados de teste (fictícios) ---------- */
+const OBRAS=[
+  {id:'ipe',nome:'Residencial Ipê',curto:'Ipê',pav:4,resp:'Valdir'},
+  {id:'garapuvu',nome:'Edifício Garapuvu',curto:'Garapuvu',pav:8,resp:'Jorge'},
+  {id:'pitangueira',nome:'Casas Pitangueira',curto:'Pitangueira',pav:2,resp:'Márcia'}];
+const ETAPAS=['Fundação','Estrutura','Alvenaria','Instalações','Reboco','Acabamento','Entrega'];
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const num=s=>Number(String(s).replace(/[^\d,.-]/g,'').replace(/\./g,'').replace(',','.'));
+const brl=v=>v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(_){return d;}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(_){}}};
+
+const S={obra:store.get('canteiro.obra','ipe'),regs:store.get('canteiro.regs',[]),audios:{}};
+
+/* ---------- capacidade do aparelho ---------- */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+const canRec=!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&window.MediaRecorder);
+function diag(){
+  $('#diag').innerHTML=`microfone: <i>${canRec?(window.isSecureContext?'ok':'precisa de https'):'indisponível'}</i><br>transcrição: <i>${SR?'do aparelho':'pelo teclado'}</i>`;
+}
+
+/* ---------- interface base ---------- */
+function toast(msg,good){const t=$('#toast');t.textContent=msg;t.className='toast on'+(good?' good':'');clearTimeout(toast.h);toast.h=setTimeout(()=>{t.className='toast';},3200);}
+function renderObras(){
+  $('#obras').innerHTML=OBRAS.map(o=>`<button data-o="${o.id}" aria-pressed="${o.id===S.obra}">${esc(o.curto)}</button>`).join('');
+}
+function renderList(){
+  const o=OBRAS.find(x=>x.id===S.obra);const regs=S.regs.filter(r=>r.obra===S.obra);
+  let warn='';
+  if(!window.isSecureContext)warn='<div class="warn">Abra pelo endereço https do Netlify. Sem https, o iPhone não libera o microfone.</div>';
+  else if(!canRec)warn='<div class="warn">Este navegador não grava áudio. No iPhone, use o Safari atualizado.</div>';
+  $('#list').innerHTML=warn+(regs.length?`<h2>${esc(o.nome)} · registros</h2>`+regs.map(r=>`<article class="reg">
+      <span class="when">${new Date(r.data).toLocaleString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}${r.dur?` · áudio de ${Math.round(r.dur)}s`:''}</span>
+      <span class="txt">“${esc(r.texto||'(sem transcrição)')}”</span>
+      ${r.ext.length?`<span class="chips">${r.ext.map(x=>`<span>${esc(x)}</span>`).join('')}</span>`:''}
+      <div class="row"><a class="btn y" href="https://wa.me/?text=${encodeURIComponent(resumo(r))}" target="_blank" rel="noopener">Enviar resumo no WhatsApp</a>
+      ${S.audios[r.id]&&canShareFile(S.audios[r.id])?`<button class="btn" data-share="${r.id}">Compartilhar áudio</button>`:''}
+      <button class="btn" data-del="${r.id}" aria-label="Apagar registro">Apagar</button></div></article>`).join('')
+    :`<div class="empty"><b>Segure o botão amarelo e fale</b><span>Conte o que aconteceu hoje na obra: etapa, equipe, clima, faltas de material e gastos.</span><span class="note">Exemplo: “Alvenaria do 3º andar concluída, faltou cimento, 6 pedreiros e 2 serventes, sol forte.”</span></div>`);
+}
+function resumo(r){const o=OBRAS.find(x=>x.id===r.obra);
+  return `*${o.nome}* · ${new Date(r.data).toLocaleDateString('pt-BR')}\n${r.ext.length?r.ext.map(x=>'- '+x).join('\n')+'\n':''}\nFala: "${r.texto}"`;}
+function audioFile(a){const ext=a.type.includes('mp4')?'m4a':a.type.includes('ogg')?'ogg':'webm';return new File([a],`canteiro-${Date.now()}.${ext}`,{type:a.type||'audio/mp4'});}
+function canShareFile(a){try{return !!(navigator.canShare&&navigator.canShare({files:[audioFile(a)]}));}catch(_){return false;}}
+
+/* ---------- gravação ---------- */
+let stream=null,mr=null,chunks=[],recog=null,acc='',fin='',inter='',t0=0,raf=0,actx=null,analyser=null,srcNode=null;
+let pressing=false,recording=false,locked=false,startX=0,startY=0,srEnded=true,srWanted=false,levels=[];
+const dock=$('#dock'),mic=$('#mic');
+
+async function ensureMic(){
+  if(stream&&stream.getAudioTracks().some(t=>t.readyState==='live'))return true;
+  if(!canRec||!window.isSecureContext){toast('Microfone indisponível aqui. Abra pelo link https no Safari.');return false;}
+  try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});return true;}
+  catch(e){toast(e&&e.name==='NotAllowedError'?'Microfone bloqueado. Libere em Ajustes > Safari > Microfone.':'Não consegui abrir o microfone.');return false;}
+}
+function pickMime(){return ['audio/mp4','audio/webm;codecs=opus','audio/webm','audio/ogg'].find(m=>MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(m))||'';}
+
+function startSR(){
+  if(!SR)return;srWanted=true;
+  try{recog=new SR();recog.lang='pt-BR';recog.continuous=true;recog.interimResults=true;recog.maxAlternatives=1;
+    recog.onresult=e=>{let f='',i='';for(let k=0;k<e.results.length;k++){const r=e.results[k];if(r.isFinal)f+=r[0].transcript+' ';else i+=r[0].transcript;}fin=f;inter=i;paintTr();};
+    recog.onerror=e=>{recog._err=e.error;};
+    recog.onend=()=>{acc+=fin;fin='';inter='';srEnded=true;if(srWanted&&recording&&recog._err!=='not-allowed'&&recog._err!=='service-not-allowed'){try{srEnded=false;recog.start();}catch(_){}}};
+    srEnded=false;recog.start();
+  }catch(_){srEnded=true;}
+}
+function transcript(){return (acc+fin+inter).replace(/\s+/g,' ').trim();}
+function paintTr(){const t=transcript();const el=$('#tr');
+  if(t){el.classList.remove('muted');el.innerHTML=esc(acc+fin)+(inter?`<em>${esc(inter)}</em>`:'');el.scrollTop=el.scrollHeight;}
+  else{el.classList.add('muted');el.textContent=SR?'Ouvindo… fale normalmente.':'Gravando. A transcrição automática não existe neste navegador; você confere o texto depois.';}}
+
+function start(){
+  recording=true;locked=false;chunks=[];acc='';fin='';inter='';levels=[];
+  const mime=pickMime();try{mr=new MediaRecorder(stream,mime?{mimeType:mime}:undefined);}catch(_){mr=new MediaRecorder(stream);}
+  mr.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data);};mr.start(250);
+  try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();actx.resume();srcNode=actx.createMediaStreamSource(stream);analyser=actx.createAnalyser();analyser.fftSize=1024;srcNode.connect(analyser);}catch(_){analyser=null;}
+  startSR();
+  t0=performance.now();document.body.classList.add('is-rec');dock.classList.add('recording');paintTr();
+  if(navigator.vibrate)navigator.vibrate(15);
+  loop();
+}
+function loop(){
+  const s=(performance.now()-t0)/1000;$('#time').textContent=`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+  const cv=$('#wave'),c=cv.getContext('2d');let lv=0;
+  if(analyser){const d=new Uint8Array(analyser.fftSize);analyser.getByteTimeDomainData(d);let q=0;for(const v of d){const x=(v-128)/128;q+=x*x;}lv=Math.min(1,Math.sqrt(q/d.length)*4.5);}
+  levels.push(lv);if(levels.length>90)levels.shift();
+  c.clearRect(0,0,cv.width,cv.height);const n=90,w=cv.width/n;c.fillStyle='#ffd21f';
+  for(let i=0;i<levels.length;i++){const h=Math.max(6,levels[i]*cv.height);c.fillRect(i*w+w*.2,(cv.height-h)/2,w*.6,h);}
+  if(s>=300){stop(true);return;}
+  raf=requestAnimationFrame(loop);
+}
+function stop(send){
+  if(!recording)return;recording=false;srWanted=false;cancelAnimationFrame(raf);
+  const dur=(performance.now()-t0)/1000;
+  document.body.classList.remove('is-rec','is-locked');dock.classList.remove('recording','locked');$('#slide').style.transform='';
+  try{srcNode&&srcNode.disconnect();}catch(_){}
+  const done=new Promise(res=>{mr.onstop=()=>res(new Blob(chunks,{type:mr.mimeType||'audio/mp4'}));try{mr.stop();}catch(_){res(new Blob(chunks));}});
+  const srDone=new Promise(res=>{if(!recog||srEnded)return res();const h=setTimeout(res,1800);recog.addEventListener('end',()=>{clearTimeout(h);res();},{once:true});try{recog.stop();}catch(_){clearTimeout(h);res();}});
+  if(!send){try{recog&&recog.abort();}catch(_){}toast('Áudio cancelado.');return;}
+  if(dur<0.7){try{recog&&recog.abort();}catch(_){}toast('Segure o botão enquanto fala.');return;}
+  Promise.all([done,srDone]).then(([blob])=>openSheet(blob,dur,transcript()));
+}
+
+/* gestos do botão */
+mic.addEventListener('contextmenu',e=>e.preventDefault());
+mic.addEventListener('pointerdown',async e=>{
+  e.preventDefault();if(recording)return;pressing=true;startX=e.clientX;startY=e.clientY;
+  try{mic.setPointerCapture(e.pointerId);}catch(_){}
+  const ok=await ensureMic();
+  if(!ok){pressing=false;return;}
+  if(!pressing){toast('Microfone liberado. Agora segure o botão e fale.',true);return;}
+  start();
+});
+mic.addEventListener('pointermove',e=>{
+  if(!recording||locked||!pressing)return;const dx=e.clientX-startX,dy=e.clientY-startY;
+  if(dx<0)$('#slide').style.transform=`translateX(${Math.max(dx,-120)}px)`;
+  if(dx<-110){pressing=false;stop(false);}
+  else if(dy<-90){locked=true;pressing=false;document.body.classList.add('is-locked');dock.classList.add('locked');if(navigator.vibrate)navigator.vibrate(10);}
+});
+const release=()=>{const was=pressing;pressing=false;if(recording&&!locked&&was)stop(true);};
+mic.addEventListener('pointerup',release);
+mic.addEventListener('pointercancel',release);
+mic.addEventListener('keydown',async e=>{if(e.key!=='Enter'&&e.key!==' ')return;e.preventDefault();if(recording)return;if(!await ensureMic())return;start();locked=true;document.body.classList.add('is-locked');dock.classList.add('locked');});
+$('#lcancel').addEventListener('click',()=>stop(false));
+$('#lsend').addEventListener('click',()=>stop(true));
+document.addEventListener('visibilitychange',()=>{if(document.hidden){if(recording)stop(false);if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}}});
+
+/* ---------- leitura do texto (simples, sem servidor) ---------- */
+const ETAPA_KEYS=[['fund','Fundação'],['estrut','Estrutura'],['laje','Estrutura'],['pilar','Estrutura'],['alvenar','Alvenaria'],['instala','Instalações'],['elétric','Instalações'],['eletric','Instalações'],['hidrául','Instalações'],['hidraul','Instalações'],['reboc','Reboco'],['acabament','Acabamento'],['pintur','Acabamento'],['piso','Acabamento'],['revestim','Acabamento'],['entrega','Entrega']];
+const NUMS={um:1,uma:1,dois:2,duas:2,'três':3,tres:3,quatro:4,cinco:5,seis:6,sete:7,oito:8,nove:9,dez:10,onze:11,doze:12,quinze:15,vinte:20};
+function normNums(t){return t.replace(/\b(um|uma|dois|duas|três|tres|quatro|cinco|seis|sete|oito|nove|dez|onze|doze|quinze|vinte)\b/gi,m=>NUMS[m.toLowerCase()]).replace(/(\d+)\s*por\s*cento/gi,'$1%').replace(/\bprimeiro\b/gi,'1º').replace(/\bsegundo\b/gi,'2º').replace(/\bterceiro\b/gi,'3º').replace(/\bquarto andar\b/gi,'4º andar').replace(/\bquinto\b/gi,'5º');}
+function parse(text,o){
+  const t0=normNums(text);const t=t0.toLowerCase();const r={etapa:null,avanco:null,estimado:false,equipe:null,clima:null,pendencias:[],gasto:null};
+  for(const [k,n] of ETAPA_KEYS)if(t.includes(k)){r.etapa=n;break;}
+  const p=t.match(/(\d{1,3})\s*%/);
+  if(p&&r.etapa)r.avanco=clamp(+p[1],0,100);
+  else if(r.etapa&&/conclu|termin|fechad|finaliz|pront/.test(t)){const an=t.match(/(\d+)\s*[ºo°]?\s*(andar|pavimento)/);if(an&&o.pav){r.avanco=clamp(Math.round(+an[1]/o.pav*100),0,100);r.estimado=true;}else r.avanco=100;}
+  let eq=0;for(const m of t.matchAll(/(\d+)\s*(pedreiros?|serventes?|funcion\w*|pessoas|homens|operári\w*|trabalhadores|eletricistas?|encanadores?|ajudantes?|carpinteiros?|armadores?)/g))eq+=+m[1];if(eq)r.equipe=eq;
+  r.clima=/chov|chuva/.test(t)?'chuva':/nublad/.test(t)?'nublado':/\bsol\b|ensolarad/.test(t)?'sol':null;
+  for(const m of t0.matchAll(/falt(?:ou|a|ando)\s+([^,.;]+)/gi))r.pendencias.push('Falta de '+m[1].trim().replace(/^(de|o|a)\s+/i,''));
+  for(const m of t0.matchAll(/aguardando\s+([^,.;]+)/gi))r.pendencias.push('Aguardando '+m[1].trim());
+  if(/parad/.test(t)&&r.clima==='chuva')r.pendencias.push('Obra parada por chuva');
+  const g=t0.match(/r\$\s*([\d.]+(?:,\d{1,2})?)/i)||t0.match(/([\d.]+(?:,\d{1,2})?)\s*reais/i);
+  if(g){const desc=(t0.match(/(?:comprei|compramos|paguei|pagamos|gastei|gastamos)\s+([^,.;]+?)(?:\s+(?:por|deu|custou|a)\s|,|\.|;|$)/i)||[])[1];r.gasto={valor:num(g[1]),descricao:desc?desc.trim():'Gasto lançado no canteiro'};}
+  return r;
+}
+
+/* ---------- conferência ---------- */
+let cur=null;
+function openSheet(blob,dur,text){
+  const o=OBRAS.find(x=>x.id===S.obra);cur={blob,dur,text,url:URL.createObjectURL(blob),d:parse(text,o)};drawSheet();$('#sheet').classList.add('open');document.body.style.overflow='hidden';
+}
+function drawSheet(){
+  const o=OBRAS.find(x=>x.id===S.obra),d=cur.d;
+  $('#sheetin').innerHTML=`<h3 id="sh-t">Confere?</h3>
+    <audio controls src="${cur.url}"></audio>
+    <div class="frow"><label for="stext">O que você disse</label><textarea id="stext" lang="pt-BR" autocapitalize="sentences" placeholder="Não veio transcrição. Ouça o áudio e escreva aqui, ou use o microfone do teclado.">${esc(cur.text)}</textarea></div>
+    ${cur.text?'':'<p class="note">A transcrição automática não funcionou neste aparelho. Escreva ou dite pelo teclado e toque em “Ler de novo”.</p>'}
+    <button class="btn" id="reparse">Ler de novo o texto</button>
+    <div class="frow"><label for="fet">Etapa</label><select id="fet"><option value="">Nenhuma etapa</option>${ETAPAS.map(e=>`<option ${d.etapa===e?'selected':''}>${e}</option>`).join('')}</select></div>
+    <div class="frow"><label for="fpct">Avanço da etapa${d.estimado?'<span class="est">estimado, confira</span>':''}</label><div class="step"><button data-pct="-5" aria-label="Diminuir 5%">−</button><input id="fpct" inputmode="numeric" value="${d.avanco==null?'':Math.round(d.avanco)}" placeholder="—" aria-label="Percentual"><button data-pct="5" aria-label="Aumentar 5%">+</button></div></div>
+    <div class="two"><div class="frow"><label for="feq">Equipe</label><input id="feq" inputmode="numeric" value="${d.equipe??''}" placeholder="—"></div>
+      <div class="frow"><label for="fcl">Clima</label><select id="fcl">${['','sol','nublado','chuva'].map(c=>`<option value="${c}" ${d.clima===c?'selected':''}>${c||'—'}</option>`).join('')}</select></div></div>
+    <div class="frow"><label>Pendências</label><div class="pend">${d.pendencias.map((p,i)=>`<div><input data-pend="${i}" value="${esc(p)}" aria-label="Pendência ${i+1}"><button data-delp="${i}" aria-label="Remover">×</button></div>`).join('')}<button class="btn" id="addp">+ Pendência</button></div></div>
+    <div class="two"><div class="frow"><label for="fgv">Gasto (R$)</label><input id="fgv" inputmode="decimal" value="${d.gasto?String(d.gasto.valor).replace('.',','):''}" placeholder="—"></div>
+      <div class="frow"><label for="fgd">Com o quê</label><input id="fgd" value="${esc(d.gasto?d.gasto.descricao:'')}" placeholder="—"></div></div>
+    <button class="big" id="ok">Confirmar · ${esc(o.curto)}</button>
+    <button class="big line" id="discard">Descartar áudio</button>`;
+}
+function readForm(){const d=cur.d;const v=id=>{const e=$(id);return e?e.value:'';};
+  cur.text=v('#stext');d.etapa=v('#fet')||null;const p=v('#fpct').trim();d.avanco=p===''?null:clamp(num(p)||0,0,100);
+  const eq=v('#feq').trim();d.equipe=eq===''?null:Math.round(num(eq))||null;d.clima=v('#fcl')||null;
+  d.pendencias=[...document.querySelectorAll('[data-pend]')].map(i=>i.value.trim());
+  const gv=v('#fgv').trim();d.gasto=gv&&num(gv)>0?{valor:num(gv),descricao:v('#fgd').trim()||'Gasto lançado no canteiro'}:null;}
+function closeSheet(){$('#sheet').classList.remove('open');document.body.style.overflow='';}
+$('#sheet').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.id==='reparse'){readForm();const o=OBRAS.find(x=>x.id===S.obra);cur.d=parse(cur.text,o);drawSheet();return;}
+  if(b.dataset.pct){const i=$('#fpct');i.value=clamp(Math.round((i.value===''?0:num(i.value))+ +b.dataset.pct),0,100);return;}
+  if(b.id==='addp'){readForm();cur.d.pendencias.push('');drawSheet();const ins=document.querySelectorAll('[data-pend]');ins[ins.length-1].focus();return;}
+  if(b.dataset.delp){readForm();cur.d.pendencias.splice(+b.dataset.delp,1);drawSheet();return;}
+  if(b.id==='discard'){URL.revokeObjectURL(cur.url);cur=null;closeSheet();toast('Áudio descartado.');return;}
+  if(b.id==='ok'){readForm();const d=cur.d;const ext=[];
+    if(d.etapa&&d.avanco!=null)ext.push(`${d.etapa} ${Math.round(d.avanco)}%`);else if(d.etapa)ext.push(d.etapa);
+    if(d.equipe)ext.push(`${d.equipe} pessoas`);if(d.clima)ext.push(d.clima);d.pendencias.filter(Boolean).forEach(p=>ext.push(p));
+    if(d.gasto)ext.push(`Gasto ${brl(d.gasto.valor)}: ${d.gasto.descricao}`);
+    const r={id:'r'+Date.now(),obra:S.obra,data:new Date().toISOString(),texto:cur.text.trim(),dur:cur.dur,ext,campos:d};
+    S.audios[r.id]=cur.blob;S.regs.unshift(r);S.regs=S.regs.slice(0,60);store.set('canteiro.regs',S.regs);cur=null;closeSheet();renderList();
+    toast('Registrado. Envie o resumo pelo WhatsApp para o escritório.',true);window.scrollTo(0,0);}
+});
+
+/* ---------- lista ---------- */
+document.addEventListener('click',async e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.o){S.obra=b.dataset.o;store.set('canteiro.obra',S.obra);renderObras();renderList();return;}
+  if(b.dataset.del){S.regs=S.regs.filter(r=>r.id!==b.dataset.del);delete S.audios[b.dataset.del];store.set('canteiro.regs',S.regs);renderList();return;}
+  if(b.dataset.share){const a=S.audios[b.dataset.share];if(!a)return;try{await navigator.share({files:[audioFile(a)],title:'Áudio do canteiro'});}catch(_){}return;}
+});
+
+diag();renderObras();renderList();
+})();
+</script>
+</body>
+</html>

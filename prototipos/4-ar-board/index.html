@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>AR Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,600&family=Archivo+Black&family=Caveat:wght@700&family=Young+Serif&display=swap">
+<style>
+/* Layout: mesa de prova. Área (abas) > projeto (fichas) > rodada (folha de provas numerada com carimbos A/R/E). Coluna de controle à direita. */
+:root{
+  --bg:#f2f3f5; --surface:#ffffff; --sunk:#e8eaee; --ink:#16181d; --muted:#5d6370; --line:#d8dbe1;
+  --accent:#2f4bd8; --accent-ink:#ffffff; --accent-soft:#e6eafc;
+  --ok:#1d8a4f; --ok-soft:#e1f2e8; --no:#c2372b; --no-soft:#f8e3e0; --wait:#a8690f; --wait-soft:#f6ecd9;
+  --f-display:'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
+  --f-body:'Instrument Sans', 'Segoe UI', system-ui, sans-serif;
+  --f-mono:'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111318; --surface:#1a1d23; --sunk:#22262e; --ink:#eceef2; --muted:#9aa1ad; --line:#2d313a;
+  --accent:#8fa2ff; --accent-ink:#0f1430; --accent-soft:#1f2645;
+  --ok:#4cc684; --ok-soft:#173326; --no:#ff7b6e; --no-soft:#3a1e1b; --wait:#f0b24a; --wait-soft:#3a2d14;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#111318; --surface:#1a1d23; --sunk:#22262e; --ink:#eceef2; --muted:#9aa1ad; --line:#2d313a;
+  --accent:#8fa2ff; --accent-ink:#0f1430; --accent-soft:#1f2645;
+  --ok:#4cc684; --ok-soft:#173326; --no:#ff7b6e; --no-soft:#3a1e1b; --wait:#f0b24a; --wait-soft:#3a2d14;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+button,textarea,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.wrap{max-width:1380px;margin:0 auto;padding-inline:16px;padding-block:18px 48px;display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+.wrap>*,header.top>*{min-width:0}
+header.top{display:flex;flex-wrap:wrap;align-items:center;gap:12px 22px;justify-content:space-between}
+.brand{display:flex;align-items:baseline;gap:10px}
+.brand h1{font-family:var(--f-display);font-weight:800;font-size:28px;letter-spacing:-.02em;margin:0}
+.brand span{font-family:var(--f-mono);font-size:12px;color:var(--muted);letter-spacing:.04em}
+.tabs{display:flex;gap:4px;background:var(--sunk);padding:4px;border-radius:12px;overflow-x:auto;max-width:100%}
+.tab{border:0;background:transparent;padding:8px 14px;border-radius:9px;cursor:pointer;white-space:nowrap;font-weight:600;font-size:14px;color:var(--muted);display:flex;gap:8px;align-items:center}
+.tab[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.tab .n{font-family:var(--f-mono);font-size:11px;background:var(--bg);border-radius:99px;padding:1px 7px;color:var(--muted)}
+
+.projbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.projbar .lbl{font-family:var(--f-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-right:4px}
+.pchip{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:7px 12px;font-size:14px;font-weight:600;cursor:pointer;display:flex;gap:8px;align-items:center;max-width:100%}
+.pchip[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.pchip .n{font-family:var(--f-mono);font-size:11px;color:var(--muted);font-weight:500}
+.pchip.add{border-style:dashed;color:var(--muted);font-weight:500}
+.pchip:disabled{opacity:.5;cursor:default}
+.pform{flex-basis:100%;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr) auto auto;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;align-items:center}
+@media (max-width:700px){.pform{grid-template-columns:minmax(0,1fr)}}
+.pform input{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-width:0}
+.pform input::placeholder{color:var(--muted)}
+
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:22px;align-items:start}
+@media (max-width:900px){.layout{grid-template-columns:minmax(0,1fr)}.panel.keyhelp{display:none}}
+
+/* composer: pedir uma rodada nova ao Claude */
+.composer{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:grid;gap:10px;margin-bottom:18px}
+.composer.closed{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
+.composer .ttl{font-family:var(--f-display);font-weight:700;font-size:16px}
+.composer textarea{min-height:76px}
+.crow{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center}
+.crow label{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--muted)}
+.crow input[type="checkbox"]{width:16px;height:16px;accent-color:var(--accent)}
+.gstatus{font-family:var(--f-mono);font-size:12px;color:var(--muted);margin:0;min-height:1.2em}
+.gstatus.run{color:var(--accent)}
+.gstatus.err{color:var(--no);font-family:var(--f-body);font-size:13px}
+.dots::after{content:"";display:inline-block;width:1.2em;text-align:left;animation:dots 1.2s steps(4) infinite}
+@keyframes dots{0%{content:""}25%{content:"."}50%{content:".."}75%{content:"..."}}
+
+.boardhead{display:grid;gap:8px;margin-bottom:14px}
+.boardhead .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.eyebrow{font-family:var(--f-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.boardhead h2{font-family:var(--f-display);font-weight:700;font-size:24px;letter-spacing:-.01em;margin:0;text-wrap:balance}
+.boardhead p{margin:0;color:var(--muted);max-width:72ch}
+.boardhead .req{font-size:13px}
+select{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 10px;max-width:100%}
+.filters{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:4px 12px;font-size:13px;cursor:pointer;color:var(--muted)}
+.chip[aria-pressed="true"]{border-color:var(--ink);color:var(--ink);font-weight:600}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,360px),1fr));gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;display:grid;grid-template-rows:auto 1fr;position:relative;transition:opacity .2s, border-color .2s}
+.card.focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 25%,transparent)}
+.card[data-s="R"]{opacity:.55}
+.card[data-s="R"]:hover,.card[data-s="R"].focus{opacity:.9}
+.pv{position:relative;background:var(--sunk);border-bottom:1px solid var(--line)}
+.pv-host{display:block;width:100%}
+.stamp{position:absolute;top:12px;right:12px;font-family:var(--f-mono);font-weight:700;font-size:12px;letter-spacing:.14em;padding:4px 10px;border:2px solid currentColor;border-radius:6px;transform:rotate(-4deg);background:var(--surface);z-index:1}
+.stamp[data-s="A"]{color:var(--ok)}.stamp[data-s="R"]{color:var(--no)}.stamp[data-s="E"]{color:var(--wait)}
+.body{padding:14px 16px 16px;display:grid;gap:10px;align-content:start;min-width:0}
+.meta{display:flex;align-items:baseline;gap:10px;padding-right:96px}
+.card:has(.pv) .meta{padding-right:0}
+.num{font-family:var(--f-mono);font-size:12px;color:var(--muted);letter-spacing:.06em;flex:none}
+.meta h3{margin:0;font-family:var(--f-display);font-weight:700;font-size:18px;letter-spacing:-.01em;min-width:0}
+.desc{margin:0;color:var(--muted);font-size:14px}
+.content{background:var(--sunk);border-radius:10px;padding:10px 12px;font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere;display:grid;gap:6px}
+.content button{justify-self:end}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tags span{font-family:var(--f-mono);font-size:11px;color:var(--muted);background:var(--sunk);border-radius:6px;padding:2px 7px}
+.tags span.risk{color:var(--wait);background:var(--wait-soft)}
+.acts{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.act{border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:8px 6px;cursor:pointer;font-weight:600;font-size:13px;display:flex;justify-content:center;align-items:center;gap:6px}
+.act kbd{font-family:var(--f-mono);font-size:11px;border:1px solid var(--line);border-radius:4px;padding:0 5px;color:var(--muted);background:var(--bg)}
+.act[data-k="A"][aria-pressed="true"]{background:var(--ok-soft);border-color:var(--ok);color:var(--ok)}
+.act[data-k="R"][aria-pressed="true"]{background:var(--no-soft);border-color:var(--no);color:var(--no)}
+.act[data-k="E"][aria-pressed="true"]{background:var(--wait-soft);border-color:var(--wait);color:var(--wait)}
+.act[aria-pressed="true"] kbd{border-color:currentColor;color:inherit;background:transparent}
+textarea{width:100%;min-height:58px;resize:vertical;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-size:14px;line-height:1.4}
+textarea::placeholder{color:var(--muted)}
+.saved{font-family:var(--f-mono);font-size:11px;color:var(--muted);min-height:1em}
+
+.side{display:grid;gap:14px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 14px)}
+@media (max-width:900px){.side{position:static}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:grid;gap:12px}
+.panel h4{margin:0;font-family:var(--f-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.bar{display:flex;height:10px;border-radius:99px;overflow:hidden;background:var(--sunk)}
+.bar i{display:block;height:100%}
+.counts{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;font-variant-numeric:tabular-nums}
+.counts div{display:grid;gap:0}
+.counts b{font-family:var(--f-display);font-size:22px;font-weight:700;line-height:1.1}
+.counts span{font-size:12px;color:var(--muted)}
+.c-a b{color:var(--ok)}.c-r b{color:var(--no)}.c-e b{color:var(--wait)}
+.primary{border:0;background:var(--accent);color:var(--accent-ink);border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer}
+.primary:disabled{opacity:.5;cursor:default}
+.done{background:var(--ok-soft);color:var(--ink);border-radius:10px;padding:12px;font-size:14px;display:grid;gap:8px}
+.done code{font-family:var(--f-mono);font-size:13px;background:var(--surface);border-radius:6px;padding:6px 8px;display:block;user-select:all;overflow-wrap:anywhere}
+.ghost{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer;justify-self:start}
+.ghost:disabled{opacity:.5;cursor:default}
+.btnrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.msgbox{font-family:var(--f-mono);font-size:12px;line-height:1.5;background:var(--sunk);border-radius:8px;padding:8px 10px;display:block;white-space:pre-wrap;overflow-wrap:anywhere;user-select:all;max-height:160px;overflow:auto}
+.linkbtn{text-decoration:none;color:var(--ink);display:inline-flex;align-items:center;padding:9px 12px}
+.learn{margin:0;padding-left:18px;display:grid;gap:6px;font-size:14px}
+.learn .new{font-family:var(--f-mono);font-size:10px;letter-spacing:.08em;color:var(--accent);background:var(--accent-soft);border-radius:4px;padding:1px 5px;margin-left:6px;vertical-align:1px}
+.draft{border:1px solid var(--accent);border-radius:10px;padding:12px;display:grid;gap:10px}
+.sub{font-size:12px;font-weight:600;color:var(--ink);margin:0}
+.muted{color:var(--muted);font-size:14px;margin:0}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:13px;color:var(--muted)}
+.keys kbd{font-family:var(--f-mono);font-size:11px;border:1px solid var(--line);border-radius:4px;padding:0 5px;background:var(--bg);color:var(--ink);justify-self:start}
+
+.empty{background:var(--surface);border:1px dashed var(--line);border-radius:14px;padding:28px;display:grid;gap:10px;max-width:640px}
+.empty h2{margin:0;font-family:var(--f-display);font-size:22px;text-wrap:balance}
+.empty code{font-family:var(--f-mono);font-size:13px;background:var(--sunk);border-radius:6px;padding:8px 10px;display:block}
+.notice{font-size:13px;color:var(--no)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}.dots::after{animation:none;content:"..."}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><h1>AR Board</h1><span>aprovar · rejeitar · comentar</span></div>
+    <nav class="tabs" role="tablist" id="tabs" aria-label="Áreas de atuação"></nav>
+  </header>
+  <section class="projbar" id="projbar" aria-label="Projetos da área"></section>
+  <div class="layout">
+    <main id="main">
+      <div id="composer"></div>
+      <div id="board" aria-live="polite"></div>
+    </main>
+    <aside class="side" id="side"></aside>
+  </div>
+</div>
+
+<script>
+(function(){
+const PROFILES=[
+  {id:'corretagem',name:'Corretagem',visual:false,ex:'10 títulos de anúncio para a casa de 3 quartos no Campeche, foco em família',
+   ctx:'venda de imóveis de terceiros no Sul da Ilha de Florianópolis (Campeche, Morro das Pedras, Armação, Ribeirão da Ilha): anúncios para site, Instagram e portais, legendas, roteiros e respostas a clientes.'},
+  {id:'design',name:'Design e programação',visual:true,ex:'10 direções para a página de produto do site',
+   ctx:'design e programação de sites, apps e interfaces para clientes.'},
+  {id:'clones',name:'Clones de IA',visual:false,ex:'10 roteiros de 30 segundos para o clone apresentar o apartamento',
+   ctx:'vídeos de imóveis com um clone de IA do corretor (aparência e voz geradas por IA): roteiros, cenas, enquadramentos e falas.'},
+  {id:'agencia',name:'Agência criativa',visual:true,ex:'10 ideias de carrossel para o lançamento',
+   ctx:'agência criativa digital automatizada: posts, carrosséis, campanhas e identidade visual para marcas.'}
+];
+const LABEL={A:'Aprovado',R:'Rejeitado',E:'Em espera'};
+const BOARD_URL='https://claude.ai/artifact/XT5K918mjnu844wJZJHG8t';
+const GERAL='geral';
+const BASE_PV="*{box-sizing:border-box;margin:0;padding:0}.frame{container-type:inline-size;position:relative;width:100%;aspect-ratio:16/10;overflow:hidden;background:#fff}.m{container-type:inline-size;position:relative;width:100%;aspect-ratio:16/10;overflow:hidden;font-family:'Instrument Sans',system-ui,sans-serif;line-height:1.15}.ph{position:relative;overflow:hidden;background:linear-gradient(180deg,#86cde8 0 44%,#cdebf3 44% 47%,#ecdcb6 47% 100%)}.ph::after{content:attr(data-l);position:absolute;right:1.2cqw;bottom:1.2cqw;font:500 1.3cqw/1.2 'JetBrains Mono',monospace;color:#33433d;background:rgba(255,255,255,.8);padding:.4cqw .8cqw;border-radius:.6cqw;max-width:90%}.ph[data-l='']::after{display:none}.btl{position:absolute;bottom:18%;width:4cqw;height:16cqw;border-radius:1.6cqw 1.6cqw .7cqw .7cqw;background:linear-gradient(90deg,#0c5129,#1f8a45 45%,#0c5129)}";
+
+const S={db:null,sample:null,sampleOff:'',boards:[],projects:[],dec:{},fin:{},learn:{},profile:'design',projectId:null,boardId:null,filter:'all',focus:0,err:'',creating:false,
+  gen:{open:false,running:false,status:'',err:'',ctl:null,req:'',n:10,visual:null},
+  lrn:{running:false,err:'',draft:null,boardId:null}};
+const store={get(k){try{return localStorage.getItem(k);}catch(e){return null;}},set(k,v){try{localStorage.setItem(k,v);}catch(e){}}};
+{const h=location.hash.slice(1);if(PROFILES.some(p=>p.id===h))S.profile=h;else{const v=store.get('ar.profile');if(v&&PROFILES.some(p=>p.id===v))S.profile=v;}}
+S.filter=store.get('ar.filter')||'all';
+S.projectId=store.get('ar.proj.'+S.profile);
+
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const pad=n=>String(n).padStart(2,'0');
+const decKey=(b,i)=>b+'__'+i;
+const slug=s=>String(s).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40)||'projeto';
+const prof=id=>PROFILES.find(p=>p.id===id)||PROFILES[0];
+const clip=(s,n)=>{s=String(s??'').trim();return s.length>n?s.slice(0,n-1)+'…':s;};
+
+/* ---------- data helpers ---------- */
+function boardsOf(p){return S.boards.filter(b=>b.profile===p).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));}
+function projectsOf(p){
+  const list=S.projects.filter(x=>x.profile===p).sort((a,b)=>String(a.name).localeCompare(String(b.name),'pt-BR'));
+  const known=new Set(list.map(x=>x.id));
+  if(boardsOf(p).some(b=>!b.project||!known.has(b.project)))list.push({id:GERAL,profile:p,name:'Sem projeto',virtual:true});
+  return list;
+}
+function currentProject(){const list=projectsOf(S.profile);if(!list.length)return null;return list.find(x=>x.id===S.projectId)||list[0];}
+function boardsIn(pid){const known=new Set(S.projects.filter(x=>x.profile===S.profile).map(x=>x.id));
+  return boardsOf(S.profile).filter(b=>pid===GERAL?(!b.project||!known.has(b.project)):b.project===pid);}
+function current(){const cp=currentProject();if(!cp)return null;const list=boardsIn(cp.id);if(!list.length)return null;return list.find(b=>b.id===S.boardId)||list[0];}
+function decOf(b,it){return S.dec[decKey(b.id,it.id)]||{};}
+function stats(b){const c={A:0,R:0,E:0,P:0};(b.items||[]).forEach(it=>{const s=decOf(b,it).status;if(s&&c[s]!==undefined)c[s]++;else c.P++;});return c;}
+function rulesOf(id){const d=S.learn[id];return (d&&Array.isArray(d.rules))?d.rules.map(String):[];}
+
+/* previews come from Claude: strip anything that could run or load */
+function sanitize(html){
+  const t=document.createElement('template');t.innerHTML=String(html||'');
+  t.content.querySelectorAll('script,iframe,object,embed,link,meta,base,form,img,picture,video,audio,source,frame,frameset,input,button,textarea,select,image').forEach(n=>n.remove());
+  t.content.querySelectorAll('*').forEach(el=>{[...el.attributes].forEach(a=>{const n=a.name.toLowerCase();
+    if(n.startsWith('on')||['src','srcset','href','xlink:href','action','formaction','poster','background'].includes(n)||/^\s*javascript:/i.test(a.value))el.removeAttribute(a.name);});});
+  t.content.querySelectorAll('style').forEach(s=>{s.textContent=s.textContent.replace(/@import[^;]*;?/gi,'').replace(/url\([^)]*\)/gi,'none');});
+  t.content.querySelectorAll('[style]').forEach(el=>el.setAttribute('style',el.getAttribute('style').replace(/url\([^)]*\)/gi,'none')));
+  return t.innerHTML;
+}
+
+/* ---------- render ---------- */
+function renderTabs(){
+  $('#tabs').innerHTML=PROFILES.map(p=>{
+    const open=boardsOf(p.id).filter(b=>!S.fin[b.id]).length;
+    return `<button class="tab" role="tab" aria-selected="${p.id===S.profile}" data-p="${p.id}">${esc(p.name)}<span class="n">${open}</span></button>`;
+  }).join('');
+}
+
+function renderProjects(){
+  const el=$('#projbar');const list=projectsOf(S.profile);const cp=currentProject();
+  const chips=list.map(p=>{const open=boardsIn(p.id).filter(b=>!S.fin[b.id]).length;
+    return `<button class="pchip" data-proj="${esc(p.id)}" aria-pressed="${cp&&cp.id===p.id}">${esc(p.name)}<span class="n">${open} aberta${open===1?'':'s'}</span></button>`;}).join('');
+  const form=S.creating?`<form class="pform" id="pform"><input id="pname" required maxlength="60" placeholder="Nome do projeto ou tema" aria-label="Nome do projeto"><input id="pdesc" maxlength="160" placeholder="Descrição curta (opcional)" aria-label="Descrição do projeto"><button class="primary" type="submit">Criar projeto</button><button class="ghost" type="button" id="pcancel">Cancelar</button></form>`:'';
+  el.innerHTML=`<span class="lbl">Projetos</span>${chips}<button class="pchip add" id="newproj" ${S.db?'':'disabled'}>+ Novo projeto</button>${form}`;
+  if(S.creating){const i=$('#pname');if(i&&document.activeElement!==i&&!i.value)i.focus();}
+}
+
+function renderComposer(){
+  const el=$('#composer');const cp=currentProject();const pf=prof(S.profile);const g=S.gen;
+  if(!S.db||!cp){el.innerHTML='';return;}
+  if(S.sampleOff){el.innerHTML=`<div class="composer closed"><span class="ttl">Nova rodada</span><span class="muted">${esc(S.sampleOff)}</span></div>`;return;}
+  if(!S.sample){el.innerHTML=`<div class="composer closed"><span class="ttl">Nova rodada</span><span class="muted dots">Conectando ao Claude</span></div>`;return;}
+  if(!g.open&&!g.running){
+    el.innerHTML=`<div class="composer closed"><button class="primary" id="gopen">+ Nova rodada</button><span class="muted">O Claude gera as opções aqui, usando as regras e o histórico de <b>${esc(cp.name)}</b>.</span>${g.err?`<p class="gstatus err" style="flex-basis:100%">${esc(g.err)}</p>`:''}</div>`;return;}
+  const vis=g.visual===null?pf.visual:g.visual;
+  el.innerHTML=`<form class="composer" id="gform">
+    <label class="ttl" for="greq">Nova rodada em ${esc(cp.name)}</label>
+    <textarea id="greq" maxlength="2000" placeholder="Ex.: ${esc(pf.ex)}" ${g.running?'disabled':''}>${esc(g.req)}</textarea>
+    <div class="crow">
+      <label for="gn">Opções <select id="gn" ${g.running?'disabled':''}>${[6,10,15].map(n=>`<option value="${n}" ${g.n===n?'selected':''}>${n}</option>`).join('')}</select></label>
+      <label for="gvis"><input type="checkbox" id="gvis" ${vis?'checked':''} ${g.running?'disabled':''}> Com prévia visual</label>
+      ${g.running?`<button class="ghost" type="button" id="gstop">Parar</button>`:`<button class="primary" type="submit">Gerar rodada</button><button class="ghost" type="button" id="gclose">Fechar</button>`}
+    </div>
+    <p class="gstatus ${g.running?'run':''} ${g.err?'err':''}" id="gstatus">${g.err?esc(g.err):esc(g.status)}</p>
+  </form>`;
+}
+
+function visibleItems(b){
+  const f=S.filter;return (b.items||[]).map((it,i)=>({it,i})).filter(({it})=>{
+    const s=decOf(b,it).status||'';
+    if(f==='all')return true; if(f==='P')return !s; return s===f;
+  });
+}
+
+function renderBoard(){
+  const m=$('#board');
+  if(!S.db){m.innerHTML=`<div class="empty"><h2>Conectando ao quadro…</h2><p class="muted">${S.err?esc(S.err):'As suas decisões ficam salvas aqui. É preciso estar logado no claude.ai.'}</p></div>`;return;}
+  const cp=currentProject();const pf=prof(S.profile);
+  if(!cp){m.innerHTML=`<div class="empty"><h2>Crie o primeiro projeto de ${esc(pf.name.toLowerCase())}</h2><p class="muted">Cada projeto ou tema guarda as próprias rodadas e as próprias regras. Use “+ Novo projeto” acima.</p></div>`;return;}
+  S.projectId=cp.id;
+  const b=current();
+  if(!b){m.innerHTML=`<div class="empty"><span class="eyebrow">${esc(pf.name)} · ${esc(cp.name)}</span><h2>Nenhuma rodada neste projeto ainda</h2>${cp.description?`<p class="muted">${esc(cp.description)}</p>`:''}<p class="muted">Use “Nova rodada” acima e descreva o que você quer avaliar.</p></div>`;return;}
+  S.boardId=b.id;
+  const list=boardsIn(cp.id);
+  const opts=list.map(x=>`<option value="${esc(x.id)}" ${x.id===b.id?'selected':''}>${x.round?'Rodada '+x.round+' · ':''}${esc(x.title)}${S.fin[x.id]?' · concluída':''}</option>`).join('');
+  const F=[['all','Todos'],['P','Pendentes'],['A','Aprovados'],['E','Em espera'],['R','Rejeitados']];
+  const vis=visibleItems(b);
+  m.innerHTML=`<div class="boardhead">
+      <span class="eyebrow">${esc(cp.name)}${b.round?' · rodada '+b.round:''}</span>
+      ${list.length>1?`<div class="row"><label class="muted" for="bsel">Rodada</label><select id="bsel">${opts}</select></div>`:''}
+      <h2>${esc(b.title)}</h2>
+      ${b.brief?`<p>${esc(b.brief)}</p>`:''}
+      ${b.request?`<p class="req muted">Pedido: “${esc(clip(b.request,240))}”</p>`:''}
+      <div class="filters">${F.map(([k,l])=>`<button class="chip" data-f="${k}" aria-pressed="${S.filter===k}">${l}</button>`).join('')}</div>
+    </div>
+    <div class="grid" id="grid">${vis.length?vis.map(({it,i})=>cardHTML(b,it,i)).join(''):'<p class="muted">Nada neste filtro.</p>'}</div>`;
+  vis.forEach(({it})=>{
+    if(!it.preview)return;const host=m.querySelector(`.pv-host[data-i="${CSS.escape(it.id)}"]`);if(!host)return;
+    const sr=host.attachShadow({mode:'open'});sr.innerHTML=`<style>${BASE_PV}</style><div class="frame">${sanitize(it.preview)}</div>`;
+  });
+  S.focus=Math.min(S.focus,Math.max(0,vis.length-1));paintFocus(false);
+}
+
+function cardHTML(b,it,i){
+  const d=decOf(b,it);const s=d.status||'';
+  const btn=(k,l)=>`<button class="act" data-k="${k}" aria-pressed="${s===k}" data-i="${esc(it.id)}">${l}<kbd>${k}</kbd></button>`;
+  const stamp=s?`<span class="stamp" data-s="${s}">${LABEL[s].toUpperCase()}</span>`:'';
+  return `<article class="card" data-s="${s}" data-i="${esc(it.id)}" tabindex="-1">
+    ${it.preview?`<div class="pv"><div class="pv-host" data-i="${esc(it.id)}"></div>${stamp}</div>`:stamp}
+    <div class="body">
+      <div class="meta"><span class="num">Nº ${pad(i+1)}</span><h3>${esc(it.title)}</h3></div>
+      ${it.text?`<p class="desc">${esc(it.text)}</p>`:''}
+      ${it.content?`<div class="content"><span>${esc(it.content)}</span><button class="ghost" data-copy="${esc(it.id)}">Copiar texto</button></div>`:''}
+      ${it.tags&&it.tags.length?`<div class="tags">${it.tags.map(t=>`<span class="${/arriscad/i.test(t)?'risk':''}">${esc(t)}</span>`).join('')}</div>`:''}
+      <div class="acts">${btn('A','Aprovar')}${btn('R','Rejeitar')}${btn('E','Espera')}</div>
+      <label class="muted" for="c-${esc(it.id)}" style="font-size:12px">Por quê? (opcional, ajuda o agente a aprender)</label>
+      <textarea id="c-${esc(it.id)}" data-i="${esc(it.id)}" placeholder="Ex.: gostei da abordagem, mas o título está longo">${esc(d.comment||'')}</textarea>
+      <span class="saved" data-sv="${esc(it.id)}"></span>
+    </div></article>`;
+}
+
+function rulesHTML(list,prev){
+  if(!list.length)return '<p class="muted">Nada ainda.</p>';
+  const old=new Set((prev||list).map(x=>x.trim().toLowerCase()));
+  return `<ol class="learn">${list.map(r=>`<li>${esc(r)}${prev&&!old.has(r.trim().toLowerCase())?'<span class="new">NOVA</span>':''}</li>`).join('')}</ol>`;
+}
+
+function chatMessage(cp,b){
+  const pf=prof(S.profile);const real=cp&&!cp.virtual;
+  const lines=[`Vamos continuar o projeto "${real?cp.name:'sem projeto'}" (área ${pf.name}) do meu AR Board: ${BOARD_URL}`,
+    `Leia o banco do painel (coleções projects, boards, decisions, finishes e learnings) e siga as regras deste projeto e da área.`];
+  if(b){const c=stats(b);lines.push(`Rodada atual: "${b.title}" (rodada ${b.round||1}, id ${b.id}): ${c.A} aprovadas, ${c.R} rejeitadas, ${c.E} em espera, ${c.P} pendentes.`);}
+  lines.push('Agora quero: ');
+  return lines.join('\n');
+}
+
+function renderSide(){
+  const el=$('#side');const b=current();const cp=currentProject();const pf=prof(S.profile);
+  const chat=cp?`<div class="panel"><h4>Continuar no chat</h4>
+    <p class="muted" style="font-size:13px">Para trabalhos maiores, como transformar as aprovadas no site de verdade. A mensagem já leva o link do painel, o projeto e a rodada.</p>
+    <code class="msgbox" id="chatmsg">${esc(chatMessage(cp,b))}</code>
+    <div class="btnrow"><button class="primary" id="copychat">Copiar mensagem</button><a class="ghost linkbtn" href="https://claude.ai/new" target="_blank" rel="noopener">Abrir chat novo</a></div>
+    <p class="muted" style="font-size:13px">Dica: crie um Projeto do Claude para este cliente e abra os chats dele lá dentro.</p></div>`:'';
+  const keys=`<div class="panel keyhelp"><h4>Atalhos</h4><div class="keys"><kbd>↑ ↓</kbd><span>navegar entre opções</span><kbd>A</kbd><span>aprovar</span><kbd>R</kbd><span>rejeitar</span><kbd>E</kbd><span>deixar em espera</span><kbd>C</kbd><span>comentar</span><kbd>Esc</kbd><span>sair do comentário</span></div></div>`;
+  const real=cp&&!cp.virtual;
+  const learn=`<div class="panel"><h4>O que o agente já aprendeu</h4>
+    ${real?`<p class="sub">Neste projeto</p>${rulesHTML(rulesOf(cp.id))}`:''}
+    <p class="sub">Em toda a área de ${esc(pf.name.toLowerCase())}</p>${rulesHTML(rulesOf(S.profile))}</div>`;
+  if(!b){el.innerHTML=learn+chat+keys;return;}
+  const c=stats(b);const t=(b.items||[]).length||1;const f=S.fin[b.id];
+  const decided=c.A+c.R+c.E;
+  const L=S.lrn;const mine=L.boardId===b.id;
+  let doneBlock='';
+  if(f){
+    let learnUI='';
+    if(mine&&L.draft){
+      learnUI=`<div class="draft"><p class="sub">Regras propostas</p>${L.draft.summary?`<p class="muted" style="font-size:13px">${esc(L.draft.summary)}</p>`:''}
+        ${real?`<p class="sub">Neste projeto</p>${rulesHTML(L.draft.project,rulesOf(cp.id))}`:''}
+        <p class="sub">Em toda a área</p>${rulesHTML(L.draft.area,rulesOf(S.profile))}
+        <div class="btnrow"><button class="primary" id="lsave">Salvar regras</button><button class="ghost" id="ldrop">Descartar</button></div></div>`;
+    }else if(S.sample&&!S.sampleOff){
+      learnUI=`<button class="primary" id="lrun" ${L.running?'disabled':''}>${L.running?'<span class="dots">Lendo seus comentários</span>':(f.learnedAt?'Aprender de novo com esta rodada':'Aprender com esta rodada')}</button>
+        ${f.learnedAt&&!L.running?'<p class="muted" style="font-size:13px">Regras desta rodada já salvas.</p>':''}`;
+    }
+    doneBlock=`<div class="done"><strong>Rodada concluída.</strong>${learnUI}${mine&&L.err?`<p class="notice">${esc(L.err)}</p>`:''}<button class="ghost" id="reopen">Reabrir rodada</button></div>`;
+  }
+  el.innerHTML=`<div class="panel"><h4>Rodada ${b.round||1}</h4>
+    <div class="bar" aria-label="${decided} de ${t} decididas"><i style="width:${c.A/t*100}%;background:var(--ok)"></i><i style="width:${c.E/t*100}%;background:var(--wait)"></i><i style="width:${c.R/t*100}%;background:var(--no)"></i></div>
+    <div class="counts"><div class="c-a"><b>${c.A}</b><span>aprovados</span></div><div class="c-e"><b>${c.E}</b><span>espera</span></div><div class="c-r"><b>${c.R}</b><span>rejeitados</span></div><div><b>${c.P}</b><span>pendentes</span></div></div>
+    ${f?doneBlock:`<button class="primary" id="finish" ${decided?'':'disabled'}>Terminei esta rodada</button><p class="muted" style="font-size:13px">${c.P?`Ainda há ${c.P} pendente${c.P>1?'s':''}. Pendentes contam como sem opinião.`:'Tudo decidido.'}</p>`}
+    ${S.err?`<p class="notice">${esc(S.err)}</p>`:''}
+  </div>${learn}${chat}${keys}`;
+}
+
+function render(){renderTabs();renderProjects();renderComposer();renderBoard();renderSide();}
+function busy(){const ae=document.activeElement;return ae&&(ae.tagName==='TEXTAREA'||ae.tagName==='INPUT');}
+
+function paintFocus(scroll){
+  const cards=[...document.querySelectorAll('.card')];
+  cards.forEach((c,i)=>c.classList.toggle('focus',i===S.focus));
+  if(scroll&&cards[S.focus])cards[S.focus].scrollIntoView({block:'nearest',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
+}
+
+/* ---------- writes: one at a time per document ---------- */
+const queues={};
+function enqueue(path,fn){const q=(queues[path]||Promise.resolve()).then(fn).catch(e=>{S.err=writeErr(e);renderSide();throw e;});queues[path]=q.catch(()=>{});return q;}
+function writeErr(e){const c=e&&e.code;if(c==='invalid_argument')return 'Não foi possível salvar: sem permissão ou dado grande demais.';if(c==='quota_exceeded')return 'O quadro atingiu o limite de armazenamento. Peça no chat para eu limpar rodadas antigas.';return 'Não consegui salvar agora. Tente de novo em alguns segundos.';}
+
+function saveDecision(b,it,patch){
+  if(!S.db)return;
+  const k=decKey(b.id,it.id);const prev=S.dec[k]||{};
+  const next={boardId:b.id,itemId:it.id,profile:b.profile,project:b.project||GERAL,title:it.title,status:prev.status||'',comment:prev.comment||'',...patch,updatedAt:new Date().toISOString()};
+  S.dec[k]=next;
+  return enqueue('decisions/'+k,()=>S.db.doc('decisions/'+k).set(next)).catch(()=>{});
+}
+
+function setStatus(itemId,k){
+  const b=current();if(!b)return;const it=(b.items||[]).find(x=>x.id===itemId);if(!it)return;
+  const cur=decOf(b,it).status||'';const nk=cur===k?'':k;
+  saveDecision(b,it,{status:nk});
+  const card=document.querySelector(`.card[data-i="${CSS.escape(itemId)}"]`);
+  if(card){card.dataset.s=nk;card.querySelectorAll('.act').forEach(a=>a.setAttribute('aria-pressed',a.dataset.k===nk));
+    let st=card.querySelector('.stamp');
+    if(nk){if(!st){st=document.createElement('span');st.className='stamp';(card.querySelector('.pv')||card).appendChild(st);}st.dataset.s=nk;st.textContent=LABEL[nk].toUpperCase();}
+    else if(st)st.remove();}
+  renderSide();renderTabs();
+}
+
+const timers={};
+function scheduleComment(itemId,val){clearTimeout(timers[itemId]);timers[itemId]=setTimeout(()=>commitComment(itemId,val),800);}
+function commitComment(itemId,val){
+  clearTimeout(timers[itemId]);
+  const b=current();if(!b)return;const it=(b.items||[]).find(x=>x.id===itemId);if(!it)return;
+  if((decOf(b,it).comment||'')===val)return;
+  const p=saveDecision(b,it,{comment:val});
+  const sv=document.querySelector(`[data-sv="${CSS.escape(itemId)}"]`);
+  if(sv&&p)p.then(()=>{sv.textContent='Comentário salvo';setTimeout(()=>{sv.textContent='';},1800);});
+}
+
+function createProject(name,desc){
+  if(!S.db||!name.trim())return;
+  const id=slug(name)+'-'+Date.now().toString(36);
+  const doc={profile:S.profile,name:name.trim(),description:desc.trim(),createdAt:new Date().toISOString()};
+  S.projects=S.projects.concat([{id,...doc}]);S.projectId=id;S.boardId=null;S.creating=false;store.set('ar.proj.'+S.profile,id);
+  S.gen.open=true;
+  render();
+  enqueue('projects/'+id,()=>S.db.doc('projects/'+id).set(doc)).catch(()=>{});
+}
+
+/* ---------- Claude dentro do painel ---------- */
+const OFF_CODES=['not_granted','sampling_disabled','not_declared','capability_disabled','capability_removed'];
+function sampleErr(e,kind){
+  const c=e&&e.code;
+  if(OFF_CODES.includes(c)){S.sampleOff='A geração pelo painel não está liberada nesta janela. Você ainda pode pedir rodadas no chat.';return '';}
+  if(c==='cancelled')return kind==='gen'?'Geração interrompida.':'';
+  if(c==='rate_limited')return 'Muitos pedidos seguidos ou limite de uso atingido. Tente de novo mais tarde.';
+  if(c==='session_expired')return 'Sua sessão expirou. Entre de novo no claude.ai e recarregue.';
+  if(c==='invalid_json')return kind==='gen'?'A resposta veio fora do formato. Tente de novo; se repetir, peça menos opções ou desligue a prévia.':'A resposta veio fora do formato. Tente de novo.';
+  if(c==='refused')return 'O Claude não atendeu esse pedido. Reformule e tente de novo.';
+  if(c==='prompt_too_large')return 'O histórico ficou grande demais para enviar. Peça no chat para eu resumir as regras.';
+  if(c==='empty_completion')return 'O Claude não devolveu nada. Simplifique o pedido e tente de novo.';
+  return 'Falha temporária. Tente de novo em instantes.';
+}
+
+function historyLines(pid,excludeId){
+  const out=[];
+  boardsIn(pid).filter(b=>b.id!==excludeId).slice(0,3).forEach(b=>{
+    const rows=(b.items||[]).map(it=>{const d=decOf(b,it);if(!d.status&&!d.comment)return null;
+      const st=d.status?LABEL[d.status].toUpperCase():'SEM DECISÃO';
+      return `- ${st} "${clip(it.title,60)}"${d.comment?`: ${clip(d.comment,220)}`:''}`;}).filter(Boolean);
+    if(rows.length)out.push(`Rodada ${b.round||'?'} "${clip(b.title,80)}"${b.request?` (pedido: ${clip(b.request,160)})`:''}\n${rows.slice(0,15).join('\n')}`);
+  });
+  return out.join('\n\n');
+}
+function list(rules){return rules.length?rules.map(r=>'- '+r).join('\n'):'(nenhuma ainda)';}
+
+function buildGenPrompt(cp,req,n,visual){
+  const pf=prof(S.profile);const real=!cp.virtual;
+  const hist=real?historyLines(cp.id):'';
+  return `Você gera opções para o AR Board, um painel onde o Gabriel aprova, rejeita ou deixa em espera cada opção e comenta o motivo. O objetivo é acertar o gosto dele e, ao mesmo tempo, dar variedade real para ele escolher.
+
+ÁREA: ${pf.name}: ${pf.ctx}
+PROJETO: ${real?cp.name+(cp.description?' ('+cp.description+')':''):'sem projeto definido'}
+
+REGRAS DESTE PROJETO (obrigatórias):
+${list(real?rulesOf(cp.id):[])}
+
+REGRAS GERAIS DA ÁREA (obrigatórias):
+${list(rulesOf(S.profile))}
+${hist?`
+HISTÓRICO RECENTE DESTE PROJETO (use os motivos dele para acertar mais):
+${hist}
+`:''}
+PEDIDO DESTA RODADA:
+${req}
+
+COMO GERAR:
+- Exatamente ${n} opções, em português do Brasil, bem diferentes entre si (abordagem, tom, estrutura), nunca variações da mesma ideia.
+- Respeite todas as regras. Inclua no máximo 2 opções mais ousadas que testem um limite: marque-as com a tag "arriscada" e diga no "text" qual limite testam.
+- Não invente fatos concretos (preços, metragens, endereços, nomes, números) que não estejam no pedido ou nas regras; use marcadores como [preço] ou [metragem].
+- "title": nome curto da opção, até 40 caracteres.
+- "text": 1 ou 2 frases explicando a ideia e por que pode funcionar.
+- "tags": até 3 palavras-chave curtas.
+- "content": o conteúdo pronto para usar quando a opção for texto (título, legenda, roteiro, mensagem). Omita quando a prévia visual já mostrar tudo.
+${visual?`- "preview": um esboço visual em HTML e CSS, até 1800 caracteres, no formato <style>…</style><div class="m">…</div>.
+  - A classe .m já existe: largura total, proporção 16:10, overflow hidden, container de consulta. Defina fundo e cores dentro de .m.
+  - Use somente a unidade cqw (1cqw = 1% da largura) em tamanhos de fonte, espaçamentos e dimensões.
+  - Fontes disponíveis: 'Bricolage Grotesque', 'Instrument Sans', 'JetBrains Mono', 'Fraunces', 'Archivo Black', 'Caveat', 'Young Serif'.
+  - Sem <img>, sem scripts, sem url(), sem links externos. Para uma foto, use <div class="ph" data-l="descrição da foto"></div> com largura e altura definidas: ele vira um bloco de foto com legenda.
+  - Mostre a ideia com texto real e hierarquia clara. É um esboço: simples, legível, sem excesso de detalhes.
+`:''}
+Responda somente com JSON, sem texto antes ou depois, neste formato:
+{"title":"nome curto da rodada","brief":"1 ou 2 frases sobre o que esta rodada explora","items":[{"title":"…","text":"…","tags":["…"],"content":"…"${visual?',"preview":"<style>…</style><div class=\\"m\\">…</div>"':''}}]}`;
+}
+
+function normalizeBoard(res,n,visual){
+  if(!res||typeof res!=='object'||!Array.isArray(res.items))throw {code:'invalid_json'};
+  const items=res.items.filter(x=>x&&typeof x==='object'&&String(x.title||'').trim()).slice(0,n).map((x,i)=>{
+    const it={id:'o'+pad(i+1),title:clip(x.title,80),text:clip(x.text,500),tags:(Array.isArray(x.tags)?x.tags:[]).map(t=>clip(t,24)).filter(Boolean).slice(0,3)};
+    if(x.content&&String(x.content).trim())it.content=clip(x.content,3000);
+    if(visual&&x.preview&&String(x.preview).trim())it.preview=String(x.preview).slice(0,8000);
+    return it;});
+  if(!items.length)throw {code:'empty_completion'};
+  return {title:clip(res.title||'Rodada nova',90),brief:clip(res.brief||'',400),items};
+}
+
+async function generate(){
+  const cp=currentProject();if(!cp||!S.sample||S.gen.running)return;
+  const g=S.gen;const req=g.req.trim();
+  if(!req){g.err='Descreva o que você quer avaliar nesta rodada.';renderComposer();return;}
+  const pf=prof(S.profile);const visual=g.visual===null?pf.visual:g.visual;
+  const n=visual?Math.min(g.n,10):g.n;
+  g.running=true;g.err='';g.status=(visual&&g.n>10?'Com prévia visual eu gero até 10 opções. ':'')+'Pensando no pedido (pode levar até 2 minutos)…';g.ctl=new AbortController();
+  renderComposer();
+  const setStatus=t=>{g.status=t;const el=$('#gstatus');if(el)el.textContent=t;};
+  try{
+    const res=await S.sample.json(buildGenPrompt(cp,req,n,visual),{signal:g.ctl.signal,cache:false,modelTier:'default',
+      onText:({text})=>{const k=Math.max(0,(text.match(/"title"\s*:/g)||[]).length-1);setStatus(k?`Escrevendo opção ${Math.min(k,n)} de ${n}…`:'Montando a rodada…');}});
+    const nb=normalizeBoard(res,n,visual);
+    const rounds=boardsIn(cp.id).map(b=>Number(b.round)||0);const round=(rounds.length?Math.max(...rounds):0)+1;
+    const id=`${slug(cp.id===GERAL?'geral':cp.id)}-r${round}-${Date.now().toString(36)}`;
+    const doc={profile:S.profile,project:cp.id,round,title:nb.title,brief:nb.brief,request:req,createdAt:new Date().toISOString(),source:'painel',items:nb.items};
+    setStatus('Salvando a rodada…');
+    await enqueue('boards/'+id,()=>S.db.doc('boards/'+id).set(doc));
+    S.boards=S.boards.filter(b=>b.id!==id).concat([{id,...doc}]);
+    S.boardId=id;S.filter='all';S.focus=0;store.set('ar.filter','all');
+    g.running=false;g.open=false;g.req='';g.status='';g.ctl=null;
+    render();window.scrollTo({top:0,behavior:'auto'});
+  }catch(e){
+    g.running=false;g.ctl=null;
+    const msg=e&&e.code?sampleErr(e,'gen'):writeErr(e);
+    g.err=msg;g.status='';
+    render();
+  }
+}
+
+function buildLearnPrompt(cp,b){
+  const pf=prof(S.profile);const real=!cp.virtual;
+  const rows=(b.items||[]).map(it=>{const d=decOf(b,it);const st=d.status?LABEL[d.status].toUpperCase():'SEM DECISÃO';
+    return `- ${st} "${clip(it.title,70)}"${it.tags&&it.tags.length?` [${it.tags.join(', ')}]`:''}: ${clip(it.text,200)}${d.comment?`\n  Comentário dele: ${clip(d.comment,400)}`:''}`;}).join('\n');
+  return `Você mantém as regras de gosto do Gabriel no AR Board. Abaixo estão as regras atuais e as decisões da rodada que ele acabou de concluir, com os comentários.
+
+ÁREA: ${pf.name}: ${pf.ctx}
+PROJETO: ${real?cp.name+(cp.description?' ('+cp.description+')':''):'sem projeto definido'}
+
+REGRAS ATUAIS DO PROJETO:
+${list(real?rulesOf(cp.id):[])}
+
+REGRAS ATUAIS DA ÁREA:
+${list(rulesOf(S.profile))}
+
+RODADA "${b.title}"${b.request?` (pedido: ${clip(b.request,300)})`:''}
+DECISÕES:
+${rows}
+
+Atualize as duas listas de regras:
+- Regras do projeto: o que vale só para este projeto ou cliente.${real?'':' Este board não tem projeto: devolva "project_rules" vazio.'}
+- Regras da área: preferências que valeriam para qualquer projeto desta área. Só promova para a área o que os comentários mostram com clareza ser gosto geral.
+- Mantenha as regras atuais, a não ser que uma decisão as contradiga claramente; nesse caso, reescreva a regra.
+- Cada regra é uma frase curta e acionável, em português do Brasil. No máximo 10 por lista. Junte regras repetidas.
+- Baseie-se só no que ele decidiu e escreveu; não invente gostos sem evidência. Rejeições sem comentário só contam quando várias apontam o mesmo padrão.
+Responda somente com JSON: {"project_rules":["…"],"area_rules":["…"],"summary":"1 frase sobre o que mudou"}`;
+}
+
+async function learnFromRound(){
+  const b=current();const cp=currentProject();if(!b||!cp||!S.sample||S.lrn.running)return;
+  const L=S.lrn;L.running=true;L.err='';L.draft=null;L.boardId=b.id;renderSide();
+  try{
+    const r=await S.sample.json(buildLearnPrompt(cp,b),{cache:false,modelTier:'default'});
+    const norm=a=>(Array.isArray(a)?a:[]).map(x=>clip(x,240)).filter(Boolean).slice(0,10);
+    if(!r||typeof r!=='object')throw {code:'invalid_json'};
+    L.draft={project:cp.virtual?[]:norm(r.project_rules),area:norm(r.area_rules),summary:clip(r.summary||'',300)};
+  }catch(e){L.err=sampleErr(e,'learn')||'';}
+  L.running=false;render();
+}
+
+async function saveLearned(){
+  const b=current();const cp=currentProject();const L=S.lrn;if(!b||!cp||!L.draft)return;
+  const now=new Date().toISOString();
+  try{
+    if(!cp.virtual){const d={profile:S.profile,project:cp.id,rules:L.draft.project,updatedAt:now};S.learn[cp.id]=d;await enqueue('learnings/'+cp.id,()=>S.db.doc('learnings/'+cp.id).set(d));}
+    const a={profile:S.profile,rules:L.draft.area,updatedAt:now};S.learn[S.profile]=a;await enqueue('learnings/'+S.profile,()=>S.db.doc('learnings/'+S.profile).set(a));
+    const f={...(S.fin[b.id]||{}),learnedAt:now};S.fin[b.id]=f;await enqueue('finishes/'+b.id,()=>S.db.doc('finishes/'+b.id).set(f));
+    L.draft=null;L.err='';
+  }catch(e){L.err=writeErr(e);}
+  renderSide();
+}
+
+/* ---------- events ---------- */
+function selectBox(el){if(!el)return;const r=document.createRange();r.selectNodeContents(el);const s=getSelection();s.removeAllRanges();s.addRange(r);}
+function copyText(txt,btn){
+  const done=()=>{if(btn){const o=btn.textContent;btn.textContent='Copiado';setTimeout(()=>{btn.textContent=o;},1500);}};
+  try{navigator.clipboard.writeText(txt).then(done,()=>{});}catch(_){}
+}
+
+document.addEventListener('click',e=>{
+  const t=e.target.closest('button');if(!t)return;
+  if(t.dataset.p){S.profile=t.dataset.p;S.projectId=store.get('ar.proj.'+S.profile);S.boardId=null;S.focus=0;S.creating=false;if(!S.gen.running){S.gen.open=false;S.gen.err='';S.gen.visual=null;}store.set('ar.profile',S.profile);render();return;}
+  if(t.dataset.proj){if(S.gen.running)return;S.projectId=t.dataset.proj;S.boardId=null;S.focus=0;S.gen.err='';store.set('ar.proj.'+S.profile,S.projectId);renderProjects();renderComposer();renderBoard();renderSide();return;}
+  if(t.id==='newproj'){S.creating=!S.creating;renderProjects();return;}
+  if(t.id==='pcancel'){S.creating=false;renderProjects();return;}
+  if(t.id==='gopen'){S.gen.open=true;S.gen.err='';renderComposer();const r=$('#greq');if(r)r.focus();return;}
+  if(t.id==='gclose'){S.gen.open=false;S.gen.err='';renderComposer();return;}
+  if(t.id==='gstop'){S.gen.ctl&&S.gen.ctl.abort();return;}
+  if(t.dataset.copy){const b=current();const it=b&&(b.items||[]).find(x=>x.id===t.dataset.copy);if(it)copyText(it.content||'',t);return;}
+  if(t.dataset.f){S.filter=t.dataset.f;S.focus=0;store.set('ar.filter',S.filter);renderBoard();return;}
+  if(t.classList.contains('act')){const card=t.closest('.card');const cards=[...document.querySelectorAll('.card')];S.focus=cards.indexOf(card);paintFocus(false);setStatus(t.dataset.i,t.dataset.k);return;}
+  if(t.id==='finish'){const b=current();if(!b||!S.db)return;const c=stats(b);
+    const doc={boardId:b.id,profile:b.profile,project:b.project||GERAL,title:b.title,round:b.round||1,approved:c.A,rejected:c.R,waiting:c.E,pending:c.P,finishedAt:new Date().toISOString()};
+    S.fin[b.id]=doc;render();enqueue('finishes/'+b.id,()=>S.db.doc('finishes/'+b.id).set(doc)).catch(()=>{});return;}
+  if(t.id==='reopen'){const b=current();if(!b||!S.db)return;delete S.fin[b.id];if(S.lrn.boardId===b.id){S.lrn.draft=null;S.lrn.err='';}render();enqueue('finishes/'+b.id,()=>S.db.doc('finishes/'+b.id).delete()).catch(()=>{});return;}
+  if(t.id==='copychat'){const box=$('#chatmsg');const txt=box?box.textContent:'';
+    try{navigator.clipboard.writeText(txt).then(()=>{t.textContent='Copiada';setTimeout(()=>{t.textContent='Copiar mensagem';},1600);},()=>selectBox(box));}catch(_){selectBox(box);}return;}
+  if(t.id==='lrun'){learnFromRound();return;}
+  if(t.id==='lsave'){saveLearned();return;}
+  if(t.id==='ldrop'){S.lrn.draft=null;renderSide();return;}
+});
+document.addEventListener('submit',e=>{
+  if(e.target.id==='pform'){e.preventDefault();createProject($('#pname').value,$('#pdesc').value);}
+  if(e.target.id==='gform'){e.preventDefault();generate();}
+});
+document.addEventListener('change',e=>{
+  if(e.target.id==='bsel'){S.boardId=e.target.value;S.focus=0;renderBoard();renderSide();}
+  if(e.target.id==='gn'){S.gen.n=Number(e.target.value)||10;}
+  if(e.target.id==='gvis'){S.gen.visual=e.target.checked;}
+});
+document.addEventListener('input',e=>{
+  if(e.target.id==='greq'){S.gen.req=e.target.value;if(S.gen.err){S.gen.err='';const st=$('#gstatus');if(st){st.textContent='';st.classList.remove('err');}}return;}
+  if(e.target.tagName==='TEXTAREA'&&e.target.dataset.i)scheduleComment(e.target.dataset.i,e.target.value);
+});
+document.addEventListener('focusout',e=>{if(e.target.tagName==='TEXTAREA'&&e.target.dataset.i)commitComment(e.target.dataset.i,e.target.value);});
+document.addEventListener('keydown',e=>{
+  const tag=(e.target.tagName||'').toLowerCase();
+  if(tag==='textarea'){if(e.key==='Escape')e.target.blur();if(e.target.id==='greq'&&e.key==='Enter'&&(e.metaKey||e.ctrlKey)){e.preventDefault();generate();}return;}
+  if(tag==='input'){if(e.key==='Escape'&&S.creating){S.creating=false;renderProjects();}return;}
+  if(tag==='select'||e.metaKey||e.ctrlKey||e.altKey)return;
+  const cards=[...document.querySelectorAll('.card')];if(!cards.length)return;
+  const k=e.key.toLowerCase();
+  if(k==='arrowdown'||k==='j'){S.focus=Math.min(cards.length-1,S.focus+1);paintFocus(true);e.preventDefault();}
+  else if(k==='arrowup'||k==='k'){S.focus=Math.max(0,S.focus-1);paintFocus(true);e.preventDefault();}
+  else if(k==='a'||k==='r'||k==='e'){const c=cards[S.focus];if(c){const nk=k.toUpperCase();const cur=c.dataset.s||'';setStatus(c.dataset.i,nk);
+      if(cur!==nk&&S.focus<cards.length-1){setTimeout(()=>{S.focus++;paintFocus(true);},140);}}e.preventDefault();}
+  else if(k==='c'){const c=cards[S.focus];if(c){c.querySelector('textarea[data-i]').focus();e.preventDefault();}}
+});
+
+render();
+
+(async()=>{
+  let db=null;
+  try{db=await window.claude?.use?.('db');}catch(e){db=null;}
+  if(!db){S.err='Não foi possível abrir o armazenamento deste quadro. Abra o link logado no claude.ai.';render();return;}
+  S.db=db;render();
+  window.claude.use('sample').then(fn=>{S.sample=fn||null;if(!fn)S.sampleOff='A geração pelo painel não está disponível nesta janela. Você ainda pode pedir rodadas no chat.';renderComposer();renderSide();},()=>{S.sampleOff='A geração pelo painel não está disponível nesta janela.';renderComposer();});
+  const onErr=e=>{if(e&&e.code==='revoked'){S.err='O acesso a este quadro foi encerrado nesta janela.';}else{S.err='A atualização ao vivo parou. Recarregue a página.';}renderSide();};
+  const full=()=>{if(busy()){renderTabs();renderSide();}else render();};
+  db.collection('projects').onSnapshot(s=>{S.projects=s.docs.map(d=>({id:d.id,...d.data()}));full();},onErr);
+  db.collection('boards').onSnapshot(s=>{S.boards=s.docs.map(d=>({id:d.id,...d.data()}));full();},onErr);
+  db.collection('decisions').onSnapshot(s=>{
+    s.docs.forEach(d=>{if(!d.metadata.hasPendingWrites)S.dec[d.id]=d.data();});
+    s.docChanges().forEach(ch=>{if(ch.type==='removed')delete S.dec[ch.doc.id];});
+    if(busy()){renderSide();renderTabs();}else{renderBoard();renderSide();renderTabs();}
+  },onErr);
+  db.collection('finishes').onSnapshot(s=>{S.fin={};s.docs.forEach(d=>{S.fin[d.id]=d.data();});renderTabs();if(!busy())renderProjects();renderSide();},onErr);
+  db.collection('learnings').onSnapshot(s=>{S.learn={};s.docs.forEach(d=>{S.learn[d.id]=d.data();});renderSide();},onErr);
+})();
+})();
+</script>
+
+</body>
+</html>
