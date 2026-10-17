@@ -1,4 +1,4 @@
-# Protótipos MB2 + AR Board (referência)
+# Projeto MB2 + AR Board
 
 Tudo o que foi construído nesta conversa, em quatro pastas.
 Todos os dados de obras, vendas e pessoas são fictícios.
