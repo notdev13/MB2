@@ -21,7 +21,8 @@ Todos os dados de obras, vendas e pessoas são fictícios.
 - Versão anterior: escritório + canteiro lado a lado, sem os outros módulos.
 - Mantido como referência. Publicado em: https://claude.ai/artifact/T2gzssrWUtPZSxQNpMbhGV
 
-## 4-ar-board — Painel de aprovar / rejeitar / comentar
+## 4-ar-board — Painel de aprovar / rejeitar / comentar (EM STANDBY)
+- **Em standby**: guardado no repositório, mas fora do foco atual (gestor empresarial e gestor de obras).
 - `index.html` é o código do painel. Ele depende do banco de dados do Claude, então só funciona
   de verdade pelo link publicado: https://claude.ai/artifact/XT5K918mjnu844wJZJHG8t
 - `dados/` traz a cópia do banco no momento do download (projetos, rodadas, decisões,
