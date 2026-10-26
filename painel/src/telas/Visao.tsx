@@ -1,0 +1,91 @@
+import { BarraOrcamento, GastoPorMes, PorCategoria } from '../componentes/Graficos';
+import { Lancamentos } from '../componentes/Lancamentos';
+import { useDados } from '../dados/contexto';
+import { porCategoria, porMes, resumirObra, resumoGeral } from '../dominio/calculos';
+import { hoje, porcentagem, reais, reaisCurto } from '../dominio/formato';
+import type { Custo } from '../dominio/tipos';
+import { ir } from '../navegacao';
+
+export function Visao({ aoNovaObra, aoAbrirCusto }: { aoNovaObra: () => void; aoAbrirCusto: (c: Custo) => void }) {
+  const { obras, custos } = useDados();
+  const ref = hoje();
+
+  if (obras.length === 0) {
+    return (
+      <div className="vazio cartao">
+        <h3>Bem-vindo ao Painel MB²</h3>
+        <p>Comece cadastrando a primeira obra. Depois é só lançar os custos pelo botão + lá embaixo.</p>
+        <button className="botao" onClick={aoNovaObra}>Cadastrar obra</button>
+      </div>
+    );
+  }
+
+  const geral = resumoGeral(obras, custos, ref);
+  const ativas = obras.filter((o) => o.status !== 'concluida').map((o) => resumirObra(o, custos))
+    .sort((a, b) => b.usoOrcamento - a.usoOrcamento);
+  const nomeObra = (id: string) => obras.find((o) => o.id === id)?.nome ?? '—';
+
+  return (
+    <>
+      <div className="grade">
+        <div className="cartao largo">
+          <div className="rotulo">Obras em aberto · gasto x orçado</div>
+          <div className="numero">{reaisCurto(geral.gastoAtivas)}</div>
+          <div className="nota">
+            de {reaisCurto(geral.orcamentoAtivas)} orçados em {geral.obrasAtivas} obra{geral.obrasAtivas === 1 ? '' : 's'}
+            {geral.orcamentoAtivas > 0 && <> · {porcentagem(geral.gastoAtivas, geral.orcamentoAtivas)}%</>}
+          </div>
+          <BarraOrcamento gasto={geral.gastoAtivas} orcamento={geral.orcamentoAtivas} />
+        </div>
+        <div className="cartao">
+          <div className="rotulo">Gasto no mês</div>
+          <div className="numero menor">{reaisCurto(geral.gastoNoMes)}</div>
+        </div>
+        <div className="cartao">
+          <div className="rotulo">A pagar</div>
+          <div className="numero menor">{reaisCurto(geral.aPagar)}</div>
+        </div>
+      </div>
+      {geral.estouradas > 0 && (
+        <div className="aviso" role="alert">
+          ⚠ {geral.estouradas} obra{geral.estouradas === 1 ? ' passou' : 's passaram'} do orçamento.
+        </div>
+      )}
+
+      <h2>Obras em aberto</h2>
+      <div className="lista">
+        {ativas.length === 0 && <p className="sub">Nenhuma obra em aberto.</p>}
+        {ativas.map((r) => (
+          <button key={r.obra.id} className="cartao clicavel" onClick={() => ir({ tela: 'obra', id: r.obra.id })}>
+            <div className="linha">
+              <strong>{r.obra.nome}</strong>
+              {r.obra.orcamento > 0 && r.saldo < 0
+                ? <span className="selo alerta">Estourou {reaisCurto(-r.saldo)}</span>
+                : <span className="valor">{reais(r.gasto)}</span>}
+            </div>
+            <BarraOrcamento gasto={r.gasto} orcamento={r.obra.orcamento} />
+            <div className="nota">
+              {r.obra.orcamento > 0
+                ? `${porcentagem(r.gasto, r.obra.orcamento)}% de ${reaisCurto(r.obra.orcamento)}`
+                : 'Sem orçamento cadastrado'}
+              {r.aPagar > 0 && ` · ${reaisCurto(r.aPagar)} a pagar`}
+            </div>
+          </button>
+        ))}
+      </div>
+
+      <h2>Gasto por mês</h2>
+      <div className="cartao"><GastoPorMes meses={porMes(custos, ref)} /></div>
+
+      {custos.length > 0 && (
+        <>
+          <h2>Para onde vai o dinheiro</h2>
+          <div className="cartao"><PorCategoria fatias={porCategoria(custos)} /></div>
+
+          <h2>Últimos lançamentos</h2>
+          <Lancamentos custos={custos.slice(0, 6)} nomeObra={nomeObra} aoAbrir={aoAbrirCusto} agrupar={false} />
+        </>
+      )}
+    </>
+  );
+}

@@ -1,6 +1,8 @@
 # MB2 Obras
 
-Gestor de obras da MB2 Incorporações: app mobile (iOS e Android) e painel desktop.
+Gestão de obras e custos da MB2 Incorporações.
 
-- `app/`: app mobile em Expo (veja `app/README.md`).
-- `docs/publicar.md`: como publicar no TestFlight (iPhone) e gerar o APK (Android).
+- `painel/`: **Painel MB²** (atual), web app para iPhone que o dono instala pela tela de início.
+  Veja `painel/README.md`.
+- `app/`: versão anterior em Expo (React Native), mantida até a decisão de removê-la.
+- `docs/publicar.md`: como publicar a versão Expo no TestFlight e gerar o APK.

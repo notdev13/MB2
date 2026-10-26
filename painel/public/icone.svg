@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#0D0C0B"/>
+  <text x="236" y="318" text-anchor="middle" font-family="Manrope, Helvetica, Arial, sans-serif" font-weight="600" font-size="190" letter-spacing="-6" fill="#F3EEE6">MB</text>
+  <text x="378" y="232" text-anchor="middle" font-family="Manrope, Helvetica, Arial, sans-serif" font-weight="700" font-size="100" fill="#C9A06E">2</text>
+  <rect x="136" y="366" width="240" height="6" rx="3" fill="#C9A06E"/>
+</svg>
