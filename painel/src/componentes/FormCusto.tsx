@@ -38,7 +38,7 @@ export function FormCusto({ custo, obraId, aoFechar }: { custo?: Custo; obraId?:
 
   async function salvar(outro: boolean) {
     setTentou(true);
-    if (erroValor || erroObra || !data) return;
+    if (erroValor || erroObra || !data || salvando) return;
     setSalvando(true);
     try {
       await salvarCusto({ obraId: obra, data, categoria, descricao: descricao.trim(), fornecedor: fornecedor.trim(),
@@ -59,9 +59,13 @@ export function FormCusto({ custo, obraId, aoFechar }: { custo?: Custo; obraId?:
 
   async function excluir() {
     if (!custo || !window.confirm('Excluir este lançamento?')) return;
-    await excluirCusto(custo.id);
-    avisar('Lançamento excluído');
-    aoFechar();
+    try {
+      await excluirCusto(custo.id);
+      avisar('Lançamento excluído');
+      aoFechar();
+    } catch (e) {
+      avisar('Não foi possível excluir: ' + String(e));
+    }
   }
 
   if (obras.length === 0) {

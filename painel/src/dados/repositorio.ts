@@ -12,7 +12,9 @@ export interface Repositorio {
   excluirCusto(id: string): Promise<void>;
 
   exportar(): Promise<Backup>;
-  substituirTudo(backup: Backup): Promise<void>;
+  substituirTudo(backup: Backup): Promise<void>; // guarda uma cópia do que havia antes
+  copiaAnterior(): Promise<Backup | null>;
+  desfazerRestauracao(): Promise<void>;
 }
 
 export interface Backup {

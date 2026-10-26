@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAviso } from '../componentes/Aviso';
 import { useDados } from '../dados/contexto';
 import { custosEmCsv, validarBackup } from '../dados/backup';
@@ -11,14 +11,16 @@ const instalado = () =>
 
 // Entrega um arquivo ao usuário: no iPhone abre a folha de compartilhar (salvar em Arquivos,
 // mandar por WhatsApp/e-mail); onde não houver, baixa o arquivo.
-async function entregarArquivo(nome: string, conteudo: string, tipo: string) {
+// Devolve false se a pessoa cancelou.
+async function entregarArquivo(nome: string, conteudo: string, tipo: string): Promise<boolean> {
   const arquivo = new File([conteudo], nome, { type: tipo });
   if (navigator.canShare?.({ files: [arquivo] })) {
     try {
       await navigator.share({ files: [arquivo], title: nome });
-      return;
+      return true;
     } catch (e) {
-      if ((e as Error).name === 'AbortError') return;
+      if ((e as Error).name === 'AbortError') return false;
+      // NotAllowedError e outros: segue para o download
     }
   }
   const url = URL.createObjectURL(arquivo);
@@ -27,19 +29,24 @@ async function entregarArquivo(nome: string, conteudo: string, tipo: string) {
   a.download = nome;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return true;
 }
 
 export function Ajustes({ tema, alternarTema }: { tema: Tema; alternarTema: () => void }) {
-  const { obras, custos, exportar, restaurar } = useDados();
+  const { obras, custos, exportar, restaurar, copiaAnterior, desfazerRestauracao } = useDados();
   const avisar = useAviso();
   const entrada = useRef<HTMLInputElement>(null);
   const [ultimoBackup, setUltimoBackup] = useState(() => {
     try { return localStorage.getItem('mb2-ultimo-backup'); } catch { return null; }
   });
+  const [copia, setCopia] = useState<{ obras: number; custos: number } | null>(null);
+  const atualizarCopia = () =>
+    copiaAnterior().then((c) => setCopia(c && { obras: c.obras.length, custos: c.custos.length }), () => setCopia(null));
+  useEffect(() => { atualizarCopia(); }, []);
 
   async function fazerBackup() {
     const b = await exportar();
-    await entregarArquivo(`mb2-backup-${hoje()}.json`, JSON.stringify(b, null, 1), 'application/json');
+    if (!(await entregarArquivo(`mb2-backup-${hoje()}.json`, JSON.stringify(b, null, 1), 'application/json'))) return;
     try { localStorage.setItem('mb2-ultimo-backup', hoje()); } catch { /* ignora */ }
     setUltimoBackup(hoje());
   }
@@ -63,10 +70,28 @@ export function Ajustes({ tema, alternarTema }: { tema: Tema; alternarTema: () =
       return;
     }
     const msg = `Restaurar o backup de ${dataBR(v.backup.geradoEm)} com ${v.backup.obras.length} obra(s) e ` +
-      `${v.backup.custos.length} lançamento(s)? Tudo o que está neste aparelho agora será substituído.`;
+      `${v.backup.custos.length} lançamento(s)?\n\nO que está neste aparelho agora (${obras.length} obra(s) e ` +
+      `${custos.length} lançamento(s)) será substituído. Dá para desfazer depois, aqui em Ajustes.`;
     if (!window.confirm(msg)) return;
-    await restaurar(v.backup);
-    avisar('Backup restaurado');
+    try {
+      await restaurar(v.backup);
+      avisar('Backup restaurado');
+    } catch (e) {
+      avisar('Não foi possível restaurar: ' + String(e));
+    }
+    atualizarCopia();
+  }
+
+  async function desfazer() {
+    if (!copia || !window.confirm(`Voltar aos dados de antes da restauração (${copia.obras} obra(s) e ` +
+      `${copia.custos} lançamento(s))? O que está agora será substituído.`)) return;
+    try {
+      await desfazerRestauracao();
+      avisar('Restauração desfeita');
+    } catch (e) {
+      avisar('Não foi possível desfazer: ' + String(e));
+    }
+    atualizarCopia();
   }
 
   return (
@@ -106,6 +131,9 @@ export function Ajustes({ tema, alternarTema }: { tema: Tema; alternarTema: () =
             Exportar custos em planilha (Excel)
           </button>
           <button className="botao secundario cheio" onClick={() => entrada.current?.click()}>Restaurar um backup</button>
+          {copia && (
+            <button className="botao secundario cheio" onClick={desfazer}>Desfazer a última restauração</button>
+          )}
           <input ref={entrada} type="file" accept="application/json,.json" hidden
             onChange={(e) => {
               const f = e.target.files?.[0];

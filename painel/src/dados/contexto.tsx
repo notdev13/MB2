@@ -14,6 +14,8 @@ interface Dados {
   excluirCusto(id: string): Promise<void>;
   exportar(): Promise<Backup>;
   restaurar(backup: Backup): Promise<void>;
+  copiaAnterior(): Promise<Backup | null>;
+  desfazerRestauracao(): Promise<void>;
 }
 
 const Contexto = createContext<Dados | null>(null);
@@ -68,6 +70,11 @@ export function DadosProvider({ children, repo }: { children: ReactNode; repo?: 
     exportar: () => repositorio.exportar(),
     async restaurar(b) {
       await repositorio.substituirTudo(b);
+      await recarregar();
+    },
+    copiaAnterior: () => repositorio.copiaAnterior(),
+    async desfazerRestauracao() {
+      await repositorio.desfazerRestauracao();
       await recarregar();
     },
   };

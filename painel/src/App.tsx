@@ -51,7 +51,7 @@ function Conteudo() {
 
   return (
     <>
-      <div className="app">
+      <div className="app" inert={folha !== null}>
         <header className="topo">
           {rota.tela === 'obra' ? (
             <button className="voltar" onClick={() => (window.history.length > 1 ? window.history.back() : ir({ tela: 'obras' }))}>
@@ -81,7 +81,7 @@ function Conteudo() {
         )}
       </div>
 
-      <div className="abas">
+      <div className="abas" inert={folha !== null}>
         <nav aria-label="Seções">
           <Aba rota={{ tela: 'visao' }} atual={rota} icone="visao" rotulo="Visão geral" />
           <Aba rota={{ tela: 'obras' }} atual={rota} icone="obras" rotulo="Obras" />

@@ -44,4 +44,4 @@ no terminal.
 - `src/dominio/`: tipos, cálculos e formatação (funções puras, com testes).
 - `src/dados/`: armazenamento (contrato + IndexedDB), backup e planilha.
 - `src/telas/` e `src/componentes/`: interface.
-- `public/`: ícones, manifesto e service worker (modo sem internet).
+- `public/`: ícones e manifesto. `sw.js`: service worker (modo sem internet), preenchido no build.

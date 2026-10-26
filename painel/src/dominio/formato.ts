@@ -15,25 +15,28 @@ export const reaisCurto = (centavos: number) =>
   Math.abs(centavos) < 1_000_000 ? reais(centavos) : brlCurto.format(centavos / 100);
 
 // Aceita "1.234,56", "1234,56", "1234.56", "R$ 1.234", "1234". Devolve centavos ou null.
+// Recusa o que é ambíguo ou parece erro de digitação ("1.234.5", "12,345", ".").
+const INTEIRO = String.raw`(\d+|\d{1,3}(?:\.\d{3})+)`;
+const COM_VIRGULA = new RegExp(`^${INTEIRO},(\\d{1,2})$`);
+const SO_INTEIRO = new RegExp(`^${INTEIRO}$`);
+const PONTO_DECIMAL = /^(\d+)\.(\d{1,2})$/;
+
 export function lerReais(texto: string): number | null {
-  let t = texto.replace(/R\$|\s/g, '');
-  if (!t) return null;
-  if (!/^-?[\d.,]+$/.test(t)) return null;
-  const virgula = t.lastIndexOf(',');
-  const ponto = t.lastIndexOf('.');
-  if (virgula >= 0) {
-    // vírgula é o decimal; pontos são milhar (e só antes dela)
-    if (ponto > virgula || t.indexOf(',') !== virgula) return null;
-    t = t.replace(/\./g, '').replace(',', '.');
-  } else if (ponto >= 0) {
-    // só pontos: decimal se tiver 1 ou 2 dígitos depois do último ponto, senão milhar
-    const depois = t.length - ponto - 1;
-    t = depois > 0 && depois <= 2 && t.indexOf('.') === ponto ? t : t.replace(/\./g, '');
-  }
-  if ((t.match(/\./g) ?? []).length > 1) return null;
-  const n = Number(t);
-  if (!Number.isFinite(n)) return null;
-  return Math.round(n * 100);
+  const t = texto.replace(/R\$|\s/g, '');
+  let inteiro: string;
+  let decimais = '';
+  let m: RegExpMatchArray | null;
+  if ((m = t.match(COM_VIRGULA))) [, inteiro, decimais] = m;
+  else if ((m = t.match(PONTO_DECIMAL))) [, inteiro, decimais] = m;
+  else if ((m = t.match(SO_INTEIRO))) [, inteiro] = m;
+  else return null;
+  return Number(inteiro.replace(/\./g, '')) * 100 + Number(decimais.padEnd(2, '0'));
+}
+
+// Número com vírgula decimal (área em m²): "1.200" = mil e duzentos, "85,5" = 85,5.
+export function lerNumero(texto: string): number | null {
+  const centavos = lerReais(texto);
+  return centavos === null ? null : centavos / 100;
 }
 
 // Centavos -> texto para o campo de edição ("1.234,56").

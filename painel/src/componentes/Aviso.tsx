@@ -14,7 +14,8 @@ export function AvisoProvider({ children }: { children: ReactNode }) {
   return (
     <Contexto.Provider value={avisar}>
       {children}
-      {texto && <div className="toast" role="status">{texto}</div>}
+      {/* O contêiner fica sempre na tela para o VoiceOver anunciar quando o texto muda. */}
+      <div role="status" aria-live="polite">{texto && <div className="toast">{texto}</div>}</div>
     </Contexto.Provider>
   );
 }

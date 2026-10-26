@@ -2,30 +2,48 @@ import { CATEGORIAS, FORMAS_PAGAMENTO, STATUS_OBRA, type Custo } from '../domini
 import { dataBR } from '../dominio/formato';
 import type { Backup } from './repositorio';
 
+const texto = (v: unknown) => typeof v === 'string';
+const data = (v: unknown) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
+const dataOuNada = (v: unknown) => v === null || data(v);
+const centavos = (v: unknown) => Number.isSafeInteger(v) && (v as number) >= 0;
+
+function obraValida(o: Record<string, unknown>): boolean {
+  return texto(o.id) && texto(o.nome) && texto(o.endereco) && texto(o.cliente) && texto(o.observacoes) &&
+    centavos(o.orcamento) && (o.areaM2 === null || (typeof o.areaM2 === 'number' && o.areaM2 > 0)) &&
+    dataOuNada(o.inicio) && dataOuNada(o.previsaoFim) && texto(o.status) && Object.hasOwn(STATUS_OBRA, o.status as string) &&
+    texto(o.criadoEm) && texto(o.atualizadoEm);
+}
+
+function custoValido(c: Record<string, unknown>, obras: Set<string>): boolean {
+  return texto(c.id) && texto(c.obraId) && obras.has(c.obraId as string) && data(c.data) &&
+    CATEGORIAS.includes(c.categoria as never) && texto(c.descricao) && texto(c.fornecedor) && centavos(c.valor) &&
+    texto(c.pagamento) && Object.hasOwn(FORMAS_PAGAMENTO, c.pagamento as string) && typeof c.pago === 'boolean' &&
+    texto(c.criadoEm) && texto(c.atualizadoEm);
+}
+
 // Confere um arquivo de backup antes de restaurar. Devolve o backup ou a mensagem do problema.
 export function validarBackup(bruto: unknown): { ok: true; backup: Backup } | { ok: false; erro: string } {
   const b = bruto as Partial<Backup> | null;
   if (!b || typeof b !== 'object' || b.app !== 'mb2-painel') {
     return { ok: false, erro: 'Este arquivo não é um backup do Painel MB².' };
   }
-  if (b.versao !== 1) return { ok: false, erro: 'Versão de backup desconhecida.' };
+  if (b.versao !== 1 || !texto(b.geradoEm)) return { ok: false, erro: 'Versão de backup desconhecida.' };
   if (!Array.isArray(b.obras) || !Array.isArray(b.custos)) {
     return { ok: false, erro: 'Backup incompleto: faltam obras ou custos.' };
   }
   const idsObras = new Set<string>();
   for (const o of b.obras) {
-    if (typeof o?.id !== 'string' || typeof o.nome !== 'string' || !Number.isInteger(o.orcamento) ||
-        !(o.status in STATUS_OBRA)) {
+    if (!o || typeof o !== 'object' || !obraValida(o as never) || idsObras.has(o.id)) {
       return { ok: false, erro: 'Há uma obra com dados inválidos no backup.' };
     }
     idsObras.add(o.id);
   }
+  const idsCustos = new Set<string>();
   for (const c of b.custos) {
-    if (typeof c?.id !== 'string' || !idsObras.has(c.obraId) || !Number.isInteger(c.valor) ||
-        !/^\d{4}-\d{2}-\d{2}$/.test(c.data) || !CATEGORIAS.includes(c.categoria) ||
-        !(c.pagamento in FORMAS_PAGAMENTO)) {
+    if (!c || typeof c !== 'object' || !custoValido(c as never, idsObras) || idsCustos.has(c.id)) {
       return { ok: false, erro: 'Há um lançamento de custo com dados inválidos no backup.' };
     }
+    idsCustos.add(c.id);
   }
   return { ok: true, backup: b as Backup };
 }

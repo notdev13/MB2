@@ -72,3 +72,30 @@ it('CSV usa ; e vírgula decimal e protege texto com ;', () => {
   expect(cab.startsWith('Data;Obra;')).toBe(true);
   expect(linha).toBe('20/10/2026;Casa 01;Estrutura;Aço CA-50;"Gerdau; filial";12345,67;Boleto;Não');
 });
+
+it('restaurar guarda cópia e dá para desfazer', async () => {
+  const repo = criarRepositorioLocal(new IDBFactory());
+  const o = await repo.salvarObra(novaObra);
+  await repo.salvarCusto(novoCusto(o.id));
+  const antes = await repo.exportar();
+  expect(await repo.copiaAnterior()).toBeNull();
+  await repo.substituirTudo({ app: 'mb2-painel', versao: 1, geradoEm: '', obras: [], custos: [] });
+  expect(await repo.listarObras()).toEqual([]);
+  expect((await repo.copiaAnterior())?.obras).toEqual(antes.obras);
+  await repo.desfazerRestauracao();
+  expect(await repo.listarObras()).toEqual(antes.obras);
+  expect(await repo.listarCustos()).toEqual(antes.custos);
+  expect(await repo.copiaAnterior()).toBeNull();
+});
+
+it('validarBackup recusa status do protótipo, campo faltando e id repetido', () => {
+  const o = { ...novaObra, id: 'o1', criadoEm: '', atualizadoEm: '' };
+  const c = { ...novoCusto('o1'), id: 'c1', criadoEm: '', atualizadoEm: '' };
+  const base = { app: 'mb2-painel', versao: 1, geradoEm: '2026-10-26T00:00:00Z' };
+  expect(validarBackup({ ...base, obras: [o], custos: [c] }).ok).toBe(true);
+  expect(validarBackup({ ...base, obras: [{ ...o, status: 'toString' }], custos: [] }).ok).toBe(false);
+  expect(validarBackup({ ...base, obras: [o], custos: [{ ...c, criadoEm: undefined }] }).ok).toBe(false);
+  expect(validarBackup({ ...base, obras: [o], custos: [c, c] }).ok).toBe(false);
+  expect(validarBackup({ ...base, obras: [o, o], custos: [] }).ok).toBe(false);
+  expect(validarBackup({ ...base, geradoEm: 5, obras: [], custos: [] }).ok).toBe(false);
+});

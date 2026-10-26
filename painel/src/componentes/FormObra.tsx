@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useDados } from '../dados/contexto';
-import { lerReais, reaisParaCampo } from '../dominio/formato';
+import { lerNumero, lerReais, reaisParaCampo } from '../dominio/formato';
 import { STATUS_OBRA, type Obra, type StatusObra } from '../dominio/tipos';
 import { useAviso } from './Aviso';
 import { Folha } from './Folha';
@@ -23,26 +23,33 @@ export function FormObra({ obra, aoFechar, aoSalvar, aoExcluir }: {
   const [status, setStatus] = useState<StatusObra>(obra?.status ?? 'em_andamento');
   const [observacoes, setObservacoes] = useState(obra?.observacoes ?? '');
   const [tentou, setTentou] = useState(false);
+  const [salvando, setSalvando] = useState(false);
 
   const centavos = orcamento.trim() ? lerReais(orcamento) : 0;
-  const areaNum = area.trim() ? Number(area.replace(',', '.')) : null;
+  const areaNum = area.trim() ? lerNumero(area) : null;
   const erros = {
     nome: nome.trim() ? null : 'Dê um nome para a obra.',
     orcamento: centavos === null || centavos < 0 ? 'Valor inválido.' : null,
-    area: areaNum !== null && !(areaNum > 0) ? 'Área inválida.' : null,
+    area: area.trim() && !(areaNum !== null && areaNum > 0) ? 'Área inválida.' : null,
     datas: inicio && previsaoFim && previsaoFim < inicio ? 'A previsão de término é antes do início.' : null,
   };
 
   async function salvar() {
     setTentou(true);
-    if (Object.values(erros).some(Boolean)) return;
-    const salva = await salvarObra({
-      nome: nome.trim(), endereco: endereco.trim(), cliente: cliente.trim(), orcamento: centavos ?? 0,
-      areaM2: areaNum, inicio: inicio || null, previsaoFim: previsaoFim || null, status, observacoes: observacoes.trim(),
-    }, obra?.id);
-    avisar(obra ? 'Obra atualizada' : 'Obra cadastrada');
-    aoSalvar?.(salva);
-    aoFechar();
+    if (Object.values(erros).some(Boolean) || salvando) return;
+    setSalvando(true);
+    try {
+      const salva = await salvarObra({
+        nome: nome.trim(), endereco: endereco.trim(), cliente: cliente.trim(), orcamento: centavos ?? 0,
+        areaM2: areaNum, inicio: inicio || null, previsaoFim: previsaoFim || null, status, observacoes: observacoes.trim(),
+      }, obra?.id);
+      avisar(obra ? 'Obra atualizada' : 'Obra cadastrada');
+      aoSalvar?.(salva);
+      aoFechar();
+    } catch (e) {
+      avisar('Não foi possível salvar: ' + String(e));
+      setSalvando(false);
+    }
   }
 
   async function excluir() {
@@ -52,10 +59,16 @@ export function FormObra({ obra, aoFechar, aoSalvar, aoExcluir }: {
       ? `Excluir "${obra.nome}" e os ${qtd} lançamento(s) de custo dela? Não dá para desfazer.`
       : `Excluir "${obra.nome}"?`;
     if (!window.confirm(msg)) return;
-    await excluirObra(obra.id);
-    avisar('Obra excluída');
-    aoFechar();
-    aoExcluir?.();
+    setSalvando(true);
+    try {
+      await excluirObra(obra.id);
+      avisar('Obra excluída');
+      aoFechar();
+      aoExcluir?.();
+    } catch (e) {
+      avisar('Não foi possível excluir: ' + String(e));
+      setSalvando(false);
+    }
   }
 
   return (
@@ -108,8 +121,8 @@ export function FormObra({ obra, aoFechar, aoSalvar, aoExcluir }: {
           <textarea rows={3} value={observacoes} onChange={(e) => setObservacoes(e.target.value)} />
         </label>
         <div className="acoes">
-          <button className="botao cheio" type="submit">Salvar</button>
-          {obra && <button className="botao perigo cheio" type="button" onClick={excluir}>Excluir obra</button>}
+          <button className="botao cheio" type="submit" disabled={salvando}>Salvar</button>
+          {obra && <button className="botao perigo cheio" type="button" disabled={salvando} onClick={excluir}>Excluir obra</button>}
         </div>
       </form>
     </Folha>
