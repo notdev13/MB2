@@ -7,7 +7,7 @@ const obra = (id: string, orcamento: number, extra: Partial<Obra> = {}): Obra =>
   status: 'em_andamento', observacoes: '', criadoEm: '', atualizadoEm: '', ...extra,
 });
 const custo = (obraId: string, valor: number, data: string, extra: Partial<Custo> = {}): Custo => ({
-  id: Math.random().toString(), obraId, valor, data, categoria: 'Fundação', descricao: '', fornecedor: '',
+  id: Math.random().toString(), obraId, valor, data, categoria: 'Materiais (M)', descricao: '', fornecedor: '',
   pagamento: 'pix', pago: true, criadoEm: '', atualizadoEm: '', ...extra,
 });
 
@@ -37,11 +37,11 @@ describe('resumirObra', () => {
 
 it('porCategoria ordena do maior para o menor', () => {
   const r = porCategoria([
-    custo('a', 100, '2026-10-01', { categoria: 'Pintura' }),
-    custo('a', 300, '2026-10-01', { categoria: 'Estrutura' }),
-    custo('a', 100, '2026-10-01', { categoria: 'Pintura' }),
+    custo('a', 100, '2026-10-01', { categoria: 'Serviços (S)' }),
+    custo('a', 300, '2026-10-01', { categoria: 'Mão de obra' }),
+    custo('a', 100, '2026-10-01', { categoria: 'Serviços (S)' }),
   ]);
-  expect(r.map((f) => [f.categoria, f.total])).toEqual([['Estrutura', 300], ['Pintura', 200]]);
+  expect(r.map((f) => [f.categoria, f.total])).toEqual([['Mão de obra', 300], ['Serviços (S)', 200]]);
   expect(r[0].parte).toBeCloseTo(0.6);
 });
 

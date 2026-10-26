@@ -3,6 +3,7 @@ import type { FatiaCategoria } from '../dominio/calculos';
 
 // Barra de uso do orçamento. Acima de 100% fica vermelha e ganha o selo "Estourou" (cor nunca sozinha).
 export function BarraOrcamento({ gasto, orcamento }: { gasto: number; orcamento: number }) {
+  if (orcamento <= 0) return null; // sem orçamento não há o que comparar
   const uso = orcamento > 0 ? gasto / orcamento : 0;
   const estourou = orcamento > 0 && gasto > orcamento;
   return (

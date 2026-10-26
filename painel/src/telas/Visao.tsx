@@ -32,8 +32,10 @@ export function Visao({ aoNovaObra, aoAbrirCusto }: { aoNovaObra: () => void; ao
           <div className="rotulo">Gasto nas obras em aberto</div>
           <div className="numero">{reaisCurto(geral.gastoAtivas)}</div>
           <div className="nota">
-            de {reaisCurto(geral.orcamentoAtivas)} orçados em {geral.obrasAtivas} obra{geral.obrasAtivas === 1 ? '' : 's'}
-            {geral.orcamentoAtivas > 0 && <> · {porcentagem(geral.gastoAtivas, geral.orcamentoAtivas)}%</>}
+            {geral.orcamentoAtivas > 0
+              ? <>de {reaisCurto(geral.orcamentoAtivas)} orçados em {geral.obrasAtivas} obra{geral.obrasAtivas === 1 ? '' : 's'}
+                {' · '}{porcentagem(geral.gastoAtivas, geral.orcamentoAtivas)}%</>
+              : <>em {geral.obrasAtivas} obra{geral.obrasAtivas === 1 ? '' : 's'} · cadastre os orçamentos para comparar</>}
           </div>
           <BarraOrcamento gasto={geral.gastoAtivas} orcamento={geral.orcamentoAtivas} />
         </div>

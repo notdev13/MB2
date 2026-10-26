@@ -3,6 +3,7 @@ import { useAviso } from '../componentes/Aviso';
 import { useDados } from '../dados/contexto';
 import { custosEmCsv, validarBackup } from '../dados/backup';
 import { dataBR, hoje } from '../dominio/formato';
+import type { Tema } from '../tema';
 
 const instalado = () =>
   window.matchMedia('(display-mode: standalone)').matches ||
@@ -31,7 +32,7 @@ async function entregarArquivo(nome: string, conteudo: string, tipo: string): Pr
   return true;
 }
 
-export function Ajustes() {
+export function Ajustes({ tema, alternarTema }: { tema: Tema; alternarTema: () => void }) {
   const { obras, custos, exportar, restaurar, copiaAnterior, desfazerRestauracao } = useDados();
   const avisar = useAviso();
   const entrada = useRef<HTMLInputElement>(null);
@@ -95,9 +96,15 @@ export function Ajustes() {
 
   return (
     <>
+      <h2 style={{ marginTop: 0 }}>Aparência</h2>
+      <label className="alternar">
+        <span>Tema claro</span>
+        <input type="checkbox" checked={tema === 'claro'} onChange={alternarTema} />
+      </label>
+
       {!instalado() && (
         <>
-          <h2 style={{ marginTop: 0 }}>Instalar no iPhone</h2>
+          <h2>Instalar no iPhone</h2>
           <div className="cartao">
             <p className="sub" style={{ color: 'var(--bone)' }}>
               Instale o painel como app: abre em tela cheia, funciona sem internet e o iPhone guarda os dados com segurança.

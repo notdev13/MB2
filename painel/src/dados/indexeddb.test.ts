@@ -9,7 +9,7 @@ const novaObra: NovaObra = {
   inicio: '2026-03-01', previsaoFim: null, status: 'em_andamento', observacoes: '',
 };
 const novoCusto = (obraId: string, valor = 12_345_67): NovoCusto => ({
-  obraId, data: '2026-10-20', categoria: 'Estrutura', descricao: 'Aço CA-50', fornecedor: 'Gerdau; filial',
+  obraId, data: '2026-10-20', categoria: 'Materiais (M)', descricao: 'Aço CA-50', fornecedor: 'Gerdau; filial',
   valor, pagamento: 'boleto', pago: false,
 });
 
@@ -70,7 +70,7 @@ it('CSV usa ; e vírgula decimal e protege texto com ;', () => {
   const csv = custosEmCsv([{ ...novoCusto('o'), id: '1', criadoEm: '', atualizadoEm: '' }], () => 'Casa 01');
   const [cab, linha] = csv.replace('﻿', '').split('\r\n');
   expect(cab.startsWith('Data;Obra;')).toBe(true);
-  expect(linha).toBe('20/10/2026;Casa 01;Estrutura;Aço CA-50;"Gerdau; filial";12345,67;Boleto;Não');
+  expect(linha).toBe('20/10/2026;Casa 01;Materiais (M);Aço CA-50;"Gerdau; filial";12345,67;Boleto;Não');
 });
 
 it('restaurar guarda cópia e dá para desfazer', async () => {

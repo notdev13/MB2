@@ -25,24 +25,17 @@ export interface Obra {
   atualizadoEm: string; // ISO
 }
 
+// As mesmas categorias da planilha de despesas da MB2.
 export const CATEGORIAS = [
-  'Projeto e aprovações',
-  'Terreno e taxas',
-  'Fundação',
-  'Estrutura',
-  'Alvenaria',
-  'Cobertura',
-  'Instalações elétricas',
-  'Instalações hidráulicas',
-  'Esquadrias',
-  'Revestimentos',
-  'Pintura',
-  'Acabamento',
+  'Terreno e aquisição',
+  'Projetos e documentação',
+  'Impostos e taxas',
+  'Materiais (M)',
   'Mão de obra',
-  'Equipamentos e locação',
-  'Paisagismo',
-  'Administração',
-  'Outros',
+  'Serviços (S)',
+  'Locação e consumo',
+  'Consórcio',
+  'A classificar',
 ] as const;
 export type Categoria = (typeof CATEGORIAS)[number];
 

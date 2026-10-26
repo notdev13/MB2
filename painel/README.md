@@ -11,7 +11,7 @@ de gasto x orçamento. Feito para o iPhone, mas abre em qualquer navegador.
   com filtros por categoria e "só a pagar".
 - **Lançar custo** (botão +): valor, obra, data, categoria, descrição, fornecedor, forma de pagamento
   e se já foi pago. "Salvar e lançar outro" para lançar várias notas seguidas.
-- **Ajustes**: backup e restauração em arquivo, exportação dos custos em planilha
+- **Ajustes**: tema escuro ou claro, backup e restauração em arquivo, exportação dos custos em planilha
   (abre no Excel), instruções de instalação.
 - Funciona sem internet depois de aberto uma vez.
 
@@ -22,6 +22,16 @@ No próprio aparelho (IndexedDB do Safari). Não há servidor nem conta. Por iss
 - **Faça backup** em Ajustes de tempos em tempos e guarde o arquivo no iCloud Drive.
 - Os dados do iPhone não aparecem no computador (e vice-versa). Sincronizar entre aparelhos é o
   próximo passo: a camada `src/dados/repositorio.ts` foi feita para receber um banco na nuvem.
+
+## Importar a planilha de despesas
+A planilha `PLANILHA DESPESAS OBRAS MB2.xlsx` (uma aba por obra e a aba RESUMO) vira um arquivo de
+backup do painel:
+```
+pip install openpyxl
+python3 scripts/planilha_para_backup.py "PLANILHA DESPESAS OBRAS MB2.xlsx" mb2-backup.json
+```
+No painel: **Ajustes › Restaurar um backup** e escolha o `mb2-backup.json`. As categorias do painel
+são as mesmas da planilha. Os dados da empresa não ficam no repositório.
 
 ## Rodar no computador
 Precisa do Node.js 20 ou mais novo.

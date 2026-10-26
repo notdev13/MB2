@@ -24,7 +24,7 @@ export function FormCusto({ custo, obraId, aoFechar }: { custo?: Custo; obraId?:
   const [obra, setObra] = useState(inicialObra);
   const [valor, setValor] = useState(custo ? reaisParaCampo(custo.valor) : '');
   const [data, setData] = useState(custo?.data ?? hoje());
-  const [categoria, setCategoria] = useState<Categoria>(custo?.categoria ?? 'Mão de obra');
+  const [categoria, setCategoria] = useState<Categoria>(custo?.categoria ?? 'Materiais (M)');
   const [descricao, setDescricao] = useState(custo?.descricao ?? '');
   const [fornecedor, setFornecedor] = useState(custo?.fornecedor ?? '');
   const [pagamento, setPagamento] = useState<FormaPagamento>(custo?.pagamento ?? 'pix');
