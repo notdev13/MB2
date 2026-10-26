@@ -29,7 +29,7 @@ export function ObraDetalhe({ id, aoEditar, aoLancar, aoAbrirCusto }: {
   return (
     <>
       <div style={{ marginBottom: 14 }}>
-        <span className={'selo' + (obra.status === 'concluida' || obra.status === 'pausada' ? ' neutro' : '')}>
+        <span className={'selo' + (obra.status === 'em_andamento' ? ' ativo' : obra.status === 'planejamento' ? '' : ' neutro')}>
           {STATUS_OBRA[obra.status]}
         </span>
         <h1 style={{ marginTop: 8 }}>{obra.nome}</h1>
@@ -42,7 +42,7 @@ export function ObraDetalhe({ id, aoEditar, aoLancar, aoAbrirCusto }: {
       </div>
 
       <div className="grade">
-        <div className="cartao largo">
+        <div className="cartao largo destaque">
           <div className="rotulo">Gasto até agora</div>
           <div className="numero">{reais(r.gasto)}</div>
           <div className="nota">
@@ -73,11 +73,11 @@ export function ObraDetalhe({ id, aoEditar, aoLancar, aoAbrirCusto }: {
       </div>
 
       <div className="acoes" style={{ flexDirection: 'row', marginTop: 14 }}>
-        <button className="botao" style={{ flex: 1 }} onClick={() => aoLancar(obra.id)}>+ Lançar custo</button>
+        <button className="botao secundario" style={{ flex: 1 }} onClick={() => aoLancar(obra.id)}>+ Lançar custo</button>
         <button className="botao secundario" onClick={() => aoEditar(obra)}>Editar obra</button>
       </div>
 
-      {obra.observacoes && (<><h2>Observações</h2><div className="cartao" style={{ whiteSpace: 'pre-wrap' }}>{obra.observacoes}</div></>)}
+      {obra.observacoes && (<><h2>Observações</h2><div className="cartao" style={{ whiteSpace: 'pre-wrap', color: 'var(--mist)' }}>{obra.observacoes}</div></>)}
 
       {fatias.length > 0 && (
         <>

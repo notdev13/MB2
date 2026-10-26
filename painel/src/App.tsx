@@ -6,7 +6,6 @@ import { Icone, type NomeIcone } from './componentes/Icone';
 import { useDados } from './dados/contexto';
 import type { Custo, Obra } from './dominio/tipos';
 import { ir, linkPara, useRota, type Rota } from './navegacao';
-import { useTema } from './tema';
 import { Ajustes } from './telas/Ajustes';
 import { ObraDetalhe } from './telas/ObraDetalhe';
 import { Obras } from './telas/Obras';
@@ -33,7 +32,6 @@ export function App() {
 
 function Conteudo() {
   const rota = useRota();
-  const [tema, alternarTema] = useTema();
   const { carregando, erro } = useDados();
   const [folha, setFolha] = useState<FolhaAberta>(null);
   const fechar = useCallback(() => setFolha(null), []);
@@ -76,7 +74,7 @@ function Conteudo() {
                 aoEditar={(o) => setFolha({ tipo: 'obra', obra: o })}
                 aoLancar={(obraId) => setFolha({ tipo: 'custo', obraId })} />
             )}
-            {rota.tela === 'ajustes' && <Ajustes tema={tema} alternarTema={alternarTema} />}
+            {rota.tela === 'ajustes' && <Ajustes />}
           </main>
         )}
       </div>

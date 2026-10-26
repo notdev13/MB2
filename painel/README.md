@@ -11,7 +11,7 @@ de gasto x orçamento. Feito para o iPhone, mas abre em qualquer navegador.
   com filtros por categoria e "só a pagar".
 - **Lançar custo** (botão +): valor, obra, data, categoria, descrição, fornecedor, forma de pagamento
   e se já foi pago. "Salvar e lançar outro" para lançar várias notas seguidas.
-- **Ajustes**: tema claro/escuro, backup e restauração em arquivo, exportação dos custos em planilha
+- **Ajustes**: backup e restauração em arquivo, exportação dos custos em planilha
   (abre no Excel), instruções de instalação.
 - Funciona sem internet depois de aberto uma vez.
 

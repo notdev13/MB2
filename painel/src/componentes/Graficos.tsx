@@ -53,7 +53,7 @@ export function PorCategoria({ fatias, limite = 6 }: { fatias: FatiaCategoria[];
     <div className="cat">
       {linhas.map((f) => (
         <div key={f.categoria} style={{ display: 'contents' }}>
-          <span>{f.categoria}</span>
+          <span className="categoria">{f.categoria}</span>
           <span className="valor">{reais(f.total)} <small className="sub">· {Math.round(f.parte * 100)}%</small></span>
           <div className="trilho" title={`${f.categoria}: ${reais(f.total)}`}>
             <i style={{ width: `${(f.total / max) * 100}%` }} />

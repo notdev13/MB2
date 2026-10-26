@@ -3,7 +3,6 @@ import { useAviso } from '../componentes/Aviso';
 import { useDados } from '../dados/contexto';
 import { custosEmCsv, validarBackup } from '../dados/backup';
 import { dataBR, hoje } from '../dominio/formato';
-import type { Tema } from '../tema';
 
 const instalado = () =>
   window.matchMedia('(display-mode: standalone)').matches ||
@@ -32,7 +31,7 @@ async function entregarArquivo(nome: string, conteudo: string, tipo: string): Pr
   return true;
 }
 
-export function Ajustes({ tema, alternarTema }: { tema: Tema; alternarTema: () => void }) {
+export function Ajustes() {
   const { obras, custos, exportar, restaurar, copiaAnterior, desfazerRestauracao } = useDados();
   const avisar = useAviso();
   const entrada = useRef<HTMLInputElement>(null);
@@ -96,17 +95,11 @@ export function Ajustes({ tema, alternarTema }: { tema: Tema; alternarTema: () =
 
   return (
     <>
-      <h2 style={{ marginTop: 0 }}>Aparência</h2>
-      <label className="alternar">
-        <span>Tema escuro (preto e bronze)</span>
-        <input type="checkbox" checked={tema === 'escuro'} onChange={alternarTema} />
-      </label>
-
       {!instalado() && (
         <>
-          <h2>Instalar no iPhone</h2>
+          <h2 style={{ marginTop: 0 }}>Instalar no iPhone</h2>
           <div className="cartao">
-            <p className="sub" style={{ color: 'var(--text)' }}>
+            <p className="sub" style={{ color: 'var(--bone)' }}>
               Instale o painel como app: abre em tela cheia, funciona sem internet e o iPhone guarda os dados com segurança.
             </p>
             <ol className="passos">
@@ -120,13 +113,13 @@ export function Ajustes({ tema, alternarTema }: { tema: Tema; alternarTema: () =
 
       <h2>Seus dados</h2>
       <div className="cartao">
-        <p className="sub" style={{ color: 'var(--text)', margin: 0 }}>
+        <p className="sub" style={{ color: 'var(--bone)', margin: 0 }}>
           {obras.length} obra(s) e {custos.length} lançamento(s) guardados <strong>neste aparelho</strong>.
           Faça backup com frequência e guarde o arquivo no iCloud Drive ou mande para você mesmo.
         </p>
         <p className="nota">Último backup: {ultimoBackup ? dataBR(ultimoBackup) : 'nunca'}</p>
         <div className="acoes">
-          <button className="botao cheio" onClick={fazerBackup}>Fazer backup agora</button>
+          <button className="botao secundario cheio" onClick={fazerBackup}>Fazer backup agora</button>
           <button className="botao secundario cheio" onClick={planilha} disabled={custos.length === 0}>
             Exportar custos em planilha (Excel)
           </button>
