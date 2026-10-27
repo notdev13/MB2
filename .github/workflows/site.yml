@@ -43,6 +43,9 @@ jobs:
           cp -r site/. _site/
           cp -r painel/dist _site/painel
       - uses: actions/configure-pages@v5
+        with:
+          # Ativa o Pages (Source = GitHub Actions) sozinho na primeira vez
+          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
