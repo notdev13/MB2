@@ -94,5 +94,5 @@ adicionar depois; até lá, toda mudança precisa de um build novo.
 ## Observações
 - O perfil `development` do `eas.json` é só para programadores; para testar no dia a dia
   continue usando o **Expo Go** (veja `app/README.md`).
-- A URL do Supabase e a chave **anon** vêm do arquivo `app/.env` e entram no build sozinhas.
+- A URL do Supabase e a chave **anon** vêm do arquivo `app/.env` (crie a partir de `app/.env.example`; ele não fica no repositório) e entram no build sozinhas.
   Nunca coloque a chave `service_role` no app.
