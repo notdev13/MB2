@@ -33,6 +33,11 @@ python3 scripts/planilha_para_backup.py "PLANILHA DESPESAS OBRAS MB2.xlsx" mb2-b
 No painel: **Ajustes › Restaurar um backup** e escolha o `mb2-backup.json`. As categorias do painel
 são as mesmas da planilha. Os dados da empresa não ficam no repositório.
 
+## Versão para visualizar num link
+`npm run pagina -- painel.html [backup.json]` gera uma página HTML única (CSS, JS e fontes
+embutidos). Com um backup, os dados entram na primeira abertura, só se ainda não houver obras.
+Nessa página não há modo sem internet.
+
 ## Rodar no computador
 Precisa do Node.js 20 ou mais novo.
 ```

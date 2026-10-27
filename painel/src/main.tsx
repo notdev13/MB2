@@ -14,8 +14,9 @@ createRoot(document.getElementById('raiz')!).render(
 );
 
 // Funciona sem internet depois da primeira abertura (só no build de produção).
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
-  navigator.serviceWorker.register('./sw.js');
+// (Na página única, sem manifesto, não há service worker para registrar.)
+if ('serviceWorker' in navigator && import.meta.env.PROD && document.querySelector('link[rel=manifest]')) {
+  navigator.serviceWorker.register('./sw.js').catch(() => { /* onde não há service worker, só não funciona offline */ });
 }
 // Pede ao iPhone para não apagar os dados do painel quando faltar espaço.
 navigator.storage?.persist?.();

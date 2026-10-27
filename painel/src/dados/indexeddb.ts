@@ -114,11 +114,11 @@ export function criarRepositorioLocal(fabrica: IDBFactory = indexedDB): Reposito
       const [obras, custos] = await Promise.all([listar<Obra>('obras'), listar<Custo>('custos')]);
       return { app: 'mb2-painel', versao: 1, geradoEm: new Date().toISOString(), obras, custos };
     },
-    async substituirTudo(backup) {
+    async substituirTudo(backup, opcoes) {
       // Guarda o que está no aparelho antes de apagar, na mesma transação.
-      const atual = await this.exportar();
+      const atual = opcoes?.semCopia ? null : await this.exportar();
       const tx = await transacao(['obras', 'custos', 'copias'], 'readwrite');
-      tx.objectStore('copias').put(atual, CHAVE_COPIA);
+      if (atual) tx.objectStore('copias').put(atual, CHAVE_COPIA);
       gravarTudo(tx, backup);
       await concluir(tx);
     },

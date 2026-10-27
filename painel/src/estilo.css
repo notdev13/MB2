@@ -160,3 +160,8 @@ h2 { font-size: 13px; font-weight: 600; letter-spacing: -0.02em; color: var(--fo
 .passos { margin: 10px 0 0; padding-left: 20px; font-size: 14px; line-height: 1.7; color: var(--mist); }
 .passos strong { color: var(--white); font-weight: 500; }
 .esconder { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+/* Pergunta de confirmação */
+.fundo.centro { align-items: center; z-index: 40; padding: 16px; }
+.pergunta { background: var(--obsidian); border: 1px solid var(--graphite); border-radius: 16px; padding: 22px 18px 18px; width: 100%; max-width: 420px; animation: aparecer 0.15s; }
+.pergunta p { margin: 0 0 8px; color: var(--bone); white-space: pre-line; line-height: 1.5; }

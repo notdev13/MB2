@@ -1,14 +1,15 @@
 {
   "name": "mb2-painel",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
     "build": "tsc --noEmit && tsc -p tsconfig.node.json && vite build",
     "preview": "vite preview --host",
     "test": "vitest run",
-    "check": "tsc --noEmit && tsc -p tsconfig.node.json && vitest run"
+    "check": "tsc --noEmit && tsc -p tsconfig.node.json && vitest run",
+    "pagina": "vite build && node scripts/pagina_unica.mjs"
   },
   "dependencies": {
     "@fontsource/cormorant-garamond": "^5.3.0",

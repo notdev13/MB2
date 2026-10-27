@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AvisoProvider } from './componentes/Aviso';
+import { ConfirmarProvider } from './componentes/Confirmar';
 import { FormCusto } from './componentes/FormCusto';
 import { FormObra } from './componentes/FormObra';
 import { Icone, type NomeIcone } from './componentes/Icone';
@@ -26,7 +27,9 @@ const TITULOS: Record<Exclude<Rota['tela'], 'obra'>, string> = {
 export function App() {
   return (
     <AvisoProvider>
-      <Conteudo />
+      <ConfirmarProvider>
+        <Conteudo />
+      </ConfirmarProvider>
     </AvisoProvider>
   );
 }

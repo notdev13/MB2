@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Custo, NovaObra, NovoCusto, Obra } from '../dominio/tipos';
+import { validarBackup } from './backup';
 import { criarRepositorioLocal } from './indexeddb';
 import type { Backup, Repositorio } from './repositorio';
 
@@ -41,8 +42,8 @@ export function DadosProvider({ children, repo }: { children: ReactNode; repo?: 
   }, [repositorio]);
 
   useEffect(() => {
-    recarregar();
-  }, [recarregar]);
+    semear(repositorio).finally(recarregar);
+  }, [repositorio, recarregar]);
 
   const valor: Dados = {
     carregando,
@@ -80,6 +81,17 @@ export function DadosProvider({ children, repo }: { children: ReactNode; repo?: 
   };
 
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;
+}
+
+// Versão de demonstração: a página pode trazer dados iniciais em window.__MB2_SEMENTE__ (um backup).
+// Eles só entram se o aparelho ainda não tiver nenhuma obra.
+async function semear(repo: Repositorio) {
+  const semente = (window as Window & { __MB2_SEMENTE__?: unknown }).__MB2_SEMENTE__;
+  if (!semente) return;
+  try {
+    const v = validarBackup(semente);
+    if (v.ok && (await repo.listarObras()).length === 0) await repo.substituirTudo(v.backup, { semCopia: true });
+  } catch { /* sem banco disponível: o erro aparece no carregamento normal */ }
 }
 
 export function useDados(): Dados {

@@ -99,3 +99,10 @@ it('validarBackup recusa status do protótipo, campo faltando e id repetido', ()
   expect(validarBackup({ ...base, obras: [o, o], custos: [] }).ok).toBe(false);
   expect(validarBackup({ ...base, geradoEm: 5, obras: [], custos: [] }).ok).toBe(false);
 });
+
+it('substituirTudo com semCopia não guarda cópia', async () => {
+  const repo = criarRepositorioLocal(new IDBFactory());
+  await repo.salvarObra(novaObra);
+  await repo.substituirTudo({ app: 'mb2-painel', versao: 1, geradoEm: '', obras: [], custos: [] }, { semCopia: true });
+  expect(await repo.copiaAnterior()).toBeNull();
+});
