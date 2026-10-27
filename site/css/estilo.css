@@ -249,7 +249,7 @@ button { font: inherit; cursor: pointer; color: inherit; }
 }
 .logo { display: inline-flex; align-items: center; min-height: var(--toque); text-decoration: none; }
 .logo svg { display: block; height: 40px; width: auto; }
-.nav { display: none; }
+.nav, .fale-topo { display: none; }
 .tema-btn, .menu-btn { color: inherit; border-color: rgba(255, 255, 255, 0.5); }
 .tema-btn { margin-left: auto; }
 .tema-btn .ic-sol, :root[data-theme="dark"] .tema-btn .ic-lua { display: none; }
@@ -333,7 +333,6 @@ button { font: inherit; cursor: pointer; color: inherit; }
   .menu-btn, .menu-movel { display: none; }
   .tema-btn { margin-left: 0; }
 }
-.fale-topo { display: none; }
 
 /* ---------- Topo (hero) ---------- */
 .hero {
