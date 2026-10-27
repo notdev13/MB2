@@ -65,8 +65,10 @@ Abre em http://localhost:5173. No iPhone, na mesma rede Wi-Fi, use o endereço "
 no terminal.
 
 ## Publicar
-`npm run build` gera a pasta `dist/`, que pode ir para qualquer hospedagem de site estático
-(GitHub Pages, Netlify, Vercel, Cloudflare Pages). Precisa ser HTTPS para instalar no iPhone.
+A cada mudança na `main`, o workflow `.github/workflows/site.yml` testa, gera o painel e publica no
+GitHub Pages em **https://notdev13.github.io/MB2/painel/** (o site institucional fica na raiz).
+Uma vez só, no GitHub: Settings › Pages › Source = "GitHub Actions".
+`npm run build` gera a mesma pasta `dist/`, que serve em qualquer hospedagem estática com HTTPS.
 
 ## Verificar
 `npm run check` (tipos e testes) e `npm run build`.

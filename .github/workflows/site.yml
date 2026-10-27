@@ -1,11 +1,12 @@
-# Publica a pasta site/ no GitHub Pages a cada mudança na main.
+# Publica no GitHub Pages a cada mudança na main: o site institucional (site/) na raiz e o
+# painel de obras (painel/, build do Vite) em /painel/.
 # Antes do primeiro uso: Settings > Pages > Source = "GitHub Actions".
-name: Publicar site
+name: Publicar site e painel
 
 on:
   push:
     branches: [main]
-    paths: ["site/**", ".github/workflows/site.yml"]
+    paths: ["site/**", "painel/**", ".github/workflows/site.yml"]
   workflow_dispatch:
 
 permissions:
@@ -25,9 +26,25 @@ jobs:
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: painel/package-lock.json
+      - name: Testar e gerar o painel
+        working-directory: painel
+        run: |
+          npm ci
+          npm run check
+          npm run build
+      - name: Montar a pasta publicada
+        run: |
+          mkdir _site
+          cp -r site/. _site/
+          cp -r painel/dist _site/painel
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: site
+          path: _site
       - id: deploy
         uses: actions/deploy-pages@v4
