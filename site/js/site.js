@@ -21,6 +21,7 @@
     menuBtn.setAttribute("aria-expanded", String(abre));
     menuBtn.setAttribute("aria-label", abre ? "Fechar menu" : "Abrir menu");
     document.body.style.overflow = abre ? "hidden" : "";
+    topo.classList.toggle("no-topo", !abre && scrollY < 10);
   }
   menuBtn.addEventListener("click", () => abrirMenu(menuMovel.hidden));
   menuMovel.addEventListener("click", (e) => { if (e.target.closest("a")) abrirMenu(false); });
@@ -36,14 +37,16 @@
     temaBtn.setAttribute("aria-label", escuro ? "Ativar tema claro" : "Ativar tema escuro");
   });
 
-  // O menu esmaece depois que a página passa do botão do topo
+  // No alto da página o menu fica sem fundo; depois que passa do botão do topo, esmaece
   const ctaTopo = $("#hero-cta");
   let aguardando = false;
   function esmaecer() {
     aguardando = false;
+    topo.classList.toggle("no-topo", scrollY < 10 && menuMovel.hidden);
     topo.classList.toggle("esmaecido", ctaTopo.getBoundingClientRect().bottom < topo.offsetHeight);
   }
   addEventListener("scroll", () => { if (!aguardando) { aguardando = true; requestAnimationFrame(esmaecer); } }, { passive: true });
+  esmaecer();
 
   // ---------- Carrega os dados ----------
   fetch("dados/obras.json")
@@ -55,9 +58,10 @@
 
   function montar(dados) {
     const obras = dados.obras, empresa = dados.empresa;
+    const d = obras.find((o) => o.id === dados.destaque) || obras[0];
 
     // ----- Topo: fotos que trocam (celular) ou vídeo (computador) -----
-    const hero = $(".hero"), fotosWrap = $("#hero-fotos"), tracos = $("#hero-tracos"), legenda = $("#hero-legenda");
+    const hero = $(".hero"), fotosWrap = $("#hero-fotos"), tracos = $("#hero-tracos"), legenda = $("#hero-legenda"), cartaoTitulo = $("#hero-cartao-titulo");
     fotosWrap.innerHTML = dados.topo.map((t, i) =>
       `<img class="hero-foto${i === 0 ? " ativa" : ""}" src="imagens/obras/${t.foto}-480.webp" srcset="imagens/obras/${t.foto}-480.webp 480w, imagens/obras/${t.foto}-1400.webp 1400w" sizes="100vw" alt="" ${i === 0 ? 'fetchpriority="high"' : 'loading="lazy"'}>`
     ).join("");
@@ -100,13 +104,14 @@
     }
     function decideVideo() {
       if (!computador.matches) {
-        if (hero.classList.contains("com-video")) { video.pause(); hero.classList.remove("com-video"); irPara(0); reiniciar(); }
+        if (hero.classList.contains("com-video")) { video.pause(); hero.classList.remove("com-video"); cartaoTitulo.textContent = "Nossas casas"; irPara(0); reiniciar(); }
         return;
       }
       if (!video.src) { video.poster = "video/poster-1400.jpg"; video.src = "video/hero-mb2.mp4"; }
       hero.classList.add("com-video");
       clearInterval(relogio);
-      legenda.textContent = "Tour em vídeo · Casa alto padrão";
+      cartaoTitulo.textContent = "Tour em vídeo";
+      legenda.textContent = [d.nome, d.area_m2 && d.area_m2 + " m²"].filter(Boolean).join(" · ");
       if (!semMovimento) video.play().catch(() => {});
       sincronizaPausa();
     }
@@ -117,7 +122,6 @@
     decideVideo();
 
     // ----- Casa em destaque -----
-    const d = obras.find((o) => o.id === dados.destaque) || obras[0];
     $("#destaque-foto").innerHTML = foto(d.foto, "Fachada: " + d.nome, { sizes: "(min-width: 821px) 64vw, 100vw" });
     $("#destaque-local").textContent = [d.bairro, d.cidade].filter(Boolean).join(" · ");
     $("#destaque-nome").textContent = d.nome;

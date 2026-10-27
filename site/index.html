@@ -10,6 +10,13 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Archivo:wdth,wght@87.5,900&family=IBM+Plex+Sans:wght@500&display=swap">
 <link rel="stylesheet" href="css/estilo.css">
+<script>
+  // Aplica a escolha guardada antes de desenhar a página; sem escolha, segue o aparelho
+  // Sem escolha guardada, o site abre no tema escuro (o botão do menu continua trocando)
+  var t = "escuro";
+  try { var g = localStorage.getItem("tema"); if (g === "escuro" || g === "claro") t = g; } catch (e) {}
+  document.documentElement.setAttribute("data-theme", t === "escuro" ? "dark" : "light");
+</script>
 </head>
 <body>
 
@@ -58,21 +65,29 @@
   <section class="hero" aria-label="Apresentação">
     <div id="hero-fotos"></div>
     <video class="hero-video" id="hero-video" muted loop playsinline preload="none" aria-hidden="true"></video>
-    <div class="wrap">
-      <div>
-        <h2>14 anos construindo. <em>Hoje, no Sul da Ilha.</em></h2>
-        <a class="btn btn-claro" id="hero-cta" href="#obras" style="margin-top:24px">Ver nossas obras</a>
-      </div>
-      <div class="hero-texto">
-        <p>A MB2 projeta e constrói casas de alto padrão no Campeche. Aqui você fala direto com quem constrói.</p>
-        <small id="hero-legenda"></small>
-      </div>
+    <div class="wrap hero-conteudo">
+      <span class="hero-marca" aria-hidden="true"><svg viewBox="0 0 100 100"><use href="#simbolo"/></svg></span>
+      <h2>14 anos construindo. <em>Hoje, no Sul da Ilha.</em></h2>
+      <a class="btn btn-claro" id="hero-cta" href="#obras">Ver nossas obras</a>
+    </div>
+    <div class="wrap hero-base">
       <div class="hero-controles">
         <button class="redondo so-fotos" id="hero-prev" type="button" aria-label="Foto anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M15 6l-6 6 6 6"/></svg></button>
         <div class="tracos" id="hero-tracos"></div>
         <button class="redondo so-fotos" id="hero-next" type="button" aria-label="Próxima foto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 6l6 6-6 6"/></svg></button>
         <button class="redondo hero-pausa" id="hero-pausa" type="button" aria-label="Pausar vídeo" aria-pressed="false"><svg class="ic-pause" viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="6" width="3" height="12"/><rect x="14" y="6" width="3" height="12"/></svg><svg class="ic-play" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
       </div>
+      <a class="hero-rolar" href="#apresentacao"><span>Role para ver</span><i aria-hidden="true"></i></a>
+      <div class="hero-cartao">
+        <span class="chapeu" id="hero-cartao-titulo">Nossas casas</span>
+        <small id="hero-legenda"></small>
+      </div>
+    </div>
+  </section>
+
+  <section class="apresentacao" id="apresentacao" aria-label="Sobre a MB2">
+    <div class="wrap">
+      <p>A MB2 projeta e constrói casas de alto padrão no Campeche. Aqui você fala direto com quem constrói.</p>
     </div>
   </section>
 
