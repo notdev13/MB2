@@ -64,24 +64,7 @@
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --fundo: #141516;
-    --fundo-suave: #1d1e20;
-    --fundo-escuro: #0d0e0f;
-    --texto: #e6e2da;
-    --texto-suave: #a9a59d;
-    --texto-titulo: #f4f1ea;
-    --linha: #2e3033;
-    --linha-escura: #55585c;
-    --acento: #c98c5a;
-    --acento-escuro: #e0a86f;
-    --cobre-claro: #8c7a5e;
-    --acao: #5f8f4a;
-    --acao-hover: #6f9f5a;
-    color-scheme: dark;
-  }
-}
+/* Tema escuro: só quando a pessoa escolhe no botão do menu (o claro é o padrão) */
 :root[data-theme="dark"] {
   --fundo: #141516;
   --fundo-suave: #1d1e20;
@@ -249,7 +232,10 @@ button { font: inherit; cursor: pointer; color: inherit; }
 .logo { display: inline-flex; align-items: center; min-height: var(--toque); text-decoration: none; }
 .logo svg { display: block; height: 40px; width: auto; }
 .nav { display: none; }
-.menu-btn { margin-left: auto; color: inherit; border-color: rgba(255, 255, 255, 0.5); }
+.tema-btn, .menu-btn { color: inherit; border-color: rgba(255, 255, 255, 0.5); }
+.tema-btn { margin-left: auto; }
+.tema-btn .ic-sol, :root[data-theme="dark"] .tema-btn .ic-lua { display: none; }
+:root[data-theme="dark"] .tema-btn .ic-sol { display: block; }
 .menu-btn .ic-fechar, .topo.aberto .menu-btn .ic-abrir { display: none; }
 .topo.aberto .menu-btn .ic-fechar { display: block; }
 
@@ -323,6 +309,7 @@ button { font: inherit; cursor: pointer; color: inherit; }
   }
   .fale-topo:hover { background: var(--acao-hover); }
   .menu-btn, .menu-movel { display: none; }
+  .tema-btn { margin-left: 0; }
 }
 .fale-topo { display: none; }
 

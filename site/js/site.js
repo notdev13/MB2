@@ -26,6 +26,17 @@
   menuMovel.addEventListener("click", (e) => { if (e.target.closest("a")) abrirMenu(false); });
   addEventListener("keydown", (e) => { if (e.key === "Escape" && !menuMovel.hidden) abrirMenu(false); });
 
+  // ---------- Tema claro / escuro ----------
+  const temaBtn = $("#tema-btn"), raiz = document.documentElement;
+  function aplicarTema(escuro, guardar) {
+    if (escuro) raiz.setAttribute("data-theme", "dark"); else raiz.removeAttribute("data-theme");
+    temaBtn.setAttribute("aria-pressed", String(escuro));
+    temaBtn.setAttribute("aria-label", escuro ? "Ativar tema claro" : "Ativar tema escuro");
+    if (guardar) { try { localStorage.setItem("tema", escuro ? "escuro" : "claro"); } catch (e) {} }
+  }
+  aplicarTema(raiz.getAttribute("data-theme") === "dark", false);
+  temaBtn.addEventListener("click", () => aplicarTema(raiz.getAttribute("data-theme") !== "dark", true));
+
   // O menu esmaece depois que a página passa do botão do topo
   const ctaTopo = $("#hero-cta");
   let aguardando = false;
