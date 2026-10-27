@@ -27,25 +27,13 @@
   addEventListener("keydown", (e) => { if (e.key === "Escape" && !menuMovel.hidden) abrirMenu(false); });
 
   // ---------- Tema claro / escuro ----------
-  // Sem escolha guardada, segue o aparelho; o botão grava a escolha
+  // Abre sempre claro; o botão liga o escuro só durante a visita
   const temaBtn = $("#tema-btn"), raiz = document.documentElement;
-  const aparelhoEscuro = matchMedia("(prefers-color-scheme: dark)");
-  function temaEscuro() {
-    const t = raiz.getAttribute("data-theme");
-    return t ? t === "dark" : aparelhoEscuro.matches;
-  }
-  function rotularTema() {
-    const escuro = temaEscuro();
+  temaBtn.addEventListener("click", () => {
+    const escuro = raiz.getAttribute("data-theme") !== "dark";
+    if (escuro) raiz.setAttribute("data-theme", "dark"); else raiz.removeAttribute("data-theme");
     temaBtn.setAttribute("aria-pressed", String(escuro));
     temaBtn.setAttribute("aria-label", escuro ? "Ativar tema claro" : "Ativar tema escuro");
-  }
-  rotularTema();
-  aparelhoEscuro.addEventListener("change", rotularTema);
-  temaBtn.addEventListener("click", () => {
-    const escuro = !temaEscuro();
-    raiz.setAttribute("data-theme", escuro ? "dark" : "light");
-    try { localStorage.setItem("tema", escuro ? "escuro" : "claro"); } catch (e) {}
-    rotularTema();
   });
 
   // O menu esmaece depois que a página passa do botão do topo
