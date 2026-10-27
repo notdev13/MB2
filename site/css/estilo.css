@@ -64,7 +64,25 @@
   color-scheme: light;
 }
 
-/* Tema escuro: só quando a pessoa escolhe no botão do menu (o claro é o padrão) */
+/* Tema: segue o aparelho; o botão do menu grava a escolha em data-theme */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --fundo: #141516;
+    --fundo-suave: #1d1e20;
+    --fundo-escuro: #0d0e0f;
+    --texto: #e6e2da;
+    --texto-suave: #a9a59d;
+    --texto-titulo: #f4f1ea;
+    --linha: #2e3033;
+    --linha-escura: #55585c;
+    --acento: #c98c5a;
+    --acento-escuro: #e0a86f;
+    --cobre-claro: #8c7a5e;
+    --acao: #5f8f4a;
+    --acao-hover: #6f9f5a;
+    color-scheme: dark;
+  }
+}
 :root[data-theme="dark"] {
   --fundo: #141516;
   --fundo-suave: #1d1e20;
@@ -236,6 +254,10 @@ button { font: inherit; cursor: pointer; color: inherit; }
 .tema-btn { margin-left: auto; }
 .tema-btn .ic-sol, :root[data-theme="dark"] .tema-btn .ic-lua { display: none; }
 :root[data-theme="dark"] .tema-btn .ic-sol { display: block; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .tema-btn .ic-lua { display: none; }
+  :root:not([data-theme="light"]) .tema-btn .ic-sol { display: block; }
+}
 .menu-btn .ic-fechar, .topo.aberto .menu-btn .ic-abrir { display: none; }
 .topo.aberto .menu-btn .ic-fechar { display: block; }
 

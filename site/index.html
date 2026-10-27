@@ -11,8 +11,8 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Archivo:wdth,wght@87.5,900&family=IBM+Plex+Sans:wght@500&display=swap">
 <link rel="stylesheet" href="css/estilo.css">
 <script>
-  // Aplica o tema guardado antes de desenhar a página (claro é o padrão)
-  try { if (localStorage.getItem("tema") === "escuro") document.documentElement.setAttribute("data-theme", "dark"); } catch (e) {}
+  // Aplica a escolha guardada antes de desenhar a página; sem escolha, segue o aparelho
+  try { var t = localStorage.getItem("tema"); if (t === "escuro" || t === "claro") document.documentElement.setAttribute("data-theme", t === "escuro" ? "dark" : "light"); } catch (e) {}
 </script>
 </head>
 <body>

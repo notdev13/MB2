@@ -27,15 +27,26 @@
   addEventListener("keydown", (e) => { if (e.key === "Escape" && !menuMovel.hidden) abrirMenu(false); });
 
   // ---------- Tema claro / escuro ----------
+  // Sem escolha guardada, segue o aparelho; o botão grava a escolha
   const temaBtn = $("#tema-btn"), raiz = document.documentElement;
-  function aplicarTema(escuro, guardar) {
-    if (escuro) raiz.setAttribute("data-theme", "dark"); else raiz.removeAttribute("data-theme");
+  const aparelhoEscuro = matchMedia("(prefers-color-scheme: dark)");
+  function temaEscuro() {
+    const t = raiz.getAttribute("data-theme");
+    return t ? t === "dark" : aparelhoEscuro.matches;
+  }
+  function rotularTema() {
+    const escuro = temaEscuro();
     temaBtn.setAttribute("aria-pressed", String(escuro));
     temaBtn.setAttribute("aria-label", escuro ? "Ativar tema claro" : "Ativar tema escuro");
-    if (guardar) { try { localStorage.setItem("tema", escuro ? "escuro" : "claro"); } catch (e) {} }
   }
-  aplicarTema(raiz.getAttribute("data-theme") === "dark", false);
-  temaBtn.addEventListener("click", () => aplicarTema(raiz.getAttribute("data-theme") !== "dark", true));
+  rotularTema();
+  aparelhoEscuro.addEventListener("change", rotularTema);
+  temaBtn.addEventListener("click", () => {
+    const escuro = !temaEscuro();
+    raiz.setAttribute("data-theme", escuro ? "dark" : "light");
+    try { localStorage.setItem("tema", escuro ? "escuro" : "claro"); } catch (e) {}
+    rotularTema();
+  });
 
   // O menu esmaece depois que a página passa do botão do topo
   const ctaTopo = $("#hero-cta");
