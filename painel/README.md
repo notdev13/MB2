@@ -15,6 +15,13 @@ de gasto x orçamento. Feito para o iPhone, mas abre em qualquer navegador.
   (abre no Excel), instruções de instalação.
 - Funciona sem internet depois de aberto uma vez.
 
+## Versão para computador
+Em tela larga com mouse (a partir de 1024 px), o painel abre a versão desktop: menu lateral, visão geral
+com 12 meses de gasto, tabela de obras, ficha da obra com maiores fornecedores, e a tela
+**Lançamentos** com busca, filtros (obra, categoria, período, pago/a pagar), ordenação e total.
+Atalhos: `N` lança um custo, `/` busca. Os dados e as regras são os mesmos do celular; a versão de
+celular não muda. Arquitetura e design system em [docs/desktop.md](docs/desktop.md).
+
 ## Onde ficam os dados
 No próprio aparelho (IndexedDB do Safari). Não há servidor nem conta. Por isso:
 - **Instale na tela de início** (Safari › Compartilhar › Adicionar à Tela de Início). Assim o iOS
@@ -38,6 +45,15 @@ são as mesmas da planilha. Os dados da empresa não ficam no repositório.
 embutidos). Com um backup, os dados entram na primeira abertura, só se ainda não houver obras.
 Nessa página não há modo sem internet.
 
+## Apresentação no iPhone
+`apresentacao/iphone.html` é uma página que mostra o painel (versão celular) dentro de um
+iPhone 16 Pro Max desenhado, com botão de tela cheia em tamanho real; aberta no celular, mostra só o app.
+Fica guardada para apresentar o painel e deve ser regerada sempre que o painel mudar:
+```
+npm run pagina -- painel.html backup.json
+npm run iphone -- painel.html iphone.html
+```
+
 ## Rodar no computador
 Precisa do Node.js 20 ou mais novo.
 ```
@@ -58,5 +74,8 @@ no terminal.
 ## Estrutura
 - `src/dominio/`: tipos, cálculos e formatação (funções puras, com testes).
 - `src/dados/`: armazenamento (contrato + IndexedDB), backup e planilha.
-- `src/telas/` e `src/componentes/`: interface.
+- `src/telas/` e `src/componentes/`: interface do celular.
+- `src/desktop/`: interface do computador (casca, telas, componentes e `desktop.css`).
+- `src/casca.ts`: escolhe celular ou desktop pelo tamanho da tela.
+- `apresentacao/`: página do iPhone para apresentar o painel.
 - `public/`: ícones e manifesto. `sw.js`: service worker (modo sem internet), preenchido no build.

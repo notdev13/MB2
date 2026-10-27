@@ -32,7 +32,9 @@ const dados = semente
 
 writeFileSync(
   saida,
-  `<meta charset="utf-8">
+  `<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Painel MB²</title>
 <meta name="theme-color" content="#08080a">

@@ -6,6 +6,11 @@ os custos de cada obra e acompanha gasto x orçamento.
 ## Onde está o quê
 - `painel/`: **arquitetura atual** (recomeço de out/2026). Web app instalável (PWA) em React +
   TypeScript + Vite. Dados no próprio aparelho (IndexedDB), com backup em arquivo.
+- Duas interfaces sobre os mesmos `src/dominio/` e `src/dados/`: celular (`src/App.tsx`, `telas/`,
+  `componentes/`) e computador (`src/desktop/`, ver `painel/docs/desktop.md`). `src/casca.ts` escolhe.
+  Mudança pedida só para uma delas não pode alterar a outra.
+- `painel/apresentacao/iphone.html`: o painel dentro de um iPhone desenhado, para apresentar.
+  Regerar (`npm run pagina` + `npm run iphone`) sempre que o painel mudar.
 - `app/` e `supabase/`: versão anterior (Expo + Supabase). Não mexer sem pedido explícito.
 
 ## Comandos (dentro de `painel/`)
