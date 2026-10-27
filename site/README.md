@@ -25,7 +25,9 @@ Site estático, sem build. Abra `index.html` num servidor local (por exemplo
 
 ## Publicação
 
-O workflow `.github/workflows/site.yml` publica esta pasta no GitHub Pages a
-cada mudança na `main`. Uma vez só, em Settings > Pages, escolha Source =
-"GitHub Actions". O endereço fica `https://notdev13.github.io/mb2/` até o
-domínio `mb2incorporacoes.com.br` ser apontado (Settings > Pages > Custom domain).
+O workflow `.github/workflows/site.yml` publica esta pasta na raiz do GitHub Pages
+a cada mudança na `main`, e o painel (pasta `painel/`) em `/painel/`, no mesmo
+endereço. Uma vez só, em Settings > Pages, escolha Source = "GitHub Actions".
+O site fica em `https://notdev13.github.io/MB2/` e o painel em
+`https://notdev13.github.io/MB2/painel/`, até o domínio `mb2incorporacoes.com.br`
+ser apontado (Settings > Pages > Custom domain).
