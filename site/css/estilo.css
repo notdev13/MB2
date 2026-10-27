@@ -64,6 +64,7 @@
   color-scheme: light;
 }
 
+/* Tema: segue o aparelho; o botão do menu grava a escolha em data-theme */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --fundo: #141516;
@@ -248,8 +249,15 @@ button { font: inherit; cursor: pointer; color: inherit; }
 }
 .logo { display: inline-flex; align-items: center; min-height: var(--toque); text-decoration: none; }
 .logo svg { display: block; height: 40px; width: auto; }
-.nav { display: none; }
-.menu-btn { margin-left: auto; color: inherit; border-color: rgba(255, 255, 255, 0.5); }
+.nav, .fale-topo { display: none; }
+.tema-btn, .menu-btn { color: inherit; border-color: rgba(255, 255, 255, 0.5); }
+.tema-btn { margin-left: auto; }
+.tema-btn .ic-sol, :root[data-theme="dark"] .tema-btn .ic-lua { display: none; }
+:root[data-theme="dark"] .tema-btn .ic-sol { display: block; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .tema-btn .ic-lua { display: none; }
+  :root:not([data-theme="light"]) .tema-btn .ic-sol { display: block; }
+}
 .menu-btn .ic-fechar, .topo.aberto .menu-btn .ic-abrir { display: none; }
 .topo.aberto .menu-btn .ic-fechar { display: block; }
 
@@ -323,8 +331,8 @@ button { font: inherit; cursor: pointer; color: inherit; }
   }
   .fale-topo:hover { background: var(--acao-hover); }
   .menu-btn, .menu-movel { display: none; }
+  .tema-btn { margin-left: 0; }
 }
-.fale-topo { display: none; }
 
 /* ---------- Topo (hero) ---------- */
 .hero {
