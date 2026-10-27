@@ -1,0 +1,56 @@
+{
+  "empresa": {
+    "nome": "MB2 Incorporações",
+    "slogan": "14 anos construindo. Hoje, no Sul da Ilha.",
+    "site": "mb2incorporacoes.com.br",
+    "instagram": "https://www.instagram.com/mb2_incorporacoes/",
+    "whatsapp": "",
+    "telefone": "",
+    "email": "",
+    "endereco": "",
+    "cnpj": ""
+  },
+  "destaque": "casa-jardim-campeche-302",
+  "obras": [
+    {
+      "id": "casa-jardim-campeche-288",
+      "nome": "Casa alto padrão Jardim Campeche",
+      "tipo": "casas",
+      "cidade": "Florianópolis",
+      "bairro": "Jardim Campeche",
+      "area_m2": 288,
+      "suites": null,
+      "vagas": null,
+      "situacao": null,
+      "foto": "11-casa-jardim-campeche-288m2"
+    },
+    {
+      "id": "casa-jardim-campeche-302",
+      "nome": "Casa alto padrão Jardim Campeche",
+      "tipo": "casas",
+      "cidade": "Florianópolis",
+      "bairro": "Jardim Campeche",
+      "area_m2": 302,
+      "suites": null,
+      "vagas": null,
+      "situacao": null,
+      "foto": "12-casa-jardim-campeche-302m2"
+    },
+    { "id": "reservato-residence", "nome": "Reservato Residence", "tipo": "residenciais", "cidade": null, "bairro": null, "area_m2": null, "suites": null, "vagas": null, "situacao": null, "foto": "01-reservato-residence" },
+    { "id": "residencial-luiz-borssato", "nome": "Residencial Luiz Borssato", "tipo": "residenciais", "cidade": null, "bairro": null, "area_m2": null, "suites": null, "vagas": null, "situacao": null, "foto": "02-residencial-luiz-borssato" },
+    { "id": "residencial-dsenho", "nome": "Residencial Dsenho", "tipo": "residenciais", "cidade": null, "bairro": null, "area_m2": null, "suites": null, "vagas": null, "situacao": null, "foto": "03-residencial-dsenho" },
+    { "id": "residencial-acqua-verde", "nome": "Residencial Acqua Verde", "tipo": "residenciais", "cidade": null, "bairro": null, "area_m2": null, "suites": null, "vagas": null, "situacao": null, "foto": "04-residencial-acqua-verde" },
+    { "id": "residencial-parco-di-lorenzo", "nome": "Residencial Parco di Lorenzo", "tipo": "residenciais", "cidade": null, "bairro": null, "area_m2": null, "suites": null, "vagas": null, "situacao": null, "foto": "05-residencial-parco-di-lorenzo" },
+    { "id": "residencial-alice", "nome": "Residencial Alice", "tipo": "residenciais", "cidade": null, "bairro": null, "area_m2": null, "suites": null, "vagas": null, "situacao": null, "foto": "06-residencial-alice" },
+    { "id": "aurora-garden", "nome": "Aurora Garden", "tipo": "residenciais", "cidade": null, "bairro": null, "area_m2": null, "suites": null, "vagas": null, "situacao": null, "foto": "07-aurora-garden" },
+    { "id": "wave", "nome": "Wave", "tipo": "residenciais", "cidade": null, "bairro": null, "area_m2": null, "suites": null, "vagas": null, "situacao": null, "foto": "08-wave" },
+    { "id": "residencial-vitoria", "nome": "Residencial Vitória", "tipo": "residenciais", "cidade": null, "bairro": null, "area_m2": null, "suites": null, "vagas": null, "situacao": null, "foto": "09-residencial-vitoria" },
+    { "id": "reserva-3055", "nome": "Reserva 3055", "tipo": "residenciais", "cidade": null, "bairro": null, "area_m2": null, "suites": null, "vagas": null, "situacao": null, "foto": "10-reserva-3055" }
+  ],
+  "topo": [
+    { "foto": "11-casa-jardim-campeche-288m2", "legenda": "Casa alto padrão · Jardim Campeche" },
+    { "foto": "07-aurora-garden", "legenda": "Aurora Garden" },
+    { "foto": "06-residencial-alice", "legenda": "Residencial Alice" },
+    { "foto": "12-casa-jardim-campeche-302m2", "legenda": "Casa alto padrão · Jardim Campeche" }
+  ]
+}
