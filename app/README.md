@@ -17,8 +17,8 @@ Para ver no navegador: `npx expo start --web`.
   (tabela `obra_membros`), senão a tela Hoje mostra "Você ainda não está em nenhuma obra".
 
 ## Configuração
-O arquivo `.env` tem a URL do projeto e a chave **anon** (pública por definição; quem protege
-os dados são as regras RLS do banco). Nunca coloque a chave `service_role` no app.
+Copie `.env.example` para `.env` e preencha a URL do projeto e a chave **anon** (pública por definição;
+quem protege os dados são as regras RLS do banco). O `.env` não vai para o repositório. Nunca coloque a chave `service_role` no app.
 
 ## Verificar
 - `npx tsc --noEmit` (tipos)
