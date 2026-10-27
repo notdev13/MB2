@@ -1,6 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#0D0C0B"/>
-  <text x="236" y="318" text-anchor="middle" font-family="Manrope, Helvetica, Arial, sans-serif" font-weight="600" font-size="190" letter-spacing="-6" fill="#F3EEE6">MB</text>
-  <text x="378" y="232" text-anchor="middle" font-family="Manrope, Helvetica, Arial, sans-serif" font-weight="700" font-size="100" fill="#C9A06E">2</text>
-  <rect x="136" y="366" width="240" height="6" rx="3" fill="#C9A06E"/>
+  <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#ae9357"/><stop offset=".45" stop-color="#fff0cc"/><stop offset="1" stop-color="#ae9357"/></linearGradient></defs>
+  <rect width="512" height="512" fill="#08080a"/>
+  <text x="238" y="312" text-anchor="middle" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="600" font-size="184" letter-spacing="-8" fill="#ffffff">MB</text>
+  <text x="380" y="226" text-anchor="middle" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="600" font-size="92" fill="#cc9166">2</text>
+  <rect x="146" y="360" width="220" height="4" rx="2" fill="url(#g)"/>
 </svg>

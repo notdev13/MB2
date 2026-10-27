@@ -12,7 +12,8 @@ export interface Repositorio {
   excluirCusto(id: string): Promise<void>;
 
   exportar(): Promise<Backup>;
-  substituirTudo(backup: Backup): Promise<void>; // guarda uma cópia do que havia antes
+  // Guarda uma cópia do que havia antes (para desfazer), salvo com semCopia.
+  substituirTudo(backup: Backup, opcoes?: { semCopia?: boolean }): Promise<void>;
   copiaAnterior(): Promise<Backup | null>;
   desfazerRestauracao(): Promise<void>;
 }

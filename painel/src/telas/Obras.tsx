@@ -38,7 +38,7 @@ export function Obras({ aoNovaObra }: { aoNovaObra: () => void }) {
             <button key={o.id} className="cartao clicavel" onClick={() => ir({ tela: 'obra', id: o.id })}>
               <div className="linha">
                 <strong>{o.nome}</strong>
-                <span className={'selo' + (o.status === 'concluida' || o.status === 'pausada' ? ' neutro' : '')}>
+                <span className={'selo' + (o.status === 'em_andamento' ? ' ativo' : o.status === 'planejamento' ? '' : ' neutro')}>
                   {STATUS_OBRA[o.status]}
                 </span>
               </div>

@@ -3,6 +3,7 @@ import { useDados } from '../dados/contexto';
 import { hoje, lerReais, reaisParaCampo } from '../dominio/formato';
 import { CATEGORIAS, FORMAS_PAGAMENTO, type Categoria, type Custo, type FormaPagamento } from '../dominio/tipos';
 import { useAviso } from './Aviso';
+import { useConfirmar } from './Confirmar';
 import { Folha } from './Folha';
 
 const CHAVE_ULTIMA_OBRA = 'mb2-ultima-obra';
@@ -18,13 +19,14 @@ function ultimaObra(): string {
 export function FormCusto({ custo, obraId, aoFechar }: { custo?: Custo; obraId?: string; aoFechar: () => void }) {
   const { obras, salvarCusto, excluirCusto } = useDados();
   const avisar = useAviso();
+  const confirmar = useConfirmar();
   const abertas = obras.filter((o) => o.status !== 'concluida' || o.id === custo?.obraId || o.id === obraId);
   const inicialObra = custo?.obraId ?? obraId ?? (abertas.some((o) => o.id === ultimaObra()) ? ultimaObra() : abertas[0]?.id ?? '');
 
   const [obra, setObra] = useState(inicialObra);
   const [valor, setValor] = useState(custo ? reaisParaCampo(custo.valor) : '');
   const [data, setData] = useState(custo?.data ?? hoje());
-  const [categoria, setCategoria] = useState<Categoria>(custo?.categoria ?? 'Mão de obra');
+  const [categoria, setCategoria] = useState<Categoria>(custo?.categoria ?? 'Materiais (M)');
   const [descricao, setDescricao] = useState(custo?.descricao ?? '');
   const [fornecedor, setFornecedor] = useState(custo?.fornecedor ?? '');
   const [pagamento, setPagamento] = useState<FormaPagamento>(custo?.pagamento ?? 'pix');
@@ -58,7 +60,7 @@ export function FormCusto({ custo, obraId, aoFechar }: { custo?: Custo; obraId?:
   }
 
   async function excluir() {
-    if (!custo || !window.confirm('Excluir este lançamento?')) return;
+    if (!custo || !(await confirmar({ texto: 'Excluir este lançamento?', acao: 'Excluir', perigo: true }))) return;
     try {
       await excluirCusto(custo.id);
       avisar('Lançamento excluído');

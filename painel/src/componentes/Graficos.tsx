@@ -3,6 +3,7 @@ import type { FatiaCategoria } from '../dominio/calculos';
 
 // Barra de uso do orçamento. Acima de 100% fica vermelha e ganha o selo "Estourou" (cor nunca sozinha).
 export function BarraOrcamento({ gasto, orcamento }: { gasto: number; orcamento: number }) {
+  if (orcamento <= 0) return null; // sem orçamento não há o que comparar
   const uso = orcamento > 0 ? gasto / orcamento : 0;
   const estourou = orcamento > 0 && gasto > orcamento;
   return (
@@ -53,7 +54,7 @@ export function PorCategoria({ fatias, limite = 6 }: { fatias: FatiaCategoria[];
     <div className="cat">
       {linhas.map((f) => (
         <div key={f.categoria} style={{ display: 'contents' }}>
-          <span>{f.categoria}</span>
+          <span className="categoria">{f.categoria}</span>
           <span className="valor">{reais(f.total)} <small className="sub">· {Math.round(f.parte * 100)}%</small></span>
           <div className="trilho" title={`${f.categoria}: ${reais(f.total)}`}>
             <i style={{ width: `${(f.total / max) * 100}%` }} />

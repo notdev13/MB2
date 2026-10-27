@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react';
 
+// Tema escuro (padrão da marca) ou claro. Sem escolha salva, segue o iPhone.
 export type Tema = 'claro' | 'escuro';
 const CHAVE = 'mb2-tema';
-const COR_BARRA: Record<Tema, string> = { claro: '#F3F4F2', escuro: '#0D0C0B' };
+const COR_BARRA: Record<Tema, string> = { claro: '#f7f6f2', escuro: '#08080a' };
 
 function inicial(): Tema {
   try {
     const salvo = localStorage.getItem(CHAVE);
     if (salvo === 'claro' || salvo === 'escuro') return salvo;
   } catch { /* sem armazenamento: segue o sistema */ }
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'escuro' : 'claro';
+  return window.matchMedia('(prefers-color-scheme: light)').matches ? 'claro' : 'escuro';
 }
 
 export function useTema(): [Tema, () => void] {

@@ -3,6 +3,7 @@ import { useDados } from '../dados/contexto';
 import { lerNumero, lerReais, reaisParaCampo } from '../dominio/formato';
 import { STATUS_OBRA, type Obra, type StatusObra } from '../dominio/tipos';
 import { useAviso } from './Aviso';
+import { useConfirmar } from './Confirmar';
 import { Folha } from './Folha';
 
 export function FormObra({ obra, aoFechar, aoSalvar, aoExcluir }: {
@@ -13,6 +14,7 @@ export function FormObra({ obra, aoFechar, aoSalvar, aoExcluir }: {
 }) {
   const { custos, salvarObra, excluirObra } = useDados();
   const avisar = useAviso();
+  const confirmar = useConfirmar();
   const [nome, setNome] = useState(obra?.nome ?? '');
   const [endereco, setEndereco] = useState(obra?.endereco ?? '');
   const [cliente, setCliente] = useState(obra?.cliente ?? '');
@@ -58,7 +60,7 @@ export function FormObra({ obra, aoFechar, aoSalvar, aoExcluir }: {
     const msg = qtd > 0
       ? `Excluir "${obra.nome}" e os ${qtd} lançamento(s) de custo dela? Não dá para desfazer.`
       : `Excluir "${obra.nome}"?`;
-    if (!window.confirm(msg)) return;
+    if (!(await confirmar({ texto: msg, acao: 'Excluir obra', perigo: true }))) return;
     setSalvando(true);
     try {
       await excluirObra(obra.id);

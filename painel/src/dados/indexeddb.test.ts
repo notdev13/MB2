@@ -9,7 +9,7 @@ const novaObra: NovaObra = {
   inicio: '2026-03-01', previsaoFim: null, status: 'em_andamento', observacoes: '',
 };
 const novoCusto = (obraId: string, valor = 12_345_67): NovoCusto => ({
-  obraId, data: '2026-10-20', categoria: 'Estrutura', descricao: 'Aço CA-50', fornecedor: 'Gerdau; filial',
+  obraId, data: '2026-10-20', categoria: 'Materiais (M)', descricao: 'Aço CA-50', fornecedor: 'Gerdau; filial',
   valor, pagamento: 'boleto', pago: false,
 });
 
@@ -70,7 +70,7 @@ it('CSV usa ; e vírgula decimal e protege texto com ;', () => {
   const csv = custosEmCsv([{ ...novoCusto('o'), id: '1', criadoEm: '', atualizadoEm: '' }], () => 'Casa 01');
   const [cab, linha] = csv.replace('﻿', '').split('\r\n');
   expect(cab.startsWith('Data;Obra;')).toBe(true);
-  expect(linha).toBe('20/10/2026;Casa 01;Estrutura;Aço CA-50;"Gerdau; filial";12345,67;Boleto;Não');
+  expect(linha).toBe('20/10/2026;Casa 01;Materiais (M);Aço CA-50;"Gerdau; filial";12345,67;Boleto;Não');
 });
 
 it('restaurar guarda cópia e dá para desfazer', async () => {
@@ -98,4 +98,11 @@ it('validarBackup recusa status do protótipo, campo faltando e id repetido', ()
   expect(validarBackup({ ...base, obras: [o], custos: [c, c] }).ok).toBe(false);
   expect(validarBackup({ ...base, obras: [o, o], custos: [] }).ok).toBe(false);
   expect(validarBackup({ ...base, geradoEm: 5, obras: [], custos: [] }).ok).toBe(false);
+});
+
+it('substituirTudo com semCopia não guarda cópia', async () => {
+  const repo = criarRepositorioLocal(new IDBFactory());
+  await repo.salvarObra(novaObra);
+  await repo.substituirTudo({ app: 'mb2-painel', versao: 1, geradoEm: '', obras: [], custos: [] }, { semCopia: true });
+  expect(await repo.copiaAnterior()).toBeNull();
 });

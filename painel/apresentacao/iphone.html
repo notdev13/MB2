@@ -1,0 +1,171 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MB² no iPhone 16 Pro Max</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Apresentação: um iPhone 16 Pro Max em titânio preto sobre fundo de estúdio, com o Painel MB² rodando de verdade na tela. */
+:root {
+  --fundo: #0b0b0d; --fundo-2: #16161a; --texto: #e2e3e9; --suave: #9194a1; --cobre: #cc9166;
+  --titanio-1: #3a3a3f; --titanio-2: #1d1d21; --titanio-3: #55555c; --botao: #2a2a2f;
+  --serif: 'Cormorant Garamond', Georgia, serif; --sans: 'Manrope', -apple-system, system-ui, sans-serif;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) {
+  --fundo: #ecebe7; --fundo-2: #f8f7f4; --texto: #1d1e23; --suave: #5d5f69; --cobre: #9b5f33; color-scheme: light; } }
+:root[data-theme="light"] { --fundo: #ecebe7; --fundo-2: #f8f7f4; --texto: #1d1e23; --suave: #5d5f69; --cobre: #9b5f33; color-scheme: light; }
+html, body { height: 100%; }
+body { margin: 0; background: radial-gradient(ellipse at 50% 35%, var(--fundo-2), var(--fundo) 70%); color: var(--texto);
+  font-family: var(--sans); display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding-block: 24px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  box-sizing: border-box; overflow-x: hidden; gap: 18px; }
+.legenda { text-align: center; }
+.legenda .olho { font-size: 12px; letter-spacing: 0.32em; color: var(--suave); font-weight: 600; text-transform: uppercase; }
+.legenda h1 { font-family: var(--serif); font-weight: 600; font-size: clamp(26px, 4vw, 38px); margin: 6px 0 0; letter-spacing: 0.01em; text-wrap: balance; }
+.legenda h1 sup { color: var(--cobre); font-size: 0.5em; }
+.palco { position: relative; width: var(--w); height: var(--h); }
+/* Medidas em pontos do iPhone 16 Pro Max: tela 440 × 956, moldura total ~ 470 × 986. */
+.aparelho { position: absolute; left: 0; top: 0; width: 470px; height: 986px; transform-origin: 0 0; transform: scale(var(--escala)); }
+.corpo { position: absolute; inset: 0; border-radius: 78px;
+  background: linear-gradient(135deg, var(--titanio-3) 0%, var(--titanio-1) 18%, var(--titanio-2) 50%, var(--titanio-1) 82%, var(--titanio-3) 100%);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.06) inset, 0 40px 80px -20px rgba(0,0,0,0.55), 0 18px 30px -12px rgba(0,0,0,0.4); }
+.corpo::after { content: ""; position: absolute; inset: 4px; border-radius: 74px; background: #050506; box-shadow: 0 0 0 1px rgba(255,255,255,0.05); }
+.tela { position: absolute; left: 15px; top: 15px; width: 440px; height: 956px; border-radius: 63px; overflow: hidden; background: #08080a; z-index: 1; }
+.tela iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
+.ilha { position: absolute; left: 50%; top: 11px; width: 126px; height: 37px; margin-left: -63px; border-radius: 20px; background: #000; z-index: 3; }
+.ilha::after { content: ""; position: absolute; right: 22px; top: 12px; width: 13px; height: 13px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #2b3550, #0a0c14 60%); }
+.status { position: absolute; left: 0; right: 0; top: 0; height: 59px; z-index: 2; display: flex; align-items: center; justify-content: space-between;
+  padding: 4px 34px 0 52px; box-sizing: border-box; font: 600 17px/1 -apple-system, 'SF Pro Text', var(--sans); color: var(--status, #fff); pointer-events: none; }
+.status .icones { display: flex; gap: 7px; align-items: center; }
+.home { position: absolute; left: 50%; bottom: 8px; width: 150px; height: 5px; margin-left: -75px; border-radius: 3px; background: var(--status, #fff); opacity: 0.85; z-index: 2; pointer-events: none; }
+.botao-lat { position: absolute; width: 5px; background: linear-gradient(90deg, var(--titanio-3), var(--botao)); border-radius: 3px; }
+.esq { left: -4px; } .dir { right: -4px; background: linear-gradient(270deg, var(--titanio-3), var(--botao)); }
+.nota { font-size: 13px; color: var(--suave); text-align: center; max-width: 46ch; line-height: 1.5; }
+@media (prefers-reduced-motion: no-preference) { .aparelho { animation: chegar 0.6s ease-out both; } @keyframes chegar { from { opacity: 0.4; } } }
+.cheio-btn { margin-top: 14px; font: 600 14px/1 var(--sans); color: var(--texto); background: transparent; border: 1px solid color-mix(in srgb, var(--texto) 28%, transparent);
+  border-radius: 9999px; padding: 11px 20px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+.cheio-btn:hover { border-color: var(--cobre); color: var(--cobre); }
+.cheio-btn:focus-visible, .sair:focus-visible { outline: 2px solid var(--cobre); outline-offset: 3px; }
+.sair { display: none; position: fixed; top: 16px; right: 16px; z-index: 20; font: 600 13px/1 var(--sans); color: var(--texto); background: color-mix(in srgb, var(--fundo) 80%, transparent);
+  border: 1px solid color-mix(in srgb, var(--texto) 25%, transparent); border-radius: 9999px; padding: 10px 16px; cursor: pointer; }
+/* Tela cheia no computador: só o iPhone, no tamanho físico real (163 mm de altura). */
+body.cheia { padding: 0; gap: 0; background: radial-gradient(ellipse at 50% 40%, #1a1a1f, #050506 75%); }
+body.cheia .legenda, body.cheia .nota { display: none; }
+body.cheia .sair { display: block; }
+/* Celular: só o app, sem moldura. */
+body.celular { padding: 0; display: block; background: #08080a; }
+body.celular > *:not(#app-celular) { display: none !important; }
+#app-celular { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
+.medida { position: absolute; visibility: hidden; height: 163mm; width: 1px; }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600&family=Manrope:wght@500;600&display=swap">
+
+<div class="legenda">
+  <div class="olho">Construtora MB²</div>
+  <h1>Painel de obras no iPhone 16 Pro Max</h1>
+  <button class="cheio-btn" id="cheio" type="button">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M1 5V1h4M9 1h4v4M13 9v4H9M5 13H1V9"/></svg>
+    Clique aqui para experiência em tela cheia
+  </button>
+</div>
+<button class="sair" id="sair" type="button">Sair da tela cheia (Esc)</button>
+<div class="medida" id="medida"></div>
+
+<div class="palco" id="palco">
+  <div class="aparelho" id="aparelho">
+    <div class="corpo"></div>
+    <!-- Botões: ação e volume à esquerda; lateral e controle da câmera à direita -->
+    <div class="botao-lat esq" style="top:188px;height:34px"></div>
+    <div class="botao-lat esq" style="top:250px;height:64px"></div>
+    <div class="botao-lat esq" style="top:330px;height:64px"></div>
+    <div class="botao-lat dir" style="top:272px;height:104px"></div>
+    <div class="botao-lat dir" style="top:610px;height:54px;border-radius:2px"></div>
+    <div class="tela">
+      <iframe id="app" title="Painel MB² funcionando"></iframe>
+      <div class="status" id="status">
+        <span>9:41</span>
+        <span class="icones" aria-hidden="true">
+          <svg width="19" height="12" viewBox="0 0 19 12" fill="currentColor"><rect x="0" y="8" width="3.2" height="4" rx="1"/><rect x="5" y="5.5" width="3.2" height="6.5" rx="1"/><rect x="10" y="3" width="3.2" height="9" rx="1"/><rect x="15" y="0" width="3.2" height="12" rx="1"/></svg>
+          <svg width="17" height="12" viewBox="0 0 17 12" fill="currentColor"><path d="M8.5 2.3c2.4 0 4.6.9 6.2 2.5l1.2-1.2A10.4 10.4 0 0 0 8.5.6 10.4 10.4 0 0 0 1.1 3.6l1.2 1.2a8.7 8.7 0 0 1 6.2-2.5zm0 3.4c1.5 0 2.8.6 3.8 1.5l1.2-1.2a7 7 0 0 0-10 0l1.2 1.2c1-.9 2.3-1.5 3.8-1.5zm0 3.4c.6 0 1.1.2 1.5.6L8.5 11.2 7 9.7c.4-.4.9-.6 1.5-.6z"/></svg>
+          <svg width="27" height="13" viewBox="0 0 27 13" fill="none"><rect x=".5" y=".5" width="23" height="12" rx="3.5" stroke="currentColor" opacity=".4"/><rect x="2" y="2" width="20" height="9" rx="2" fill="currentColor"/><path d="M25 4.5v4c.8-.3 1.3-1.1 1.3-2s-.5-1.7-1.3-2z" fill="currentColor" opacity=".45"/></svg>
+        </span>
+      </div>
+      <div class="ilha"></div>
+      <div class="home"></div>
+    </div>
+  </div>
+</div>
+
+<p class="nota">O painel dentro da tela funciona de verdade. Toque em <strong>Obras</strong>, abra uma obra ou use o <strong>+</strong> para lançar um custo. O tema claro fica em Ajustes.</p>
+
+<script id="app-html" type="application/octet-stream">__APP_B64__</script>
+<script>
+(function () {
+  var b64 = document.getElementById('app-html').textContent.trim();
+  var bytes = Uint8Array.from(atob(b64), function (c) { return c.charCodeAt(0); });
+  var html = new TextDecoder().decode(bytes);
+  var iframe = document.getElementById('app');
+
+  // No celular, roda só o app, ocupando a tela toda, sem moldura.
+  var celular = window.matchMedia('(pointer: coarse)').matches && Math.min(screen.width, screen.height) < 600;
+  if (celular) {
+    var solo = document.createElement('iframe');
+    solo.id = 'app-celular';
+    solo.title = 'Painel MB²';
+    solo.srcdoc = html;
+    iframe.remove();
+    document.body.appendChild(solo);
+    document.body.classList.add('celular');
+    return;
+  }
+
+  // Encaixa o aparelho na janela. Em tela cheia, usa o tamanho físico de um iPhone 16 Pro Max (163 mm de altura).
+  var palco = document.getElementById('palco');
+  var alturaReal = document.getElementById('medida').getBoundingClientRect().height || 616;
+  function ajustar() {
+    var escala;
+    if (document.body.classList.contains('cheia')) {
+      escala = Math.min(alturaReal / 986, (window.innerHeight - 32) / 986, (window.innerWidth - 32) / 470);
+    } else {
+      var alturaLivre = window.innerHeight - 320, larguraLivre = Math.min(window.innerWidth - 32, 560);
+      escala = Math.max(0.3, Math.min(alturaLivre / 986, larguraLivre / 470, 1));
+    }
+    palco.style.setProperty('--escala', escala);
+    palco.style.setProperty('--w', 470 * escala + 'px');
+    palco.style.setProperty('--h', 986 * escala + 'px');
+  }
+  ajustar();
+  window.addEventListener('resize', ajustar);
+
+  function entrar() {
+    document.body.classList.add('cheia');
+    ajustar();
+    var el = document.documentElement;
+    try { var p = el.requestFullscreen && el.requestFullscreen(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
+    document.getElementById('sair').focus();
+  }
+  function sair() {
+    document.body.classList.remove('cheia');
+    if (document.fullscreenElement) { try { document.exitFullscreen(); } catch (e) {} }
+    ajustar();
+  }
+  document.getElementById('cheio').addEventListener('click', entrar);
+  document.getElementById('sair').addEventListener('click', sair);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && document.body.classList.contains('cheia')) sair(); });
+  document.addEventListener('fullscreenchange', function () { if (!document.fullscreenElement && document.body.classList.contains('cheia')) sair(); });
+
+  // Dentro do iPhone, o app ganha as margens da ilha e da barra inferior.
+  var ajusteIphone = '<style>.app{padding-top:66px!important}.abas{padding-bottom:30px!important}' +
+    '.folha{padding-bottom:34px!important;max-height:calc(100% - 60px)!important}.toast{bottom:104px!important}</style>';
+  iframe.srcdoc = html.replace('</style>', '</style>' + ajusteIphone);
+
+  // A barra de status acompanha o tema do app (texto branco no escuro, preto no claro).
+  var status = document.getElementById('status').parentNode;
+  setInterval(function () {
+    try {
+      var claro = iframe.contentDocument.documentElement.dataset.tema === 'claro';
+      status.style.setProperty('--status', claro ? '#0b0b0d' : '#ffffff');
+    } catch (e) {}
+  }, 400);
+})();
+</script>

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAviso } from '../componentes/Aviso';
+import { useConfirmar } from '../componentes/Confirmar';
 import { useDados } from '../dados/contexto';
 import { custosEmCsv, validarBackup } from '../dados/backup';
 import { dataBR, hoje } from '../dominio/formato';
@@ -35,6 +36,7 @@ async function entregarArquivo(nome: string, conteudo: string, tipo: string): Pr
 export function Ajustes({ tema, alternarTema }: { tema: Tema; alternarTema: () => void }) {
   const { obras, custos, exportar, restaurar, copiaAnterior, desfazerRestauracao } = useDados();
   const avisar = useAviso();
+  const confirmar = useConfirmar();
   const entrada = useRef<HTMLInputElement>(null);
   const [ultimoBackup, setUltimoBackup] = useState(() => {
     try { return localStorage.getItem('mb2-ultimo-backup'); } catch { return null; }
@@ -72,7 +74,7 @@ export function Ajustes({ tema, alternarTema }: { tema: Tema; alternarTema: () =
     const msg = `Restaurar o backup de ${dataBR(v.backup.geradoEm)} com ${v.backup.obras.length} obra(s) e ` +
       `${v.backup.custos.length} lançamento(s)?\n\nO que está neste aparelho agora (${obras.length} obra(s) e ` +
       `${custos.length} lançamento(s)) será substituído. Dá para desfazer depois, aqui em Ajustes.`;
-    if (!window.confirm(msg)) return;
+    if (!(await confirmar({ texto: msg, acao: 'Restaurar' }))) return;
     try {
       await restaurar(v.backup);
       avisar('Backup restaurado');
@@ -83,8 +85,11 @@ export function Ajustes({ tema, alternarTema }: { tema: Tema; alternarTema: () =
   }
 
   async function desfazer() {
-    if (!copia || !window.confirm(`Voltar aos dados de antes da restauração (${copia.obras} obra(s) e ` +
-      `${copia.custos} lançamento(s))? O que está agora será substituído.`)) return;
+    if (!copia || !(await confirmar({
+      texto: `Voltar aos dados de antes da restauração (${copia.obras} obra(s) e ${copia.custos} lançamento(s))? ` +
+        'O que está agora será substituído.',
+      acao: 'Desfazer restauração',
+    }))) return;
     try {
       await desfazerRestauracao();
       avisar('Restauração desfeita');
@@ -98,15 +103,15 @@ export function Ajustes({ tema, alternarTema }: { tema: Tema; alternarTema: () =
     <>
       <h2 style={{ marginTop: 0 }}>Aparência</h2>
       <label className="alternar">
-        <span>Tema escuro (preto e bronze)</span>
-        <input type="checkbox" checked={tema === 'escuro'} onChange={alternarTema} />
+        <span>Tema claro</span>
+        <input type="checkbox" checked={tema === 'claro'} onChange={alternarTema} />
       </label>
 
       {!instalado() && (
         <>
           <h2>Instalar no iPhone</h2>
           <div className="cartao">
-            <p className="sub" style={{ color: 'var(--text)' }}>
+            <p className="sub" style={{ color: 'var(--bone)' }}>
               Instale o painel como app: abre em tela cheia, funciona sem internet e o iPhone guarda os dados com segurança.
             </p>
             <ol className="passos">
@@ -120,13 +125,13 @@ export function Ajustes({ tema, alternarTema }: { tema: Tema; alternarTema: () =
 
       <h2>Seus dados</h2>
       <div className="cartao">
-        <p className="sub" style={{ color: 'var(--text)', margin: 0 }}>
+        <p className="sub" style={{ color: 'var(--bone)', margin: 0 }}>
           {obras.length} obra(s) e {custos.length} lançamento(s) guardados <strong>neste aparelho</strong>.
           Faça backup com frequência e guarde o arquivo no iCloud Drive ou mande para você mesmo.
         </p>
         <p className="nota">Último backup: {ultimoBackup ? dataBR(ultimoBackup) : 'nunca'}</p>
         <div className="acoes">
-          <button className="botao cheio" onClick={fazerBackup}>Fazer backup agora</button>
+          <button className="botao secundario cheio" onClick={fazerBackup}>Fazer backup agora</button>
           <button className="botao secundario cheio" onClick={planilha} disabled={custos.length === 0}>
             Exportar custos em planilha (Excel)
           </button>
@@ -143,7 +148,7 @@ export function Ajustes({ tema, alternarTema }: { tema: Tema; alternarTema: () =
         </div>
       </div>
 
-      <p className="nota" style={{ textAlign: 'center', marginTop: 28 }}>Painel MB² · versão 0.1</p>
+      <p className="nota" style={{ textAlign: 'center', marginTop: 28 }}>Painel MB² · versão 1.0</p>
     </>
   );
 }

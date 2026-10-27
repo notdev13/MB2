@@ -20,14 +20,14 @@ export function Lancamentos({ custos, nomeObra, aoAbrir, agrupar = true }: {
           {agrupar && (
             <div className="mes"><span>{mesAno(mes)}</span><span>{reais(lista.reduce((t, c) => t + c.valor, 0))}</span></div>
           )}
-          <div className="cartao" style={{ padding: '0 16px', marginTop: agrupar ? 8 : 0 }}>
+          <div className="cartao tabela" style={{ marginTop: agrupar ? 8 : 0 }}>
             {lista.map((c) => (
               <button key={c.id} className="lanc" onClick={() => aoAbrir(c)}>
                 <div>
                   <div className="desc">{c.descricao || c.categoria}</div>
                   <div className="meta">
-                    {[dataBR(c.data), c.descricao ? c.categoria : '', c.fornecedor, nomeObra?.(c.obraId) ?? '']
-                      .filter(Boolean).join(' · ')}
+                    {c.descricao && <><span className="categoria">{c.categoria}</span> · </>}
+                    {[dataBR(c.data), c.fornecedor, nomeObra?.(c.obraId)].filter(Boolean).join(' · ')}
                   </div>
                 </div>
                 <div className="direita">
