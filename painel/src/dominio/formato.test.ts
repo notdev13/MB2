@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dataBR, lerNumero, lerReais, reaisParaCampo } from './formato';
+import { dataBR, lerNumero, lerReais, quando, reaisParaCampo } from './formato';
 
 describe('lerReais', () => {
   it.each([
@@ -35,4 +35,12 @@ it('lerNumero lê área com milhar e vírgula', () => {
   expect(lerNumero('1.200')).toBe(1200);
   expect(lerNumero('85,5')).toBe(85.5);
   expect(lerNumero('1.2.0')).toBeNull();
+});
+
+describe('quando', () => {
+  it('mostra "hoje" ou o dia, com a hora local', () => {
+    const agora = new Date(2026, 9, 28, 15, 0);
+    expect(quando(new Date(2026, 9, 28, 14, 5).toISOString(), agora)).toBe('hoje às 14:05');
+    expect(quando(new Date(2026, 9, 27, 9, 30).toISOString(), agora)).toBe('27/10 às 09:30');
+  });
 });

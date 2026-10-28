@@ -34,6 +34,11 @@ jobs:
           cache-dependency-path: painel/package-lock.json
       - name: Testar e gerar o painel
         working-directory: painel
+        env:
+          # Banco na nuvem (sincronização entre aparelhos). Vazios = painel só no aparelho.
+          # Settings > Secrets and variables > Actions > Variables. Guia: painel/docs/nuvem.md
+          VITE_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          VITE_SUPABASE_CHAVE: ${{ vars.SUPABASE_CHAVE }}
         run: |
           npm ci
           npm run check

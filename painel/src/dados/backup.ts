@@ -7,15 +7,16 @@ const data = (v: unknown) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test
 const dataOuNada = (v: unknown) => v === null || data(v);
 const centavos = (v: unknown) => Number.isSafeInteger(v) && (v as number) >= 0;
 
-function obraValida(o: Record<string, unknown>): boolean {
+export function obraValida(o: Record<string, unknown>): boolean {
   return texto(o.id) && texto(o.nome) && texto(o.endereco) && texto(o.cliente) && texto(o.observacoes) &&
     centavos(o.orcamento) && (o.areaM2 === null || (typeof o.areaM2 === 'number' && o.areaM2 > 0)) &&
     dataOuNada(o.inicio) && dataOuNada(o.previsaoFim) && texto(o.status) && Object.hasOwn(STATUS_OBRA, o.status as string) &&
     texto(o.criadoEm) && texto(o.atualizadoEm);
 }
 
-function custoValido(c: Record<string, unknown>, obras: Set<string>): boolean {
-  return texto(c.id) && texto(c.obraId) && obras.has(c.obraId as string) && data(c.data) &&
+// Sem a lista de obras, não confere se a obra do custo existe (ela pode chegar da nuvem depois).
+export function custoValido(c: Record<string, unknown>, obras?: Set<string>): boolean {
+  return texto(c.id) && texto(c.obraId) && (!obras || obras.has(c.obraId as string)) && data(c.data) &&
     CATEGORIAS.includes(c.categoria as never) && texto(c.descricao) && texto(c.fornecedor) && centavos(c.valor) &&
     texto(c.pagamento) && Object.hasOwn(FORMAS_PAGAMENTO, c.pagamento as string) && typeof c.pago === 'boolean' &&
     texto(c.criadoEm) && texto(c.atualizadoEm);

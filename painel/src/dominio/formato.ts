@@ -63,3 +63,12 @@ export function hoje(): string {
 
 export const porcentagem = (parte: number, total: number) =>
   total > 0 ? Math.round((parte / total) * 100) : 0;
+
+// Momento (ISO) em hora local: "hoje às 14:05" ou "27/10 às 09:30".
+export function quando(iso: string, agora: Date = new Date()): string {
+  const d = new Date(iso);
+  const p = (n: number) => String(n).padStart(2, '0');
+  const hora = `${p(d.getHours())}:${p(d.getMinutes())}`;
+  const mesmoDia = d.getFullYear() === agora.getFullYear() && d.getMonth() === agora.getMonth() && d.getDate() === agora.getDate();
+  return mesmoDia ? `hoje às ${hora}` : `${p(d.getDate())}/${p(d.getMonth() + 1)} às ${hora}`;
+}
