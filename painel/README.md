@@ -23,12 +23,14 @@ Atalhos: `N` lança um custo, `/` busca. Os dados e as regras são os mesmos do 
 celular não muda. Arquitetura e design system em [docs/desktop.md](docs/desktop.md).
 
 ## Onde ficam os dados
-No próprio aparelho (IndexedDB do Safari). Não há servidor nem conta. Por isso:
+No próprio aparelho (IndexedDB do Safari), e funciona sem internet. Com a nuvem ligada
+(Supabase, ver [docs/nuvem.md](docs/nuvem.md)), quem entra em **Ajustes › Sincronizar aparelhos**
+vê os mesmos dados no iPhone e no computador: cada mudança fica numa fila no aparelho e sobe
+quando houver internet; em conflito vale a mudança mais recente. Sem a nuvem ligada, cada
+aparelho guarda só os seus dados, como antes.
 - **Instale na tela de início** (Safari › Compartilhar › Adicionar à Tela de Início). Assim o iOS
   não apaga os dados do painel por falta de uso.
 - **Faça backup** em Ajustes de tempos em tempos e guarde o arquivo no iCloud Drive.
-- Os dados do iPhone não aparecem no computador (e vice-versa). Sincronizar entre aparelhos é o
-  próximo passo: a camada `src/dados/repositorio.ts` foi feita para receber um banco na nuvem.
 
 ## Importar a planilha de despesas
 A planilha `PLANILHA DESPESAS OBRAS MB2.xlsx` (uma aba por obra e a aba RESUMO) vira um arquivo de

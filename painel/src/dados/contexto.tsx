@@ -1,8 +1,22 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Custo, NovaObra, NovoCusto, Obra } from '../dominio/tipos';
 import { validarBackup } from './backup';
-import { criarRepositorioLocal } from './indexeddb';
+import { criarRepositorioLocal, type RepositorioLocal } from './indexeddb';
+import { configDoBuild, criarNuvem, ErroNuvem, type Nuvem } from './nuvem';
 import type { Backup, Repositorio } from './repositorio';
+import { sincronizar } from './sincronizacao';
+
+export interface EstadoNuvem {
+  configurada: boolean; // o painel foi publicado com o endereço do banco na nuvem
+  email: string | null; // quem entrou neste aparelho
+  sincronizando: boolean;
+  ultimaVez: string | null; // ISO da última sincronização completa
+  pendentes: number; // mudanças daqui que ainda não subiram
+  erro: string | null;
+  entrar(email: string, senha: string): Promise<void>;
+  sair(): Promise<void>;
+  sincronizarAgora(): Promise<void>;
+}
 
 interface Dados {
   carregando: boolean;
@@ -17,12 +31,27 @@ interface Dados {
   restaurar(backup: Backup): Promise<void>;
   copiaAnterior(): Promise<Backup | null>;
   desfazerRestauracao(): Promise<void>;
+  nuvem: EstadoNuvem;
 }
 
 const Contexto = createContext<Dados | null>(null);
 
-export function DadosProvider({ children, repo }: { children: ReactNode; repo?: Repositorio }) {
+const CHAVE_ULTIMA = 'mb2-nuvem-ultima';
+const lerUltima = () => { try { return localStorage.getItem(CHAVE_ULTIMA); } catch { return null; } };
+const INTERVALO_MS = 60_000;
+const ESPERA_APOS_MUDANCA_MS = 1500;
+
+export function DadosProvider({ children, repo, nuvem: nuvemDada }: {
+  children: ReactNode;
+  repo?: RepositorioLocal;
+  nuvem?: Nuvem | null;
+}) {
   const repositorio = useMemo(() => repo ?? criarRepositorioLocal(), [repo]);
+  const nuvem = useMemo(() => {
+    if (nuvemDada !== undefined) return nuvemDada;
+    const config = configDoBuild();
+    return config ? criarNuvem(config) : null;
+  }, [nuvemDada]);
   const [obras, setObras] = useState<Obra[]>([]);
   const [custos, setCustos] = useState<Custo[]>([]);
   const [carregando, setCarregando] = useState(true);
@@ -45,6 +74,97 @@ export function DadosProvider({ children, repo }: { children: ReactNode; repo?: 
     semear(repositorio).finally(recarregar);
   }, [repositorio, recarregar]);
 
+  // ---- Nuvem ----
+  const [email, setEmail] = useState(() => nuvem?.email() ?? null);
+  const [sincronizando, setSincronizando] = useState(false);
+  const [ultimaVez, setUltimaVez] = useState(lerUltima);
+  const [pendentes, setPendentes] = useState(0);
+  const [erroNuvem, setErroNuvem] = useState<string | null>(null);
+  const rodando = useRef<Promise<void> | null>(null);
+  const deNovo = useRef(false);
+  const agendado = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const contarPendentes = useCallback(
+    () => repositorio.pendentes().then((p) => setPendentes(p.length), () => {}),
+    [repositorio],
+  );
+
+  const rodar = useCallback(async (): Promise<void> => {
+    if (!nuvem || !nuvem.email()) return contarPendentes();
+    if (rodando.current) { deNovo.current = true; return rodando.current; }
+    const vez = (async () => {
+      setSincronizando(true);
+      try {
+        do {
+          deNovo.current = false;
+          const r = await sincronizar(repositorio, nuvem);
+          if (r.recebidos) await recarregar();
+        } while (deNovo.current);
+        const agora = new Date().toISOString();
+        try { localStorage.setItem(CHAVE_ULTIMA, agora); } catch { /* ignora */ }
+        setUltimaVez(agora);
+        setErroNuvem(null);
+      } catch (e) {
+        setErroNuvem(e instanceof ErroNuvem ? e.message : 'Não foi possível sincronizar: ' + String(e));
+      } finally {
+        setEmail(nuvem.email());
+        setSincronizando(false);
+        rodando.current = null;
+        await contarPendentes();
+      }
+    })();
+    rodando.current = vez;
+    return vez;
+  }, [nuvem, repositorio, recarregar, contarPendentes]);
+
+  // Depois de cada mudança, espera um instante (várias mudanças seguidas sobem juntas).
+  const agendar = useCallback(() => {
+    contarPendentes();
+    if (agendado.current) clearTimeout(agendado.current);
+    agendado.current = setTimeout(() => { agendado.current = null; rodar(); }, ESPERA_APOS_MUDANCA_MS);
+  }, [rodar, contarPendentes]);
+
+  // Sincroniza ao abrir, ao voltar para o app, ao voltar a internet e a cada minuto com o app aberto.
+  useEffect(() => {
+    rodar();
+    const aoVoltar = () => { if (document.visibilityState === 'visible') rodar(); };
+    const relogio = setInterval(aoVoltar, INTERVALO_MS);
+    document.addEventListener('visibilitychange', aoVoltar);
+    window.addEventListener('online', aoVoltar);
+    return () => {
+      clearInterval(relogio);
+      document.removeEventListener('visibilitychange', aoVoltar);
+      window.removeEventListener('online', aoVoltar);
+      if (agendado.current) clearTimeout(agendado.current);
+    };
+  }, [rodar]);
+
+  const estadoNuvem: EstadoNuvem = {
+    configurada: !!nuvem,
+    email,
+    sincronizando,
+    ultimaVez,
+    pendentes,
+    erro: erroNuvem,
+    async entrar(e, senha) {
+      if (!nuvem) return;
+      await nuvem.entrar(e, senha);
+      setEmail(nuvem.email());
+      await rodar();
+    },
+    async sair() {
+      if (!nuvem) return;
+      await nuvem.sair();
+      // Na próxima entrada, tudo o que estiver aqui é conferido com a nuvem de novo.
+      await repositorio.gravarMarca(null);
+      try { localStorage.removeItem(CHAVE_ULTIMA); } catch { /* ignora */ }
+      setEmail(null);
+      setUltimaVez(null);
+      setErroNuvem(null);
+    },
+    sincronizarAgora: rodar,
+  };
+
   const valor: Dados = {
     carregando,
     erro,
@@ -53,31 +173,38 @@ export function DadosProvider({ children, repo }: { children: ReactNode; repo?: 
     async salvarObra(d, id) {
       const r = await repositorio.salvarObra(d, id);
       await recarregar();
+      agendar();
       return r;
     },
     async excluirObra(id) {
       await repositorio.excluirObra(id);
       await recarregar();
+      agendar();
     },
     async salvarCusto(d, id) {
       const r = await repositorio.salvarCusto(d, id);
       await recarregar();
+      agendar();
       return r;
     },
     async excluirCusto(id) {
       await repositorio.excluirCusto(id);
       await recarregar();
+      agendar();
     },
     exportar: () => repositorio.exportar(),
     async restaurar(b) {
       await repositorio.substituirTudo(b);
       await recarregar();
+      agendar();
     },
     copiaAnterior: () => repositorio.copiaAnterior(),
     async desfazerRestauracao() {
       await repositorio.desfazerRestauracao();
       await recarregar();
+      agendar();
     },
+    nuvem: estadoNuvem,
   };
 
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;

@@ -34,7 +34,7 @@ const TITULOS: Record<Exclude<RotaD['tela'], 'obra'>, [string, string]> = {
   visao: ['Visão geral', 'Como estão as obras e o caixa de cada uma.'],
   obras: ['Obras', 'Todas as obras, com orçamento e gasto.'],
   lancamentos: ['Lançamentos', 'Todos os custos lançados, com filtros e busca.'],
-  ajustes: ['Ajustes', 'Tema, backup e dados deste aparelho.'],
+  ajustes: ['Ajustes', 'Tema, sincronização e backup dos dados.'],
 };
 
 export function AppDesktop() {
