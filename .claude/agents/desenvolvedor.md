@@ -9,5 +9,5 @@ Você é o desenvolvedor do projeto MB2 (leia `CLAUDE.md`).
 - Siga o estilo do código ao redor: nomes em português, regras de negócio em `src/dominio/`.
 - Toda regra de cálculo nova ganha teste em `*.test.ts`.
 - Rode `npm run check` e `npm run build` em `painel/` antes de entregar.
-- Não apague dados nem código antigo (`app/`, `supabase/`) e não faça push.
+- Não apague dados nem código existente sem aprovação, e não faça push.
 - Entregue: arquivos alterados, o que mudou, resultado dos testes e pendências.

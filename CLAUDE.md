@@ -11,7 +11,9 @@ os custos de cada obra e acompanha gasto x orçamento.
   Mudança pedida só para uma delas não pode alterar a outra.
 - `painel/apresentacao/iphone.html`: o painel dentro de um iPhone desenhado, para apresentar.
   Regerar (`npm run pagina` + `npm run iphone`) sempre que o painel mudar.
-- `app/` e `supabase/`: versão anterior (Expo + Supabase). Não mexer sem pedido explícito.
+- `painel/supabase/painel.sql`: banco na nuvem da sincronização (ver `painel/docs/nuvem.md`).
+- A versão anterior (Expo + Supabase em `app/` e `supabase/`) foi removida em out/2026; está no
+  histórico do Git.
 
 ## Comandos (dentro de `painel/`)
 - `npm install`, `npm run dev` (abre em http://localhost:5173 e na rede local)
