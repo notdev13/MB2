@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useDados } from '../dados/contexto';
-import { hoje, lerReais, reaisParaCampo } from '../dominio/formato';
+import { dataBR, hoje, lerReais, reais, reaisParaCampo } from '../dominio/formato';
 import { CATEGORIAS, FORMAS_PAGAMENTO, type Categoria, type Custo, type FormaPagamento } from '../dominio/tipos';
+import { interpretarFala, possiveisRepetidos } from '../dominio/voz';
 import { useAviso } from './Aviso';
 import { useConfirmar } from './Confirmar';
+import { Falar } from './Falar';
 import { Folha } from './Folha';
 
 const CHAVE_ULTIMA_OBRA = 'mb2-ultima-obra';
@@ -17,7 +19,7 @@ function ultimaObra(): string {
 }
 
 export function FormCusto({ custo, obraId, aoFechar }: { custo?: Custo; obraId?: string; aoFechar: () => void }) {
-  const { obras, salvarCusto, excluirCusto } = useDados();
+  const { obras, custos, salvarCusto, excluirCusto } = useDados();
   const avisar = useAviso();
   const confirmar = useConfirmar();
   const abertas = obras.filter((o) => o.status !== 'concluida' || o.id === custo?.obraId || o.id === obraId);
@@ -33,10 +35,30 @@ export function FormCusto({ custo, obraId, aoFechar }: { custo?: Custo; obraId?:
   const [pago, setPago] = useState(custo?.pago ?? true);
   const [tentou, setTentou] = useState(false);
   const [salvando, setSalvando] = useState(false);
+  const [entendido, setEntendido] = useState<{ preenchidos: string[]; faltou: string[] } | null>(null);
+
+  // Preenche o formulário com o que foi falado; o que não foi entendido fica como estava.
+  function entender(texto: string) {
+    const r = interpretarFala(texto, { obras: abertas, custos, hoje: hoje() });
+    const preenchidos: string[] = [];
+    if (r.valor !== null) { setValor(reaisParaCampo(r.valor)); preenchidos.push(reais(r.valor)); }
+    if (r.obraId) { setObra(r.obraId); preenchidos.push(abertas.find((o) => o.id === r.obraId)?.nome ?? ''); }
+    if (r.data) { setData(r.data); preenchidos.push(dataBR(r.data)); }
+    if (r.categoria) { setCategoria(r.categoria); preenchidos.push(r.categoria); }
+    if (r.descricao) setDescricao(r.descricao);
+    if (r.fornecedor) setFornecedor(r.fornecedor);
+    if (r.pagamento) { setPagamento(r.pagamento); preenchidos.push(FORMAS_PAGAMENTO[r.pagamento]); }
+    if (r.pago !== null) { setPago(r.pago); preenchidos.push(r.pago ? 'já pago' : 'a pagar'); }
+    setEntendido({
+      preenchidos,
+      faltou: r.faltou.map((f) => (f === 'valor' ? 'o valor' : 'a obra')),
+    });
+  }
 
   const centavos = lerReais(valor);
   const erroValor = centavos === null || centavos <= 0 ? 'Informe um valor maior que zero.' : null;
   const erroObra = obra ? null : 'Escolha a obra.';
+  const repetidos = centavos && obra && data ? possiveisRepetidos(custos, { obraId: obra, valor: centavos, data }, custo?.id) : [];
 
   async function salvar(outro: boolean) {
     setTentou(true);
@@ -51,6 +73,7 @@ export function FormCusto({ custo, obraId, aoFechar }: { custo?: Custo; obraId?:
         setValor('');
         setDescricao('');
         setTentou(false);
+        setEntendido(null);
       } else aoFechar();
     } catch (e) {
       avisar('Não foi possível salvar: ' + String(e));
@@ -85,6 +108,15 @@ export function FormCusto({ custo, obraId, aoFechar }: { custo?: Custo; obraId?:
   return (
     <Folha titulo={custo ? 'Editar lançamento' : 'Lançar custo'} aoFechar={aoFechar}>
       <form onSubmit={(e) => { e.preventDefault(); salvar(false); }} noValidate>
+        {!custo && <Falar aoEntender={entender} />}
+        {entendido && (
+          <div className="entendi" role="status">
+            {entendido.preenchidos.length > 0
+              ? <>Entendi: <strong>{entendido.preenchidos.join(' · ')}</strong>. Confira antes de salvar.</>
+              : 'Não entendi o lançamento. Preencha os campos abaixo.'}
+            {entendido.faltou.length > 0 && entendido.preenchidos.length > 0 && <> Faltou {entendido.faltou.join(' e ')}.</>}
+          </div>
+        )}
         <label className="campo valor">
           <span>Valor (R$)</span>
           <input inputMode="decimal" placeholder="0,00" value={valor} onChange={(e) => setValor(e.target.value)}
@@ -129,6 +161,13 @@ export function FormCusto({ custo, obraId, aoFechar }: { custo?: Custo; obraId?:
           <span>{pago ? 'Já foi pago' : 'Ainda a pagar'}</span>
           <input type="checkbox" checked={pago} onChange={(e) => setPago(e.target.checked)} />
         </label>
+        {repetidos.length > 0 && (
+          <div className="aviso" role="status">
+            Já existe {repetidos.length === 1 ? 'um lançamento' : `${repetidos.length} lançamentos`} de {reais(centavos!)} nesta
+            obra perto dessa data ({repetidos.slice(0, 2).map((c) => `${dataBR(c.data)}${c.descricao ? ', ' + c.descricao : ''}`).join('; ')}).
+            Se for outro pagamento, pode salvar normalmente.
+          </div>
+        )}
         <div className="acoes">
           <button className="botao cheio" type="submit" disabled={salvando}>Salvar</button>
           {!custo && (

@@ -6,6 +6,7 @@ const caminhos = {
   mais: 'M12 5v14M5 12h14',
   voltar: 'M15 18l-6-6 6-6',
   fechar: 'M18 6L6 18M6 6l12 12',
+  microfone: 'M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3',
 } as const;
 
 export type NomeIcone = keyof typeof caminhos;

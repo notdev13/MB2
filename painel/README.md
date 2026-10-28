@@ -22,6 +22,16 @@ com 12 meses de gasto, tabela de obras, ficha da obra com maiores fornecedores, 
 Atalhos: `N` lança um custo, `/` busca. Os dados e as regras são os mesmos do celular; a versão de
 celular não muda. Arquitetura e design system em [docs/desktop.md](docs/desktop.md).
 
+## Lançar falando
+Em **Lançar custo**, toque no microfone e fale, por exemplo: "paguei 5.800 pro Adriano no Lote 39
+dia 24, no pix". O painel preenche valor, obra, data, categoria, descrição, fornecedor e pagamento
+(`src/dominio/voz.ts`, roda no aparelho, sem internet) e a pessoa confere antes de salvar. Também
+dá para escrever a frase ou usar o microfone do teclado do iPhone. Ele aprende com o que já foi
+lançado: nomes da mão de obra viram "MÃO DE OBRA – NOME", descrições e fornecedores já usados são
+reaproveitados. Com os 280 lançamentos da planilha, acertou valor e obra em todos e a categoria em
+97% (teste deixando cada lançamento de fora). Se já existir um lançamento com o mesmo valor na
+mesma obra até 7 dias antes ou depois, o formulário avisa (mas deixa salvar).
+
 ## Onde ficam os dados
 No próprio aparelho (IndexedDB do Safari), e funciona sem internet. Com a nuvem ligada
 (Supabase, ver [docs/nuvem.md](docs/nuvem.md)), quem entra em **Ajustes › Sincronizar aparelhos**
