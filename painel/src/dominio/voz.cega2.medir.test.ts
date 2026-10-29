@@ -4,6 +4,7 @@ import { VALIDACAO1 } from './voz.validacao1';
 import { VALIDACAO2 } from './voz.validacao2';
 import { VALIDACAO3 } from './voz.validacao3';
 import { VALIDACAO4 } from './voz.validacao4';
+import { VALIDACAO5 } from './voz.validacao5';
 
 // Conjunto "cega2": 1.020 frases escritas por um revisor independente (sintéticas). Entra como conjunto fixo de treino.
 // Desacordos conhecidos e aceitos (o revisor espera outra coisa; anotados no relatório):
@@ -63,6 +64,16 @@ describe('validação 3 (agora treino)', () => {
 // 16 valores errados em 155 (cobrança ao cliente, "até agora", "é de", "2,5" sem mil); depois virou treino.
 describe('validação 4 (agora treino)', () => {
   const m = medirLinhas(VALIDACAO4);
+  it('nenhum valor errado, nenhuma regressão de campos', () => {
+    expect(m.errados).toEqual([]);
+    expect(m.secundarios).toEqual([]);
+  });
+});
+
+// Validação 5 (rodada 63): "um dia de obra no WhatsApp" (gastos do mestre, pedidos de dinheiro, salário, horário, oferta).
+// Medida ANTES dos ajustes: 17 valores errados em 168; depois virou treino.
+describe('validação 5 (agora treino)', () => {
+  const m = medirLinhas(VALIDACAO5);
   it('nenhum valor errado, nenhuma regressão de campos', () => {
     expect(m.errados).toEqual([]);
     expect(m.secundarios).toEqual([]);

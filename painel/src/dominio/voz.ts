@@ -246,8 +246,6 @@ const CALCULO = new Set(['cada', 'metade', 'dobro', 'triplo', 'terco', 'abatimen
   'recebi', 'recebemos', 'talvez', 'provavelmente', 'possivelmente', 'chutando', 'chutei', 'chute', 'aparentemente',
   'precisar', 'precisarei', 'comprarei', 'compraremos', 'pagaram', 'depositaram', 'transferiram', 'recebimento', 'repasse',
   'venda', 'vendas', 'vendi', 'vendemos', 'lucro', 'faturamento', 'orcar', 'contratar', 'quanto', 'quantos', 'qual', 'quais']);
-// "recebi" é entrada de dinheiro, a não ser que a fala diga que foi gasto ("recebi o cimento, paguei 360").
-const GASTO_NA_FALA = /^(paguei|pagamos|gastei|gastamos|comprei|compramos|nota|boleto|fatura|cupom|recibo)$/;
 // "meio fio", "meia cana", "meia parede", "meio tijolo": nome de peça, não metade de nada.
 const PECA_COM_MEIO = /^(fio|cana|parede|tijolo|agua|bloco|esquadria)$/;
 // Palavras de quem fala de saldo, verba, previsão, tabela, aporte ou conferência: o número é outra coisa, não um gasto.
@@ -287,6 +285,13 @@ const FRASES_SEM_VALOR = new RegExp(' (' + [
   'vou (conferir|confirmar|ver|checar|pensar)', 'a (conferir|confirmar|combinar|definir)', 'se (der|puder|conseguir|fechar|rolar|precisar|tiver|a gente)',
   'pode (ser|custar|ficar|sair)', 'vai (custar|sair|ficar)', 'deve (custar|ficar|sair)', 'custe',
   ENTRE_VERBOS + ' ((o|a) )?(valor|preco|total)', ENTRE_VERBOS + '( [a-z]+){1,3} (para|pra) ' + COMECO_DE_NUMERO,
+  // pedido de dinheiro, oferta, salário e valor que falta: nada disso é um pagamento já feito
+  '(me |nos )?(manda|mande|envia|envie|passa|passe|deposita|deposite|transfere|transfira|adianta|adiante|empresta|empreste|libera|libere) (me |nos |uns |de |mais )?' + COMECO_DE_NUMERO,
+  '(pode|podia|poderia|consegue|conseguia) (me |nos )?(adiantar|mandar|enviar|depositar|transferir|emprestar|passar|liberar)',
+  '(ganha|ganham|ganhava|recebe|recebem|cobra|cobram) (de |uns |por )?' + COMECO_DE_NUMERO, '(passa|passou|chega|chegou|ultrapassa|ultrapassou) (de|a) ' + COMECO_DE_NUMERO,
+  '(falta|faltam|faltou|faltaram) (mais |uns )?' + COMECO_DE_NUMERO, '(desconto|abatimento|estorno|devolucao|reembolso|troco|diferenca) (foi|era|seria|sera|ficou|deu) (de |em )?' + COMECO_DE_NUMERO,
+  'financiamento (aprovado|liberado)', '(oferta|lance) de ' + COMECO_DE_NUMERO, 'proposta de compra ' + COMECO_DE_NUMERO, '(pedindo|ofereci|ofereceu|oferecendo|ofereco|pedido de) (de |uns |por )?' + COMECO_DE_NUMERO,
+  'fechamos (a|o) (semana|mes|dia|caixa|obra)', 'cliente (adiantou|adiantaram|bancou|liberou|devolveu|sinalizou)',
   // faturamento e cobrança ao cliente são receita: "fatura para o cliente", "cobrei 12 mil do cliente", "a medição do mês fechou em 56 mil"
   'pagamento (do|da|de) cliente', '(fatura|faturei|faturamos|nota|emiti|emitimos|cobrei|cobramos) (para|pra|pro|ao|do|de|de|a)? ?(o |a )?cliente', 'cobrei', 'cobramos', 'emiti', 'emitimos', 'faturei', 'faturamos',
   'cliente (deve|deve a gente|esta devendo|ficou devendo)', 'a receber', 'medicao (do|da|de)', 'ja (foram|somam|somou|passou de|chegou a)',
@@ -311,7 +316,7 @@ const MEDIDA_TECNICA = new Set(['km', 'gb', 'mb', 'tb', 'mega', 'gbps', 'mbps', 
 // "paguei dez de frete": depois de verbo de gasto, até número falado pequeno é dinheiro.
 // Verbos e palavras que mostram gasto ou situação de pagamento. Frase LONGA sem nenhuma delas (e sem R$/reais, forma de pagamento
 // ou item de obra) é comentário, não lançamento: "a laje tem 48 m2 e o prazo de entrega é 22 depois do feriado".
-const VERBO_DE_LANCAMENTO = /^(paguei|pagou|pagamos|pago|paga|pagos|pagas|pagaram|pagar|gastei|gastou|gastamos|gasto|gastaram|comprei|compramos|compra|comprou|custou|custa|saiu|ficou|deu|foi|foram|fechei|fechou|fechamos|liquidei|quitei|quitamos|acertei|acertamos|repassei|mandei|transferi|depositei|enviei|dei|passei|investi|desembolsei|custeei|bancou|arcamos|lanca|lancar|lance|lancei|anota|anotar|registra|registrar|adiciona|inclui|coloca|bota|poe|marca|salva|devo|devendo|vence|venc|vencimento|pendente|pendurado|fiado|aberto|atrasado|vencido|vencida|total|totalizou|somou|importou|aluguel|alugamos|aluguei|recebeu|levou|pegou|cobrou|peguei|gastos|comprados|pagamento)$/;
+const VERBO_DE_LANCAMENTO = /^(paguei|pagou|pagamos|pago|paga|pagos|pagas|pagaram|pagar|gastei|gastou|gastamos|gasto|gastaram|comprei|compramos|compra|comprou|custou|custa|saiu|ficou|deu|foi|foram|fechei|fechou|fechamos|liquidei|quitei|quitamos|acertei|acertamos|repassei|mandei|transferi|depositei|enviei|dei|passei|investi|desembolsei|custeei|bancou|arcamos|lanca|lancar|lance|lancei|anota|anotar|registra|registrar|adiciona|inclui|coloca|bota|poe|marca|salva|devo|devendo|vence|venc|vencimento|pendente|pendurado|fiado|aberto|atrasado|vencido|vencida|total|totalizou|somou|importou|aluguel|alugamos|aluguei|recebeu|levou|pegou|cobrou|peguei|gastos|comprados|pagamento|troquei|trocamos|abasteci|abastecemos|consertei|arrumei|reparei|instalei|montei|contratei|locamos|encomendei|bancamos|tirei|soltei|mandou|deixei|entreguei|levei|trouxe|trouxeram|fiz|fizemos)$/;
 const VERBO_GASTO = /^(paguei|gastei|gastamos|pagamos|custou|saiu|dei|mandei|passei|comprei|foi|deu)$/;
 
 const PERTO_DE_OUTRO_VALOR = /^(de|pro|pra|para|na|no|ou|ate)$/;
@@ -655,10 +660,10 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
     if (serieA !== null && serieB !== null && ps[i + 1] === 'de' && serieA <= serieB && serieB <= 30 && !MOEDA.has(ps[i + 3] ?? '') && ps[i + 3] !== 'r$') { ruido.add(i); ruido.add(i + 2); }
     if (p === 'x') for (const k of [i - 1, i + 1]) if (começaNumero(ps[k])) ruido.add(k); // "38 x 20 = 760"
     // Período de dias: "dias 5 e 6", "semana de 5 a 9", "de 5 a 7 pedreiro": os dois números são dias, não dinheiro.
-    const periodo = (k: number) => /^\d{1,2}$/.test(ps[k] ?? '') && /^(e|a)$/.test(ps[k + 1] ?? '') && /^\d{1,2}$/.test(ps[k + 2] ?? '') &&
+    const periodo = (k: number) => /^\d{1,2}$/.test(ps[k] ?? '') && /^(e|a|as)$/.test(ps[k + 1] ?? '') && /^\d{1,2}$/.test(ps[k + 2] ?? '') &&
       Number(ps[k]) < Number(ps[k + 2]) && Number(ps[k + 2]) <= 31 && !MOEDA.has(ps[k + 3] ?? '') && !UNIDADES.has(ps[k + 3] ?? '') && ps[k + 3] !== 'r$' && !ehMilhar(ps[k + 3]);
-    if (/^(dias|semana|quinzena|periodo|de)$/.test(p)) {
-      const k = i + (p !== 'de' && p !== 'dias' && ps[i + 1] === 'de' ? 2 : 1); // "semana de 5 a 9": o número vem depois do "de"
+    if (/^(dias|semana|quinzena|periodo|de|das)$/.test(p)) {
+      const k = i + (p !== 'de' && p !== 'das' && p !== 'dias' && ps[i + 1] === 'de' ? 2 : 1); // "semana de 5 a 9": o número vem depois do "de"
       if (periodo(k)) { ruido.add(k); ruido.add(k + 2); }
     }
     const a = numeroEscrito(p);
@@ -733,7 +738,7 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
     if (/^(metros?|m|m2|m3|m²|m³|kg|quilos?|litros?|toneladas?)$/.test(depois)) return 'ruido'; // "25 kg", "6 metros": medida, não quantidade a conferir
     const rotuloDeLugar = SPEC_PREFIX.has(depois) && inteiro(ps[g.fim + 1]) !== null && (g.valor ?? 0) > 99; // "1200 andar 8", "480 cômodo 2": o 8 e o 2 são o lugar
     // "4 1/2" (disco de 4 1/2), "caixa com 100": o número descreve o material, não é valor nem quantidade
-    if (/^\d\/\d$/.test(depois) || (prev === 'com' && UNIDADES.has(ps[g.inicio - 2] ?? ''))) return 'ruido';
+    if (/^\d\/\d$/.test(depois) || (prev === 'com' && UNIDADES.has(ps[g.inicio - 2] ?? '') && depois !== 'de')) return 'ruido';
     // "1 pedreiro 450", "1 diária 180": o 1 é a quantidade
     if (ps[g.inicio] === '1' && g.fim === g.inicio + 1 && depois !== '' && !começaNumero(depois) && !PERTO_DE_OUTRO_VALOR.test(depois) && !/^(real|reais|por|vez|conto|r\$)$/.test(depois)) return 'ruido';
     // Quantidade de peças, sacos, unidades, lugar ou documento: sai do caminho, mas guarda o tamanho para conferir depois
@@ -987,7 +992,8 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
       / pagou( [a-z0-9$.,]+){1,4} (o|a|pelo|pela) cliente /.test(junto) || // "pagou 450 de areia o cliente": o cliente pagou, é receita
       ps.some((p, i) => (CALCULO.has(p) && !(p === 'cada' && (cadaConsumido || /^(total|tot|igual)$/.test(ps[e.inicio - 1] ?? ''))) &&
         !(p === 'troco' && ps[i + 1] === 'de' && !começaNumero(ps[i + 2]) && ps[i + 2] !== 'r$') && // "troco de fechadura" é serviço; "troco de 50" é conta
-        !(/^(recebi|recebemos)$/.test(p) && ps.some((q) => GASTO_NA_FALA.test(q)) && !ps.slice(i + 1, i + 3).some((q) => começaNumero(q) || q === 'r$'))) || RAIZ_CALCULO.test(p))) anula(); // "recebi o cimento, paguei 360"
+        !(/^(recebi|recebemos)$/.test(p) && !ps.slice(i + 1, i + 3).some((q) => começaNumero(q) || q === 'r$') &&
+          !/ (cliente|banco|caixa|parcela|sinal|adiantamento|financiamento|medicao|pagamento|venda|repasse|estorno|reembolso|devolucao) /.test(junto))) || RAIZ_CALCULO.test(p))) anula(); // "recebi o cimento, paguei 360"
     // "meio dia de servente 150", "meia hora": metade de alguma coisa que não é "dois e meio"/"meio milhão";
     // "meio fio", "meia cana", "meia parede" são nomes de peça.
     const lidos = numerosDe(ps);
