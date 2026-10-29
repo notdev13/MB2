@@ -28,6 +28,8 @@ const simplificar = (s: string) => semAcento(s.toLowerCase()).replace(/[^a-z0-9]
 // Palavras na forma original (acento e maiúsculas); palavras() devolve as mesmas, na mesma ordem.
 function palavrasOriginais(texto: string): string[] {
   return texto
+    .replace(/\brs\s*(?=\d)/gi, 'R$ ') // "rs 500"
+    .replace(/(\d)\s*rs\b/gi, '$1 reais') // "500rs"
     .replace(/\s*r\$\s*/gi, ' R$ ')
     .replace(/[.;!?…]+(?=\s|$)/g, ' | ') // fim de frase: "doze mil. cem" são duas coisas
     .replace(/(\d)[ºª°]/g, '$1') // "dia 1º"
@@ -78,23 +80,32 @@ const numeroK = (p: string) => { const m = p.match(/^(\d[\d.,]*)k$/); const n = 
 const começaNumero = (p: string | undefined) =>
   p !== undefined && (numeroEscrito(p) !== null || numeroK(p) !== null || palavraNum(p) !== undefined || ehMilhar(p));
 
-// Um grupo de 1 a 999 por extenso ("cento e vinte e cinco"), a partir de i.
-function lerGrupo(ps: string[], i: number): { valor: number; fim: number } | null {
+// Um grupo de 1 a 999 por extenso ("cento e vinte e cinco"), a partir de i. Com `digitos`, aceita também o
+// número em dígitos que o ditado mistura ("quinhentos e 20", "dois mil e 500").
+function lerGrupo(ps: string[], i: number, digitos = false): { valor: number; fim: number } | null {
+  const soDigitos = (p: string | undefined, max: number) => (p !== undefined && new RegExp(`^\\d{1,${max}}$`).test(p) ? Number(p) : undefined);
+  const primeiro = digitos ? soDigitos(ps[i], 3) : undefined;
+  if (primeiro) return { valor: primeiro, fim: i + 1 };
+  // Dígito depois de "e" também vale, menos quando é quantidade ("300 e 20 sacos").
+  const depoisDeE = (k: number) => {
+    const d = digitos ? soDigitos(ps[k], 2) : undefined;
+    return d !== undefined && !UNIDADES.has(ps[k + 1] ?? '') ? d : palavraNum(ps[k]);
+  };
   let j = i;
   let v = 0;
   const n0 = palavraNum(ps[j]);
   if (!n0) return null;
   if (n0 >= 100) {
     v = n0; j++;
-    const e = ps[j] === 'e' ? palavraNum(ps[j + 1]) : undefined;
+    const e = ps[j] === 'e' ? depoisDeE(j + 1) : undefined;
     if (!e || e >= 100) return { valor: v, fim: j };
     j++; // o "e" de "cento e vinte"
   }
-  const n = palavraNum(ps[j]);
+  const n = n0 >= 100 ? depoisDeE(j) : palavraNum(ps[j]);
   if (!n || n >= 100) return v ? { valor: v, fim: j } : null;
   v += n; j++;
   if (n >= 20 && ps[j] === 'e') {
-    const u = palavraNum(ps[j + 1]);
+    const u = depoisDeE(j + 1);
     if (u && u <= 9) { v += u; j += 2; }
   }
   return { valor: v, fim: j };
@@ -114,7 +125,8 @@ function lerNumero(ps: string[], i: number): Numero | null {
   // "1.2" pode ser R$ 1,20 ou 1.200: só vale com "mil"/"milhão" depois
   if (escrito !== null && /^\d+\.\d$/.test(ps[j]) && !/^0\./.test(ps[j]) && !ehMilhar(ps[j + 1]) && !ehMilhao(ps[j + 1])) return null;
   const emK = numeroK(ps[j]);
-  if (escrito !== null || emK !== null) {
+  const simples = /^\d{1,3}$/.test(ps[j] ?? '') && (ehMilhar(ps[j + 1]) || ehMilhao(ps[j + 1])); // "2 mil e quinhentos"
+  if ((escrito !== null || emK !== null) && !simples) {
     total = escrito ?? (emK as number) * 1000; j++;
     const mult = emK !== null ? 1000 : ehMilhar(ps[j]) ? 1000 : ehMilhao(ps[j]) ? 1_000_000 : 0;
     if (emK !== null) escala = 1000;
@@ -129,16 +141,16 @@ function lerNumero(ps: string[], i: number): Numero | null {
     let algo = false;
     for (const [teste, mult] of [[ehMilhao, 1_000_000], [ehMilhar, 1000]] as const) {
       const s = algo && ps[j] === 'e' ? j + 1 : j;
-      const g = lerGrupo(ps, s);
+      const g = lerGrupo(ps, s, true);
       const k = g ? g.fim : s;
       if (!teste(ps[k]) || (!g && mult === 1_000_000)) continue;
       total += (g?.valor ?? 1) * mult; j = k + 1; escala = mult; algo = true;
     }
     if (algo) {
-      const g = lerGrupo(ps, ps[j] === 'e' ? j + 1 : j);
-      if (g) { total += g.valor; j = g.fim; escala = 0; }
+      const g = lerGrupo(ps, ps[j] === 'e' ? j + 1 : j, true);
+      if (g && !UNIDADES.has(ps[g.fim] ?? '')) { total += g.valor; j = g.fim; escala = 0; }
     } else {
-      const g = lerGrupo(ps, j);
+      const g = lerGrupo(ps, j, true);
       if (!g) return null;
       total = g.valor; j = g.fim;
     }
