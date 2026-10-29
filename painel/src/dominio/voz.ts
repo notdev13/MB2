@@ -188,6 +188,8 @@ const CALCULO = new Set(['cada', 'metade', 'dobro', 'triplo', 'terco', 'desconto
   'deletar', 'corrige', 'corrigir', 'altera', 'alterar', 'muda', 'mudar']); // recebido = receita, não custo
 const ESTRANGEIRA = new Set(['dolar', 'dolares', 'euro', 'euros', 'libra', 'libras']);
 const SIMBOLO_ESTRANGEIRO = new Set(['us$', 'usd', 'u$s', 'eur', 'dolar', 'dolares', 'euro', 'euros']);
+// Flexões dos mesmos verbos ('estornaram', 'devolveu', 'cancelei'...)
+const RAIZ_CALCULO = /^(estorn|reembols|devolv|cancel|apag|exclu|desfa|delet|corrig|aument|reajust)/;
 const PISTAS = new Set(['por', 'total', 'valor', 'custou', 'ficou']);
 
 // ---- datas ----
@@ -554,7 +556,7 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
         }
       }
       // "uns 500", "mais ou menos 500": estimativa, não é o valor do lançamento
-      if (/ (uns|umas|cerca|cerca de|aproximadamente|quase|mais ou menos|perto de|em torno de|tipo|mais de|menos de|acima de|abaixo de|ate|no maximo|no minimo|a partir de|por volta de|na faixa de|em media|media de)$/.test(' ' + ps.slice(Math.max(0, g.inicio - 3), g.inicio).join(' '))) centavos = null;
+      if (/ (uns|umas|cerca|cerca de|aproximadamente|quase|mais ou menos|perto de|em torno de|tipo|mais de|menos de|na casa dos|na casa de|casa dos|acima de|abaixo de|ate|no maximo|no minimo|a partir de|por volta de|na faixa de|em media|media de)$/.test(' ' + ps.slice(Math.max(0, g.inicio - 3), g.inicio).join(' '))) centavos = null;
       // "mil e pouco", "mil e tantos"
       if (ps[g.fim] === 'e' && /^(pouco|poucos|picos|tanto|tantos|alguma)$/.test(ps[g.fim + 1] ?? '')) centavos = null;
       // "3 vezes de 400", "10 parcelas de 300": não dá para saber se o lançamento é a parcela ou o total
@@ -582,7 +584,7 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
   let escolhido = unicos.length === 1 ? unicos[0] : comMoeda.length === 1 ? comMoeda[0] : comPista.length === 1 ? comPista[0] : null;
   // "200 reais de areia e 100 de brita", "entrada de 1.200 e 3 parcelas de 500": dois valores, na dúvida não escolhe.
   const outroValor = (g: { inicio: number; fim: number; moeda: boolean }) =>
-    !g.moeda && (/^(de|pro|pra|para|na|no|ou|ate)$/.test(ps[g.fim] ?? '') || ps[g.inicio - 1] === 'ou' || ps[g.inicio - 1] === 'ate' ||
+    !g.moeda && (/^(de|pro|pra|para|na|no|ou|ate)$/.test(ps[g.fim] ?? '') || /^(comprei|compramos|pedi|levei|trouxe|entregaram)$/.test(ps[g.inicio - 1] ?? '') || ps[g.inicio - 1] === 'ou' || ps[g.inicio - 1] === 'ate' ||
       (ps[g.fim] === 'a' && começaNumero(ps[g.fim + 1])) || (ps[g.inicio - 1] === 'a' && unicos.some((o) => o.fim === g.inicio - 1)) || (/^(parcelas?|vezes|x)$/.test(ps[g.inicio - 2] ?? '') && ps[g.inicio - 1] === 'de') ||
       (ps[g.inicio - 1] === 'r$' && ps[g.inicio - 2] === 'de' && /^(parcelas|vezes|x)$/.test(ps[g.inicio - 3] ?? '')));
   if (escolhido && unicos.some((g) => g !== escolhido && outroValor(g))) escolhido = { ...escolhido, centavos: null };
@@ -592,7 +594,7 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
   // "3 dias de servente 150": sem "reais" nem "por", o 150 pode ser a diária, não o total.
   const tempoSolto = numerosDe(ps).some((n) => TEMPO.has(ps[n.fim] ?? '') && !usadas.has(n.inicio) && !(n.valor === 1 && ps[n.fim] === 'diaria'));
   if (escolhido && tempoSolto && !escolhido.moeda && !PISTAS.has(ps[escolhido.inicio - 1] ?? '')) escolhido = { ...escolhido, centavos: null };
-  if (escolhido && ps.some((p) => CALCULO.has(p))) escolhido = { ...escolhido, centavos: null };
+  if (escolhido && ps.some((p) => CALCULO.has(p) || RAIZ_CALCULO.test(p))) escolhido = { ...escolhido, centavos: null };
   // "meio dia de servente 150", "meia hora": metade de alguma coisa que não é "dois e meio"/"meio milhão"
   const lidos = numerosDe(ps);
   if (escolhido && ps.some((p, i) => ehMeio(p) && !lidos.some((n) => i >= n.inicio && i < n.fim))) escolhido = { ...escolhido, centavos: null };

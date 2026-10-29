@@ -589,6 +589,48 @@ export const CASOS_ROD16: Caso[] = [
   { tipo: 'pagamento', frase: 'paguei 300 de areia no crédito parcelado', esperado: { valor: 300_00, pagamento: 'cartao', pago: null } },
 ];
 
+// Rodada 17: mais variações (mesmas classes de erro, outras palavras).
+export const CASOS_ROD17: Caso[] = [
+  { tipo: 'dois-valores', frase: 'paguei a Cassol 800 e a madeireira 650', esperado: { valor: null } },
+  { tipo: 'dois-valores', frase: 'cimento: 800; areia: 650; brita: 300', esperado: { valor: null } },
+  { tipo: 'dois-valores', frase: 'R$ 800 de cimento mais R$ 650 de areia', esperado: { valor: null } },
+  { tipo: 'dois-valores', frase: 'R$ 800 de cimento e R$ 650 de areia', esperado: { valor: null } },
+  { tipo: 'dois-valores', frase: 'oitocentos reais de cimento, seiscentos e cinquenta de areia', esperado: { valor: null } },
+  { tipo: 'dois-valores', frase: 'foi 800 no cimento e 650 na areia', esperado: { valor: null } },
+  { tipo: 'dois-valores', frase: 'dois lançamentos: 800 de cimento e 650 de areia', esperado: { valor: null } },
+  { tipo: 'dois-valores', frase: 'paguei 800 reais de cimento ontem e 650 reais de areia hoje', esperado: { valor: null } },
+  { tipo: 'unitario', frase: 'a diária do pedreiro é 250 reais', esperado: { valor: 250_00, categoria: MO } },
+  { tipo: 'unitario', frase: 'pedreiro 250 reais cada dia', esperado: { valor: null } },
+  { tipo: 'unitario', frase: 'o saco de cimento custou 38 reais, comprei 40', esperado: { valor: null } },
+  { tipo: 'unitario', frase: 'a 38 reais cada, 40 sacos de cimento', esperado: { valor: null } },
+  { tipo: 'unitario', frase: 'trinta e oito reais a unidade', esperado: { valor: null } },
+  { tipo: 'estimativa', frase: 'em torno de 900 reais de piso', esperado: { valor: null } },
+  { tipo: 'estimativa', frase: 'na casa dos 900 reais de piso', esperado: { valor: null } },
+  { tipo: 'estimativa', frase: 'acima de 900 reais de piso', esperado: { valor: null } },
+  { tipo: 'estimativa', frase: 'menos de 900 reais de piso', esperado: { valor: null } },
+  { tipo: 'estimativa', frase: 'até 900 reais de piso', esperado: { valor: null } },
+  { tipo: 'nao-custo', frase: 'cliente pagou 5 mil de entrada', esperado: { valor: 5000_00 } },
+  { tipo: 'nao-custo', frase: 'recebi o sinal de 5 mil', esperado: { valor: null } },
+  { tipo: 'nao-custo', frase: 'estornaram 300 reais', esperado: { valor: null } },
+  { tipo: 'nao-custo', frase: 'cotei o piso em 4.500', esperado: { valor: null } },
+  { tipo: 'nao-custo', frase: 'orçamento do piso 4.500 reais', esperado: { valor: 4500_00 } },
+  { tipo: 'formato', frase: '4.500,000 de piso', esperado: { valor: null } },
+  { tipo: 'formato', frase: '4,5.00 de piso', esperado: { valor: null } },
+  { tipo: 'formato', frase: '45000000000 de piso', esperado: { valor: null } },
+  { tipo: 'formato', frase: 'R$ 4 500 de piso', esperado: { valor: null } },
+  { tipo: 'formato', frase: '4500 R$ de piso', esperado: { valor: 4500_00 } },
+  { tipo: 'formato', frase: '4.500 reais e 50', esperado: { valor: null } },
+  { tipo: 'comando', frase: 'exclui o último de 4.500', esperado: { valor: null } },
+  { tipo: 'comando', frase: 'desfaz o lançamento de piso de 4.500 reais', esperado: { valor: null } },
+  { tipo: 'quantidade', frase: '40 sacos de cimento', esperado: { valor: null } },
+  { tipo: 'quantidade', frase: 'quarenta sacas de cimento', esperado: { valor: null } },
+  { tipo: 'quantidade', frase: '12 caixas de piso', esperado: { valor: null } },
+  { tipo: 'quantidade', frase: '12 caixas de piso por 4.500', esperado: { valor: 4500_00 } },
+  { tipo: 'quantidade', frase: 'dez pessoas no almoço 350 reais', esperado: { valor: 350_00 } },
+  { tipo: 'quantidade', frase: 'dois caminhões de areia 900', esperado: { valor: 900_00 } },
+  { tipo: 'quantidade', frase: 'dois caminhões de areia', esperado: { valor: null } },
+];
+
 // ---- gerador de frases ----
 
 function aleatorio(semente: number) {
