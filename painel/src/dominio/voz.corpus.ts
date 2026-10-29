@@ -609,7 +609,7 @@ export const CASOS_ROD17: Caso[] = [
   { tipo: 'estimativa', frase: 'acima de 900 reais de piso', esperado: { valor: null } },
   { tipo: 'estimativa', frase: 'menos de 900 reais de piso', esperado: { valor: null } },
   { tipo: 'estimativa', frase: 'até 900 reais de piso', esperado: { valor: null } },
-  { tipo: 'nao-custo', frase: 'cliente pagou 5 mil de entrada', esperado: { valor: 5000_00 } },
+  { tipo: 'nao-custo', frase: 'cliente pagou 5 mil de entrada', esperado: { valor: null } },
   { tipo: 'nao-custo', frase: 'recebi o sinal de 5 mil', esperado: { valor: null } },
   { tipo: 'nao-custo', frase: 'estornaram 300 reais', esperado: { valor: null } },
   { tipo: 'nao-custo', frase: 'cotei o piso em 4.500', esperado: { valor: null } },
@@ -648,7 +648,42 @@ export function gerarDuplos(semente: number, quantidade: number): Caso[] {
     const ligacao = esc([' e ', ', ', ' mais ', ' e depois ', ' e também ', ' além disso ', '. ', '; ']);
     const parte = (v: number) => esc([`${forma(v)} de ${item()}`, `${item()} ${forma(v)}`, `${forma(v)} pro ${esc(['Ulisses', 'Adriano'])}`]);
     const verbo = esc(['', 'paguei ', 'comprei ', 'foi ']);
-    casos.push({ frase: verbo + parte(a) + ligacao + parte(b), esperado: { valor: null }, tipo: 'duplo' });
+    const [pa, pb] = [parte(a), parte(b)];
+    // "mil e duzentos" + " e " + "quarenta reais" vira "mil e duzentos e quarenta reais": ninguém separa, nem uma pessoa
+    const NUM = /(^|\s)(\d[\d.,]*|um|uma|dois|duas|tres|três|quatro|cinco|seis|sete|oito|nove|dez|onze|doze|treze|quatorze|quinze|dezesseis|dezessete|dezoito|dezenove|vinte|trinta|quarenta|cinquenta|sessenta|setenta|oitenta|noventa|cem|cento|duzentos|trezentos|quatrocentos|quinhentos|seiscentos|setecentos|oitocentos|novecentos|mil|e)$/;
+    const comecaNum = /^(\d|um |uma |dois |duas |tr[eê]s |quatro |cinco |seis |sete |oito |nove |dez |onze |doze |treze |quatorze |quinze |dezesseis |dezessete |dezoito |dezenove |vinte |trinta |quarenta |cinquenta |sessenta |setenta |oitenta |noventa |cem |cento |duzentos |trezentos |quatrocentos |quinhentos |seiscentos |setecentos |oitocentos |novecentos |mil )/;
+    if ((ligacao === ' e ' || ligacao === ', ') && NUM.test(pa) && comecaNum.test(pb)) continue;
+    casos.push({ frase: verbo + pa + ligacao + pb, esperado: { valor: null }, tipo: 'duplo' });
+  }
+  return casos;
+}
+
+// Famílias: frases em que o valor falado NÃO é o do lançamento (preço por unidade, estimativa, receita,
+// comando, dúvida de quem fala). O certo é null; qualquer número devolvido é erro.
+export function gerarFamilias(semente: number, quantidade: number): Caso[] {
+  const r = aleatorio(semente * 32452843 + 5);
+  const esc = <T,>(l: T[]): T => l[Math.floor(r() * l.length)];
+  const casos: Caso[] = [];
+  const valor = () => {
+    const v = esc([35, 90, 120, 250, 360, 780, 1200, 2500, 4800, 12000]);
+    return esc([`R$ ${milhar(v)}`, `${milhar(v)} reais`, `${porExtenso(v)} reais`, `${v}`, porExtenso(v)]);
+  };
+  const item = () => esc(['cimento', 'areia', 'brita', 'frete', 'tinta', 'prego', 'telha', 'eletricista', 'piso']);
+  const unidade = () => esc(['saco', 'metro', 'quilo', 'litro', 'lata', 'rolo', 'peça', 'caixa', 'unidade', 'dia', 'hora', 'm2', 'saca', 'milheiro', 'pessoa']);
+  const familias: (() => string)[] = [
+    () => `${valor()} ${esc(['cada', 'cada um', 'cada ' + unidade()])} de ${item()}`,
+    () => `${item()} ${valor()} ${esc(['por', 'a', 'o', 'ao'])} ${unidade()}`,
+    () => `${valor()} ${esc(['por', 'a', 'o', 'ao'])} ${unidade()} de ${item()}`,
+    () => `${esc(['uns', 'cerca de', 'quase', 'mais ou menos', 'aproximadamente', 'em torno de', 'por volta de', 'na faixa de', 'em média', 'até', 'mais de', 'menos de', 'acima de', 'abaixo de', 'no máximo', 'no mínimo', 'a partir de', 'na casa dos'])} ${valor()} de ${item()}`,
+    () => `${esc(['acho que foi', 'talvez', 'creio que foi', 'se não me engano foi', 'não lembro, foi', 'provavelmente'])} ${valor()} de ${item()}`,
+    () => `${esc(['estorno de', 'reembolso de', 'devolveram', 'o cliente pagou', 'recebi', 'recebemos', 'vendi por', 'vendemos por', 'empréstimo de', 'ressarcimento de', 'lucro de', 'faturamento de', 'receita de'])} ${valor()} de ${item()}`,
+    () => `${esc(['apaga', 'exclui', 'remove', 'cancela', 'desfaz', 'corrige', 'altera', 'muda'])} ${esc(['o de', 'o lançamento de', 'aquele de', 'o último de'])} ${valor()}`,
+    () => `${esc(['metade de', 'o dobro de', 'um terço de', 'desconto de', 'troco de', 'sobrou', 'restou', 'diferença de', 'aumento de', 'reajuste de'])} ${valor()} de ${item()}`,
+    () => `${esc([String(esc([120, 360, 4800])), porExtenso(esc([120, 360, 4800]))])} ${esc(['dólares', 'euros', 'dólar'])} de ${item()}`,
+  ];
+  while (casos.length < quantidade) {
+    const frase = esc(familias)();
+    casos.push({ frase: esc(['', 'paguei ', 'foi ', 'hoje ']) + frase, esperado: { valor: null }, tipo: 'familia' });
   }
   return casos;
 }

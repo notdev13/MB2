@@ -184,13 +184,16 @@ const CALCULO = new Set(['cada', 'metade', 'dobro', 'triplo', 'terco', 'desconto
   'diferenca', 'estorno', 'estornei', 'reembolso', 'reembolsei', 'devolveram', 'devolvi', 'devolucao', 'cotacao', 'cotei',
   'proposta', 'simulacao', 'estimativa', 'previsao', 'recebi', 'recebemos', 'recebido', 'aumentou', 'aumento', 'aumentaram', 'reajuste', 'reajustou', 'subiu',
   'caiu', 'acrescimo', 'caro', 'barato', 'mais', 'menos',
+  // quem fala não tem certeza, ou é receita/empréstimo
+  'acho', 'talvez', 'creio', 'engano', 'lembro', 'provavelmente', 'possivelmente', 'venda', 'vendas', 'vendi', 'vendemos',
+  'lucro', 'faturamento', 'receita', 'cliente', 'clientes',
   // comandos de edição: o interpretador só entende lançamento novo
   'apaga', 'apagar', 'exclui', 'excluir', 'remove', 'remover', 'cancela', 'cancelar', 'desfaz', 'desfazer', 'deleta',
   'deletar', 'corrige', 'corrigir', 'altera', 'alterar', 'muda', 'mudar']); // recebido = receita, não custo
 const ESTRANGEIRA = new Set(['dolar', 'dolares', 'euro', 'euros', 'libra', 'libras']);
 const SIMBOLO_ESTRANGEIRO = new Set(['us$', 'usd', 'u$s', 'eur', 'dolar', 'dolares', 'euro', 'euros']);
 // Flexões dos mesmos verbos ('estornaram', 'devolveu', 'cancelei'...)
-const RAIZ_CALCULO = /^(estorn|reembols|devolv|cancel|apag|exclu|desfa|delet|corrig|aument|reajust)/;
+const RAIZ_CALCULO = /^(estorn|reembols|devolv|cancel|apag|exclu|desfa|delet|corrig|aument|reajust|emprest|ressarc)/;
 const PISTAS = new Set(['por', 'total', 'valor', 'custou', 'ficou']);
 
 // ---- datas ----
@@ -558,7 +561,7 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
         }
       }
       // "uns 500", "mais ou menos 500": estimativa, não é o valor do lançamento
-      if (/ (uns|umas|cerca|cerca de|aproximadamente|quase|mais ou menos|perto de|em torno de|tipo|mais de|menos de|na casa dos|na casa de|casa dos|acima de|abaixo de|ate|no maximo|no minimo|a partir de|por volta de|na faixa de|em media|media de)$/.test(' ' + ps.slice(Math.max(0, g.inicio - 3), g.inicio).join(' '))) centavos = null;
+      if (/ (uns|umas|cerca|cerca de|aproximadamente|quase|mais ou menos|perto de|em torno de|tipo|mais de|menos de|na casa dos|na casa de|casa dos|acima de|abaixo de|ate|no maximo|no minimo|a partir de|por volta de|na faixa de|em media|media de)$/.test(' ' + ps.slice(Math.max(0, g.inicio - (ps[g.inicio - 1] === 'r$' ? 4 : 3)), ps[g.inicio - 1] === 'r$' ? g.inicio - 1 : g.inicio).join(' '))) centavos = null;
       // "mil e pouco", "mil e tantos"
       if (ps[g.fim] === 'e' && /^(pouco|poucos|picos|tanto|tantos|alguma)$/.test(ps[g.fim + 1] ?? '')) centavos = null;
       // "3 vezes de 400", "10 parcelas de 300": não dá para saber se o lançamento é a parcela ou o total
