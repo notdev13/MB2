@@ -28,6 +28,7 @@ const simplificar = (s: string) => semAcento(s.toLowerCase()).replace(/[^a-z0-9]
 function palavrasOriginais(texto: string): string[] {
   return texto
     .replace(/r\$\s*/gi, 'R$ ')
+    .replace(/(\d)[ºª°]/g, '$1') // "dia 1º"
     .replace(/[–—]/g, ' ')
     .split(/[\s!?;:()"]+/)
     .map((p) => p.replace(/^[.,]+|[.,]+$/g, ''))
@@ -152,7 +153,7 @@ const UNIDADES = new Set([
   'saco', 'sacos', 'metro', 'metros', 'm', 'm2', 'm3', 'unidade', 'unidades', 'peca', 'pecas', 'lata', 'latas',
   'kg', 'quilo', 'quilos', 'tonelada', 'toneladas', 'caminhao', 'caminhoes', 'barra', 'barras', 'milheiro',
   'rolo', 'rolos', 'caixa', 'caixas', 'galao', 'galoes', 'litro', 'litros', 'dias', 'horas', 'vezes', 'parcelas',
-  'milimetro', 'milimetros', 'mm', 'centimetro', 'centimetros', 'cm', 'polegada', 'polegadas', 'semanas', 'semana',
+  'parcela', 'etapa', 'fase', 'milimetro', 'milimetros', 'mm', 'centimetro', 'centimetros', 'cm', 'polegada', 'polegadas', 'semanas', 'semana',
 ]);
 const MOEDA = new Set(['reais', 'real', 'conto', 'contos', 'pila', 'pilas']);
 // "lote 39", "casa 12": o número é da obra, não é valor.
@@ -221,7 +222,7 @@ function haQuantosDias(ps: string[], i: number): { dias: number; fim: number } |
   return { dias: n.valor * mult, fim: n.fim + (atras ? 2 : 1) };
 }
 
-function acharData(ps: string[], usadas: Set<number>, hoje: string): string | null {
+function acharData(ps: string[], usadas: Set<number>, hoje: string, info: { semMes: boolean }): string | null {
   for (let i = 0; i < ps.length; i++) {
     const p = ps[i];
     if (p === 'hoje') { usadas.add(i); return hoje; }
@@ -251,6 +252,7 @@ function acharData(ps: string[], usadas: Set<number>, hoje: string): string | nu
       }
       if (p === 'dia') {
         for (let k = i; k < d.fim; k++) usadas.add(k);
+        info.semMes = true;
         return montarData(d.dia, null, null, hoje);
       }
     }
@@ -263,6 +265,7 @@ function acharData(ps: string[], usadas: Set<number>, hoje: string): string | nu
       if (ps[i + 1] === 'feira') usadas.add(i + 1);
       for (const k of [i + 1, i + 2]) if (ps[k] === 'passada' || ps[k] === 'passado') usadas.add(k);
       if (ps[i + 1] === 'que' || ps[i + 2] === 'que' || ps[i - 1] === 'proxima' || ps[i - 1] === 'proximo') return null;
+      info.semMes = true;
       const h = deTexto(hoje);
       const volta = (h.getDay() - semana + 7) % 7 || 7;
       return diasAntes(hoje, volta);
@@ -414,7 +417,8 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
   const simples = ps.map(simplificar);
 
   const obraId = acharObra(ps, contexto.obras, usadas);
-  const data = acharData(ps, usadas, contexto.hoje);
+  const dataInfo = { semMes: false };
+  const dataFalada = acharData(ps, usadas, contexto.hoje, dataInfo);
 
   let pagamento: FormaPagamento | null = null;
   ps.forEach((p, i) => {
@@ -431,6 +435,9 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
   if (/ (a pagar|falta pagar|vou pagar|vamos pagar|vai pagar|para pagar|pra pagar|em aberto|fiado|a prazo|ainda nao paguei|nao paguei|nao foi pago|nao foi paga|nao pagou|ainda nao pagou|nao pago|pagar|pendente|devo|devendo|vence|vencimento|preciso pagar|tenho que pagar|tenho de pagar|pagar depois) /.test(junto)) pago = false;
   else if (parcelado) pago = disseuPago ? null : false;
   else if (disseuPago) pago = true;
+
+  // "A pagar sexta" / "a pagar dia 30" é vencimento no futuro; o interpretador só sabe voltar no tempo, então deixa em branco.
+  const data = pago === false && dataInfo.semMes ? null : dataFalada;
 
   // Valor: o único número do lançamento, ou o único com "reais"/"R$"/"centavos" perto. Quantidade,
   // data, número da obra e preço por unidade não contam. Na dúvida fica null (a pessoa digita).
@@ -464,6 +471,8 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
       }
       // "uns 500", "mais ou menos 500": estimativa, não é o valor do lançamento
       if (/ (uns|umas|cerca|cerca de|aproximadamente|quase|mais ou menos|perto de|em torno de)$/.test(' ' + ps.slice(Math.max(0, g.inicio - 3), g.inicio).join(' '))) centavos = null;
+      // "3 vezes de 400", "10 parcelas de 300": não dá para saber se o lançamento é a parcela ou o total
+      if (ps[g.inicio - 1] === 'de' && (/^(parcelas|vezes|x)$/.test(ps[g.inicio - 2] ?? '') || /^\d+x$/.test(ps[g.inicio - 2] ?? ''))) centavos = null;
       // "dia onze mil reais": pode ser dia 11 e mil reais, ou onze mil reais
       const dia = ps[g.inicio - 1] === 'dia' ? lerGrupo(ps, g.inicio) : null;
       if (dia && dia.valor <= 31 && g.valor !== null && g.valor > 31) centavos = null;

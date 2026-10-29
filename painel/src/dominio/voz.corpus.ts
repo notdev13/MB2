@@ -57,7 +57,7 @@ const SERV: Categoria = 'Serviços (S)';
 export const CASOS_FIXOS: Caso[] = [
   { tipo: 'base', frase: 'paguei trezentos e sessenta de cimento no lote 39 ontem no pix', esperado: { valor: 360_00, obraId: 'l39', data: '2026-10-27', pagamento: 'pix', pago: true, categoria: MAT } },
   { tipo: 'base', frase: 'mil e quinhentos pro Ulisses de mão de obra na casa 12', esperado: { valor: 1500_00, obraId: 'l12', categoria: MO } },
-  { tipo: 'base', frase: 'comprei 20 sacos de cimento por 1.200 reais no boleto a pagar dia 15', esperado: { valor: 1200_00, data: '2026-10-15', pagamento: 'boleto', pago: false } },
+  { tipo: 'base', frase: 'comprei 20 sacos de cimento por 1.200 reais no boleto a pagar dia 15', esperado: { valor: 1200_00, data: null, pagamento: 'boleto', pago: false } },
   { tipo: 'meio', frase: 'dois mil e meio de areia', esperado: { valor: 2500_00, categoria: MAT } },
   { tipo: 'base', frase: 'R$ 850 de telha na Ecovilas hoje no cartão', esperado: { valor: 850_00, obraId: 'eco', data: HOJE, pagamento: 'cartao' } },
   { tipo: 'data', frase: 'pedreiro 450 sexta passada', esperado: { valor: 450_00, data: '2026-10-23', categoria: MO } },
@@ -85,8 +85,8 @@ export const CASOS_FIXOS: Caso[] = [
   { tipo: 'ruido', frase: 'hum é 200 de areia', esperado: { valor: 200_00 } },
   { tipo: 'virgula', frase: '2.5 mil de madeira', esperado: { valor: 2500_00 } },
   { tipo: 'parcela', frase: 'três mil e quinhentos de concreto em 3 vezes', esperado: { valor: 3500_00, pago: false } },
-  { tipo: 'parcela', frase: 'parcelado em 3x de 500 de piso', esperado: { valor: 500_00, pago: false } },
-  { tipo: 'parcela', frase: 'dez parcelas de 300 de azulejo', esperado: { valor: 300_00 } },
+  { tipo: 'parcela', frase: 'parcelado em 3x de 500 de piso', esperado: { valor: null, pago: false } },
+  { tipo: 'parcela', frase: 'dez parcelas de 300 de azulejo', esperado: { valor: null } },
   { tipo: 'extenso', frase: 'mil trezentos e vinte de ferro', esperado: { valor: 1320_00 } },
   { tipo: 'extenso', frase: 'mil e vinte e cinco reais de fio', esperado: { valor: 1025_00 } },
   { tipo: 'extenso', frase: 'duzentos e cinquenta e um reais de cabo', esperado: { valor: 251_00 } },
@@ -215,7 +215,7 @@ export const CASOS_ROD4: Caso[] = [
   { tipo: 'data', frase: 'quinta 100 de areia', esperado: { valor: 100_00, data: '2026-10-22' } },
   { tipo: 'data', frase: '100 de areia quarta', esperado: { valor: 100_00, data: '2026-10-21' } },
   { tipo: 'data-futura', frase: 'boleto de 400 vence dia 5 de novembro', esperado: { valor: 400_00, pago: false, pagamento: 'boleto', data: null } },
-  { tipo: 'pago', frase: 'boleto vence dia 20 de 400 de piso', esperado: { valor: 400_00, pago: false, pagamento: 'boleto', data: '2026-10-20' } },
+  { tipo: 'pago', frase: 'boleto vence dia 20 de 400 de piso', esperado: { valor: 400_00, pago: false, pagamento: 'boleto', data: null } },
   { tipo: 'pago', frase: 'paguei 800 de piso no cartão em 12 vezes', esperado: { valor: 800_00, pago: null, pagamento: 'cartao' } },
   { tipo: 'documento', frase: 'nota fiscal 1234 de cimento 500 reais', esperado: { valor: 500_00 } },
   { tipo: 'documento', frase: 'pedido 4521 cimento 800 reais', esperado: { valor: 800_00 } },
@@ -224,6 +224,45 @@ export const CASOS_ROD4: Caso[] = [
   { tipo: 'obra', frase: 'obra Olindina Maria 300 de areia', esperado: { valor: 300_00, obraId: 'oli' } },
   { tipo: 'obra', frase: 'Laureano e Olindina 500', esperado: { valor: 500_00, obraId: null } },
   { tipo: 'obra', frase: 'terreno 700 reais', esperado: { valor: 700_00, obraId: null } },
+];
+
+// Rodada 5: fala corrida, verbos soltos, valores longos e datas de pagamento futuro.
+export const CASOS_ROD5: Caso[] = [
+  { tipo: 'conversa', frase: 'olha, o Ulisses veio hoje e eu paguei mil e duzentos', esperado: { valor: 1200_00, categoria: MO, data: HOJE, pago: true } },
+  { tipo: 'conversa', frase: 'lança aí 360 de cimento no lote 39', esperado: { valor: 360_00, obraId: 'l39' } },
+  { tipo: 'conversa', frase: 'registra dois mil de areia pra Ecovilas', esperado: { valor: 2000_00, obraId: 'eco' } },
+  { tipo: 'conversa', frase: 'gastei hoje dois mil e trezentos reais com tijolo no lote trinta e nove', esperado: { valor: 2300_00, obraId: 'l39', data: HOJE } },
+  { tipo: 'conversa', frase: 'adiantamento de 500 pro Adriano', esperado: { valor: 500_00, categoria: MO } },
+  { tipo: 'conversa', frase: 'foram 90 reais de frete', esperado: { valor: 90_00 } },
+  { tipo: 'conversa', frase: 'deu 1.200 o cimento', esperado: { valor: 1200_00 } },
+  { tipo: 'conversa', frase: 'o total ficou em 4.350,75', esperado: { valor: 4350_75 } },
+  { tipo: 'conversa', frase: 'ficou em quatro mil e trezentos e cinquenta reais', esperado: { valor: 4350_00 } },
+  { tipo: 'conversa', frase: 'pix de mil reais pro Adriano', esperado: { valor: 1000_00, pagamento: 'pix', categoria: MO } },
+  { tipo: 'conversa', frase: 'transferência de dois mil e quinhentos', esperado: { valor: 2500_00, pagamento: 'transferencia' } },
+  { tipo: 'parcela', frase: 'cartão 3 vezes de 400', esperado: { valor: null, pagamento: 'cartao', pago: false } },
+  { tipo: 'conversa', frase: 'sinal de 5 mil', esperado: { valor: 5000_00 } },
+  { tipo: 'digitos', frase: 'pagamento final 8 mil e 200', esperado: { valor: 8200_00 } },
+  { tipo: 'extenso', frase: 'mil e quatrocentos e cinquenta reais', esperado: { valor: 1450_00 } },
+  { tipo: 'colado', frase: 'R$1.250', esperado: { valor: 1250_00 } },
+  { tipo: 'centavos', frase: 'R$ 1.250,5', esperado: { valor: 1250_50 } },
+  { tipo: 'centavos', frase: '1250 reais e 50 centavos', esperado: { valor: 1250_50 } },
+  { tipo: 'centavos', frase: 'mil duzentos e cinquenta e dois reais e dez centavos', esperado: { valor: 1252_10 } },
+  { tipo: 'virgula', frase: 'quatro mil, duzentos e trinta', esperado: { valor: 4230_00 } },
+  { tipo: 'virgula', frase: '1,200.50 de areia', esperado: { valor: 1200_50 } },
+  { tipo: 'extenso', frase: 'dez mil duzentos e vinte', esperado: { valor: 10220_00 } },
+  { tipo: 'extenso', frase: 'oitenta e cinco mil', esperado: { valor: 85000_00 } },
+  { tipo: 'extenso', frase: 'duzentos e cinquenta mil e quinhentos reais', esperado: { valor: 250500_00 } },
+  { tipo: 'extenso', frase: 'novecentos e noventa e nove', esperado: { valor: 999_00 } },
+  { tipo: 'milhao', frase: 'um milhão duzentos mil', esperado: { valor: 1200000_00 } },
+  { tipo: 'milhao', frase: 'dois milhões', esperado: { valor: 2000000_00 } },
+  { tipo: 'meio', frase: 'dois mil e meio reais', esperado: { valor: 2500_00 } },
+  { tipo: 'duvida', frase: 'um e meio', esperado: { valor: null } },
+  { tipo: 'data', frase: 'dia 1º 100 de areia', esperado: { valor: 100_00, data: '2026-10-01' } },
+  { tipo: 'data', frase: 'segunda de manhã 100 de areia', esperado: { valor: 100_00, data: '2026-10-26' } },
+  { tipo: 'data', frase: 'semana retrasada 100 de areia', esperado: { valor: 100_00, data: null } },
+  { tipo: 'data-futura', frase: 'ainda vou pagar o pedreiro 800 sexta', esperado: { valor: 800_00, pago: false, data: null } },
+  { tipo: 'data-futura', frase: '800 de piso a pagar dia 30', esperado: { valor: 800_00, pago: false, data: null } },
+  { tipo: 'data-futura', frase: '800 de piso a pagar ontem', esperado: { valor: 800_00, pago: false, data: '2026-10-27' } },
 ];
 
 // ---- gerador de frases ----
@@ -361,6 +400,7 @@ export function gerarCasos(semente: number, quantidade: number, nivel: number): 
     }
     // data
     let dataTxt = '';
+    let dataRelativa = false; // "dia 15" e dia da semana: em lançamento a pagar a data fica em branco
     const sorteioData = r();
     if (nivel >= 5 && r() < 0.45) {
       const forma = esc(['atras', 'primeiro', 'barra', 'extenso']);
@@ -370,7 +410,7 @@ export function gerarCasos(semente: number, quantidade: number, nivel: number): 
         const d = new Date(hoje); d.setDate(d.getDate() - n); esperado.data = ymd(d);
       } else if (forma === 'primeiro') {
         const m = r() < 0.5 ? null : Math.floor(r() * 9);
-        dataTxt = m === null ? 'dia primeiro' : `primeiro de ${MESES[m]}`;
+        dataTxt = m === null ? 'dia primeiro' : `primeiro de ${MESES[m]}`; if (m === null) dataRelativa = true;
         esperado.data = `2026-${m === null ? '10' : doisDig(m + 1)}-01`;
       } else if (forma === 'barra') {
         const dia = 1 + Math.floor(r() * 27); const m = 1 + Math.floor(r() * 9);
@@ -382,7 +422,7 @@ export function gerarCasos(semente: number, quantidade: number, nivel: number): 
     } else if (sorteioData < 0.5) {
       const dia = 1 + Math.floor(r() * 27);
       const m = nivel >= 2 && r() < 0.5 ? Math.floor(r() * 9) : null; // até setembro
-      if (m === null) { dataTxt = esc([`dia ${dia}`, `dia ${nivel >= 3 ? porExtenso(dia) : dia}`]); esperado.data = `2026-10-${doisDig(dia)}`; }
+      if (m === null) { dataTxt = esc([`dia ${dia}`, `dia ${nivel >= 3 ? porExtenso(dia) : dia}`]); esperado.data = `2026-10-${doisDig(dia)}`; dataRelativa = true; }
       else { dataTxt = `${esc([String(dia), 'dia ' + dia])} de ${MESES[m]}`; esperado.data = `2026-${doisDig(m + 1)}-${doisDig(dia)}`; }
     } else if (sorteioData < 0.75) {
       const o = esc([['hoje', 0], ['ontem', 1], ['anteontem', 2]] as [string, number][]);
@@ -393,6 +433,7 @@ export function gerarCasos(semente: number, quantidade: number, nivel: number): 
       const d = new Date(hoje); d.setDate(d.getDate() - volta); esperado.data = ymd(d);
       const nome = DIAS_SEMANA[sem];
       dataTxt = esc([nome === 'sábado' || nome === 'domingo' ? nome : nome + '-feira', nome + (sem === 0 || sem === 6 ? '' : '-feira') + ' passada']);
+      dataRelativa = true;
     }
     // pagamento
     let pagTxt = '';
@@ -453,6 +494,7 @@ export function gerarCasos(semente: number, quantidade: number, nivel: number): 
     const semVirgula = frase.replace(/,/g, '').toLowerCase();
     if ((dataTxt && semVirgula.includes((dataTxt + ' ' + fala).toLowerCase())) || (obraTxt && semVirgula.includes((obraTxt + ' ' + fala).toLowerCase()))) continue;
     if (esperado.pago === undefined) delete esperado.pago;
+    if (esperado.pago === false && dataRelativa) esperado.data = null;
     // a pessoa pode ter dito "mão de obra" por nome; evita ambiguidade item x obra
     casos.push({ frase, esperado, tipo: `${tipo}/m${modelo}` });
   }
