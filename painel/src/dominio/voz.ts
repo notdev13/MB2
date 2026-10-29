@@ -196,6 +196,15 @@ function contagemPlural(ps: string[], g: Numero): boolean {
   return g.valor !== null && Number.isInteger(g.valor) && g.valor >= 2 && g.valor <= 99 && w !== undefined && /^[a-z]{4,}s$/.test(w) && !NAO_E_PLURAL.test(w);
 }
 
+// Palavra solta que não é item, forma de pagamento, data, número nem palavra de ligação: quase sempre uma unidade
+// ou medida pouco comum ("btus", "lumens", "kelvin") que ficou colada num número.
+function unidadeDesconhecida(w: string | undefined): boolean {
+  if (!w || w.length < 3 || !/^[a-z]+$/.test(w) || !/[aeiou]/.test(w)) return false;
+  if (MAPA_CATEGORIA.has(simplificar(w)) || VAZIAS.has(simplificar(w)) || PAGAMENTOS.some(([re]) => re.test(w)) || w in MESES || w in SEMANA) return false;
+  if (palavraNum(w) !== undefined || ehMilhar(w) || ehMilhao(w) || CALCULO.has(w) || DOCUMENTOS.has(w) || RUAS.has(w) || MOEDA.has(w)) return false;
+  return !/^(com|sem|para|pelo|pela|pelos|pelas|mais|menos|ainda|depois|antes|tambem|alem|entre|sobre|apos|ate|nos|nas|dos|das|uns|umas|que|isso|esse|essa|este|esta|foi|era|ser|tem|tinha|fez|fiz|deu|dei|paga|pago|pagou|paguei|ontem|hoje|agora|aqui|ali|la|tudo|nada|cada|favor|obrigado|mesmo|viu|ok|certo|pronto|beleza|tipo|assim|entao|dia|mes|ano|vez|vezes|total|valor)$/.test(w);
+}
+
 function numerosDe(ps: string[]): Numero[] {
   const lista: Numero[] = [];
   for (let i = 0; i < ps.length;) {
@@ -211,7 +220,7 @@ const UNIDADES = new Set([
   'rolo', 'rolos', 'caixa', 'caixas', 'galao', 'galoes', 'litro', 'litros', 'dias', 'horas', 'vezes', 'parcelas',
   'pessoa', 'cabeca', 'folha', 'chapa', 'vara', 'par', 'pares', 'comodo', 'comodos', 'ponto', 'tomada', 'lampada', 'pacote', 'pacotes', 'saca', 'sacas', 'balde', 'baldes', 'tambor', 'tambores', 'carrada', 'carradas', 'carga',
   'cargas', 'carreta', 'carretas', 'fardo', 'fardos', 'm²', 'm³', 'parcela', 'etapa', 'fase', 'viagem', 'viagens', 'pessoas', 'homens', 'funcionarios', 'operarios', 'pedreiros', 'serventes',
-  'ajudantes', 'quartos', 'andares', 'casas', 'lotes', 'pontos', 'tomadas', 'lampadas', 'milimetro', 'milimetros', 'mm', 'centimetro', 'centimetros', 'cm', 'polegada', 'polegadas', 'banheiros', 'andar', 'volt', 'volts', 'v', 'ampere', 'amperes', 'watts', 'w', 'hz', 'btu', 'btus', 'kva', 'kw', 'kwh', 'cv', 'hp', 'graus', 'rpm', 'bar', 'psi', 'ohms', 'demao', 'demaos',
+  'ajudantes', 'quartos', 'andares', 'casas', 'lotes', 'pontos', 'tomadas', 'lampadas', 'milimetro', 'milimetros', 'mm', 'centimetro', 'centimetros', 'cm', 'polegada', 'polegadas', 'banheiros', 'andar', 'volt', 'volts', 'v', 'ampere', 'amperes', 'watts', 'w', 'hz', 'btu', 'btus', 'kva', 'kw', 'kwh', 'demao', 'demaos',
   'diaria', 'diarias', 'km', 'sc', 'un', 'pc', 'pcs', 'cx', 'mt', 'mts', 'ton', 'tn', 'lt', 'lts', 'gl', 'pav', 'pavimento', 'pavimentos',
 ]);
 const MOEDA = new Set(['reais', 'real', 'conto', 'contos', 'pila', 'pilas', 'pratas', 'mangos']);
@@ -223,7 +232,7 @@ const DOCUMENTOS = new Set(['recibo', 'fatura', 'duplicata', 'comprovante', 'cup
   'matricula', 'cpf', 'cnpj', 'telefone', 'fone', 'cep', 'fiscal', 'apto', 'apartamento',
   'sala', 'andar', 'ano', 'parcela', 'agencia', 'conta', 'numero', 'nfe', 'nº', 'n°', 'n', 'codigo', 'cod', 'ref', 'referencia', 'item', 'modelo', 'serie']);
 // Estes só são documento quando o número tem 4 dígitos ou mais ("RRT 130" ainda pode ser o valor).
-const DOCUMENTOS_LONGOS = new Set(['art', 'rrt', 'crea', 'apolice', 'inscricao']);
+const DOCUMENTOS_LONGOS = new Set(['solda', 'eletrodo', 'art', 'rrt', 'crea', 'apolice', 'inscricao']);
 // Só para "X reais a dúzia": preço por unidade; "duas dúzias" sozinho continua valendo como número solto.
 const PRECO_POR = new Set(['duzia', 'duzias', 'metro', 'dia', 'degrau', 'lance', 'trecho', 'pe', 'centimetro']);
 const TEMPO = new Set(['dias', 'hora', 'horas', 'diaria', 'diarias', 'semana', 'semanas', 'meses']);
@@ -267,10 +276,12 @@ const NOME_LUGAR = new Set(['rua', 'avenida', 'av', 'travessa', 'alameda', 'rodo
 const RUAS = new Set(['rua', 'avenida', 'av', 'travessa', 'alameda', 'rodovia', 'estrada']);
 const TELEFONE = new Set(['telefone', 'fone', 'tel', 'celular', 'whats', 'whatsapp', 'zap', 'contato']);
 // Número que descreve o lugar ou o material, não é valor: "banheiro 2", "cômodo 25", "cp 2", "brita 1".
-const SPEC_PREFIX = new Set(['km', 'etapa', 'fase', 'parte', 'medicao', 'boletim', 'pav', 'pavimento', 'cp', 'classe', 'banheiro', 'quarto', 'suite', 'cozinha', 'comodo', 'bloco', 'galpao', 'torre', 'andar']);
+const SPEC_PREFIX = new Set(['dn', 'km', 'etapa', 'fase', 'parte', 'medicao', 'boletim', 'pav', 'pavimento', 'cp', 'classe', 'banheiro', 'quarto', 'suite', 'cozinha', 'comodo', 'bloco', 'galpao', 'torre', 'andar']);
 // Medida técnica logo depois do número ("8 milímetros", "220 volts"): o número descreve o material, não é valor nem quantidade.
 const MEDIDA_TECNICA = new Set(['milimetro', 'milimetros', 'mm', 'centimetro', 'centimetros', 'cm', 'polegada', 'polegadas', 'volt', 'volts', 'v',
-  'ampere', 'amperes', 'watts', 'w', 'hz', 'btu', 'btus', 'kva', 'kw', 'kwh', 'cv', 'hp', 'graus', 'rpm', 'bar', 'psi', 'ohms', 'demao', 'demaos', 'metros', 'm2', 'm3', 'm²', 'm³']);
+  'ampere', 'amperes', 'watts', 'w', 'hz', 'btu', 'btus', 'kva', 'kw', 'kwh', 'kwp', 'cv', 'hp', 'graus', 'rpm', 'bar', 'psi', 'ohms', 'mpa', 'kgf',
+  'kelvin', 'lumens', 'lux', 'micras', 'kcal', 'newtons', 'decibeis', 'hectares', 'alqueires', 'pes', 'jardas', 'milhas', 'gramas', 'miligramas',
+  'centilitros', 'ml', 'cl', 'demao', 'demaos', 'metros', 'm2', 'm3', 'm²', 'm³']);
 // "paguei dez de frete": depois de verbo de gasto, até número falado pequeno é dinheiro.
 const VERBO_GASTO = /^(paguei|gastei|gastamos|pagamos|custou|saiu|dei|mandei|passei|comprei|foi|deu)$/;
 const PERTO_DE_OUTRO_VALOR = /^(de|pro|pra|para|na|no|ou|ate)$/;
@@ -620,7 +631,7 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
     if (NUMERADORES.has(prev) || (OBRA_NUM.has(prev) && /^\d{1,2}$/.test(ps[g.inicio] ?? ''))) return 'ruido'; // "lote 41", "obra 7": número da obra
     if (prev === 'final' && /^\d{4}$/.test(ps[g.inicio]) && g.fim === g.inicio + 1) return 'ruido'; // "cartão final 4455"
     const n = g.fim === g.inicio + 1 ? inteiro(ps[g.inicio]) : null;
-    if (n !== null && ((SPEC_PREFIX.has(prev) && n <= 99) ||
+    if (n !== null && ((SPEC_PREFIX.has(prev) && n <= (prev === 'dn' ? 999 : 99)) ||
       (n >= 1 && n <= 9 && daCategoria(prev) === 'Materiais (M)' && !PERTO_DE_OUTRO_VALOR.test(depois)))) return 'ruido';
     // "2º andar 480": o andar vem antes do número, então o 480 continua sendo dinheiro
     const andarComOrdinal = prev === 'andar' && (numeroEscrito(ps[g.inicio - 2] ?? '') !== null || /^(primeiro|segundo|terceiro|quarto|quinto|sexto|setimo|oitavo|nono|decimo)$/.test(ps[g.inicio - 2] ?? ''));
@@ -775,7 +786,9 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
         (daCategoria(ps[g.inicio - 1] ?? '') === 'Materiais (M)' || SPEC_PREFIX.has(ps[g.inicio - 1] ?? '')) && !PERTO_DE_OUTRO_VALOR.test(ps[g.fim] ?? '')) ||
       (g.centavos !== null && g.centavos % 100 === 0 && g.centavos <= 900 && g.fim === g.inicio + 1 && inteiro(ps[g.inicio]) !== null &&
         !PERTO_DE_OUTRO_VALOR.test(ps[g.fim] ?? '') && !/^(e|mais|menos|ou|ate|a)$/.test(ps[g.inicio - 1] ?? '')) || // "fio 2,5 150 reais"
-      (palavraNum(ps[g.inicio]) !== undefined && g.centavos !== null && g.centavos < 2000);
+      (palavraNum(ps[g.inicio]) !== undefined && g.centavos !== null && g.centavos < 2000) ||
+      // "Ar-condicionado 12 mil btus R$ 2.790": palavra que o sistema não conhece logo depois do número é unidade de medida
+      unidadeDesconhecida(ps[g.fim]);
     if (!fechado && e === comMoeda[0] && comMoeda.length === 1 && !pista(e) && unicos.some((g) => g !== e && !sobraSemValor(g))) anula();
     // Número falado menor que 20 sem "reais"/"por" ("dez de frete") é nome ou quantidade.
     if (!fechado && !e.moeda && !pista(e) && !VERBO_GASTO.test(ps[e.inicio - 1] ?? '') && palavraNum(ps[e.inicio]) !== undefined && e.centavos !== null && e.centavos < 2000) anula();
