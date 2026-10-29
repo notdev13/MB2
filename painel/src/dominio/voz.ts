@@ -276,7 +276,17 @@ const FRASES_SEM_VALOR = new RegExp(' (' + [
   '(proposta|cotacao|orcamento|estimativa|previsao|simulacao) de ' + COMECO_DE_NUMERO, 'receita (de|da|do)',
   // combinado ou pedido ainda não é pagamento: "combinei 3 mil com o pintor", "o pintor pediu 3 mil"
   '(combinei|combinamos|pediu|pediram|ofereceu|ofereceram|prometi|prometeu|propos) (de |em |uns )?' + COMECO_DE_NUMERO,
-  'cliente (pagou|pagaram|depositou|transferiu)',
+  'cliente (me |nos )?(pagou|pagaram|depositou|transferiu|mandou|enviou|passou)',
+  // alguém pagou ou liberou dinheiro PARA nós: entrada, não custo
+  '(me|nos) (pagou|pagaram|depositou|depositaram|transferiu|transferiram|mandou|mandaram|devolveu|devolveram)', '(banco|financeira|caixa) (liberou|liberaram|creditou|aprovou)', '(liberou|liberaram|creditou|creditaram|emprestou|emprestaram)',
+  // desejo, conversa em andamento e comando de edição com o valor no fim
+  '(quer|querem|quero|queremos|querendo) (de |uns |por )?' + COMECO_DE_NUMERO,
+  'ainda (nao )?(vou )?(aceitei|aceitamos|conferir|confirmar|fechei|fechamos|decidi|decidimos|defini|definimos|sei|combinei)', 'nao (aceitei|aceitamos|fechei|fechamos|confirmei|decidi|conferi|combinei)',
+  'vou (conferir|confirmar|ver|checar|pensar)', 'a (conferir|confirmar|combinar|definir)', 'se (der|puder|conseguir|fechar|rolar|precisar|tiver|a gente)',
+  'pode (ser|custar|ficar|sair)', 'vai (custar|sair|ficar)', 'deve (custar|ficar|sair)', 'custe',
+  ENTRE_VERBOS + ' ((o|a) )?(valor|preco|total)', ENTRE_VERBOS + '( [a-z]+){1,3} (para|pra) ' + COMECO_DE_NUMERO,
+  // preço combinado ou de tabela no presente: "o orçamento da cobertura é 22 mil", "o preço do saco é 39"
+  '(orcamento|preco|proposta|cotacao|tabela)( [a-z]+){0,4} (esta|ta|seria|sera|fica) ' + COMECO_DE_NUMERO,
 ].join('|') + ') ');
 // Espaço, bairro ou prédio: o número que vem depois é endereço, não dinheiro.
 const NOME_LUGAR = new Set(['rua', 'avenida', 'av', 'travessa', 'alameda', 'rodovia', 'estrada', 'residencial', 'edificio',
@@ -682,6 +692,8 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
     if (marcadoDe(g)) return 'candidato'; // "R$ 480 cômodo 2", "nota 800 reais": o dinheiro vence
     const prev = ps[g.inicio - 1] ?? '';
     const depois = ps[g.fim] ?? '';
+    // "às 7 da manhã", "às 14h": hora, não dinheiro
+    if ((originais[g.inicio - 1] === 'às' || originais[g.inicio - 1] === 'as' && /^(da|de|h|horas?)$/.test(depois)) && g.fim === g.inicio + 1 && (g.valor ?? 99) <= 24) return 'ruido';
     if (depois === 'a' && originais[g.fim] === 'A' && !começaNumero(ps[g.fim + 1])) return 'ruido'; // "disjuntor 32 A": ampere
     if (MEDIDA_TECNICA.has(depois) && depois !== 'metros' && depois !== 'm2' && depois !== 'm3' && depois !== 'm²' && depois !== 'm³') return 'ruido';
     const maoDeObra = prev === 'obra' && ps[g.inicio - 2] === 'de' && ps[g.inicio - 3] === 'mao'; // "mão de obra 95": é o valor
@@ -932,6 +944,12 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
     if (!fechado && descartados > 0 && !e.moeda && !pista(e) && e.centavos !== null && e.centavos < 5000 && e.centavos % 100 === 0 && maiorDescartado > e.centavos / 100) anula();
     // "lote 39 cimento 12": o 12 pode ser o número de outra obra (casa 12)
     if (!e.moeda && !pista(e) && e.centavos !== null && e.centavos % 100 === 0 && outrasObras.has(e.centavos / 100)) anula();
+    // "o preço do saco é 39", "a diária é 450": "é"/"está" no presente diante do número é preço ou combinado, não pagamento.
+    // "o valor da empreitada é 38 mil" (valor/total/custo/gasto) é o lançamento.
+    {
+      const k = ps[e.inicio - 1] === 'r$' ? e.inicio - 2 : e.inicio - 1;
+      if (!fechado && !pista(e) && /^(é|está|esta)$/.test(originais[k] ?? '') && k > 0 && !VAZIAS.has(ps[k - 1]) && !ps.slice(Math.max(0, k - 3), k).some((w) => /^(valor|total|custo|gasto|gastos)$/.test(w))) anula();
+    }
     // Parcelado sem "reais"/"R$": o número pode ser a parcela ou o total.
     if (!fechado && !e.moeda && / (\d+x|em \d+ x|\d+ vezes|[a-z]+ vezes|parcelas) /.test(junto)) anula();
     // Frases de dúvida, estimativa, receita ou comando; palavras de conta; datas com traço ("20-10").
@@ -1019,7 +1037,7 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
   let pago: boolean | null = null;
   // Sinais fortes: dizem que ainda não foi pago. "paguei"/"quitei" vencem os fracos (boleto atrasado, fiado,
   // "pagar" solto), que só descrevem a conta: "paguei o boleto atrasado" já está pago.
-  if (/ (a pagar|falta pagar|vou pagar|vamos pagar|vai pagar|para pagar|pra pagar|em aberto|a prazo|ainda nao paguei|nao paguei|nao quitei|nao quitamos|ainda nao quitei|nao foi pago|nao foi paga|nao pagou|ainda nao pagou|nao pago|pendente|pendurado|pendurei|devo|vence|vencimento|a vencer|vai vencer|vencer|vencendo|preciso pagar|(vai|vou|vao) cobrar|tenho que pagar|tenho de pagar|pagar (dia|amanha|depois|segunda|terca|quarta|quinta|sexta|sabado|domingo)|(amanha|depois|semana|vem|mes|proximo|proxima|tarde|noite|segunda|terca|quarta|quinta|sexta|sabado|domingo) pagar|mais tarde pago|mais tarde pagar) /.test(junto)) pago = false;
+  if (/ (a pagar|falta pagar|vou pagar|vamos pagar|vai pagar|para pagar|pra pagar|em aberto|a prazo|ainda nao paguei|nao paguei|nao quitei|nao quitamos|ainda nao quitei|nao foi pago|nao foi paga|nao pagou|ainda nao pagou|nao pago|pendente|pendurado|pendurei|devo|vence|vencimento|a vencer|vai vencer|vencer|vencendo|preciso pagar|(vai|vou|vao) cobrar|tenho que pagar|tenho de pagar|pagar (dia|ate|amanha|depois|segunda|terca|quarta|quinta|sexta|sabado|domingo)|(amanha|depois|semana|vem|mes|proximo|proxima|tarde|noite|segunda|terca|quarta|quinta|sexta|sabado|domingo) pagar|mais tarde pago|mais tarde pagar) /.test(junto)) pago = false;
   else if (parcelado) pago = disseuPago ? null : false;
   else if (disseuPago) pago = true;
   else if (/ (acabei de|terminei de|acabamos de) pagar /.test(junto)) pago = true;

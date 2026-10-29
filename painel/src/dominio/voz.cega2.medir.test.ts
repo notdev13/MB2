@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CEGA2, medirLinhas } from './voz.cega2.medir';
 import { VALIDACAO1 } from './voz.validacao1';
+import { VALIDACAO2 } from './voz.validacao2';
 
 // Conjunto "cega2": 1.020 frases escritas por um revisor independente (sintéticas). Entra como conjunto fixo de treino.
 // Desacordos conhecidos e aceitos (o revisor espera outra coisa; anotados no relatório):
@@ -30,6 +31,16 @@ describe('cega2 (revisão cega, treino)', () => {
 // Validação 1 (rodada 59): foi medida ANTES de qualquer ajuste (4 valores errados em 165) e depois virou treino.
 describe('validação 1 (agora treino)', () => {
   const m = medirLinhas(VALIDACAO1);
+  it('nenhum valor errado, nenhuma regressão de campos', () => {
+    expect(m.errados).toEqual([]);
+    expect(m.secundarios).toEqual([]);
+  });
+});
+
+// Validação 2 (rodada 60): medida ANTES dos ajustes (10 valores errados em 145, quase todos frases que não são custo:
+// comando, entrada de dinheiro, preço de tabela, "se der"); depois virou treino.
+describe('validação 2 (agora treino)', () => {
+  const m = medirLinhas(VALIDACAO2);
   it('nenhum valor errado, nenhuma regressão de campos', () => {
     expect(m.errados).toEqual([]);
     expect(m.secundarios).toEqual([]);
