@@ -621,7 +621,8 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
     if (n !== null && ((SPEC_PREFIX.has(prev) && n <= 99) ||
       (n >= 1 && n <= 9 && daCategoria(prev) === 'Materiais (M)' && !PERTO_DE_OUTRO_VALOR.test(depois)))) return 'ruido';
     // "2º andar 480": o andar vem antes do número, então o 480 continua sendo dinheiro
-    const documento = DOCUMENTOS.has(prev) && !(prev === 'andar' && numeroEscrito(ps[g.inicio - 2] ?? '') !== null);
+    const andarComOrdinal = prev === 'andar' && (numeroEscrito(ps[g.inicio - 2] ?? '') !== null || /^(primeiro|segundo|terceiro|quarto|quinto|sexto|setimo|oitavo|nono|decimo)$/.test(ps[g.inicio - 2] ?? ''));
+    const documento = DOCUMENTOS.has(prev) && !andarComOrdinal; // "segundo andar 480": o andar vem antes
     if ((documento || DOCUMENTOS_LONGOS.has(prev)) && /^\d{4,}$/.test(ps[g.inicio])) return 'ruido'; // "nota fiscal 4521": número de documento
     if (/^(metros?|m|m2|m3|m²|m³|kg|quilos?|litros?|toneladas?)$/.test(depois)) return 'ruido'; // "25 kg", "6 metros": medida, não quantidade a conferir
     const rotuloDeLugar = SPEC_PREFIX.has(depois) && inteiro(ps[g.fim + 1]) !== null && (g.valor ?? 0) > 99; // "1200 andar 8", "480 cômodo 2": o 8 e o 2 são o lugar
@@ -765,6 +766,8 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
       (ps[g.inicio - 1] === 'de' && (daCategoria(ps[g.inicio - 2] ?? '') === 'Materiais (M)' || daCategoria((ps[g.inicio - 2] ?? '').replace(/s$/, '')) === 'Materiais (M)')) || // "tubos de 100"
       (g.fim === e.inicio && g.centavos !== null && g.centavos % 100 !== 0 && g.centavos < 1000) ||
       // inteiro de 1 a 9 solto ("Ferragens 3 Marias"), a não ser que some outro valor ("e 5", "mais 5") ou seja "5 de ..."
+      // "R$ 480 caixas 12": número logo depois de unidade é o rótulo (caixa 12), não outro valor
+      (g.centavos !== null && g.centavos % 100 === 0 && g.centavos <= 9900 && inteiro(ps[g.inicio]) !== null && g.fim === g.inicio + 1 && UNIDADES.has(ps[g.inicio - 1] ?? '')) ||
       // "brita 12 R$ 480": inteiro até 20 logo depois de material ou de lugar descreve o material
       (g.centavos !== null && g.centavos % 100 === 0 && g.centavos <= 2000 && g.fim === g.inicio + 1 && inteiro(ps[g.inicio]) !== null &&
         (daCategoria(ps[g.inicio - 1] ?? '') === 'Materiais (M)' || SPEC_PREFIX.has(ps[g.inicio - 1] ?? '')) && !PERTO_DE_OUTRO_VALOR.test(ps[g.fim] ?? '')) ||
