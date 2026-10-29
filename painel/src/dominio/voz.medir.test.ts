@@ -17,6 +17,7 @@ import { CASOS_ROD49 } from './voz.rodadas13';
 import { CASOS_ROD50, CASOS_ROD51, CASOS_ROD52 } from './voz.rodadas14';
 import { CASOS_ROD53 } from './voz.rodadas15';
 import { CASOS_ROD54, CASOS_ROD55, CASOS_ROD56 } from './voz.rodadas16';
+import { CASOS_ROD57 } from './voz.rodadas17';
 import { gerarAdjacentes, gerarCego, gerarServicos } from './voz.fuzz';
 import { gerarCegoB } from './voz.fuzzB';
 
@@ -63,7 +64,7 @@ const fuzz = [1, 2, 3].flatMap((k) => [...gerarAdjacentes(BASE + 5000 + k, 700),
 const caos = [1, 2, 3, 4, 5].flatMap((k) => gerarCaos(BASE + 2000 + k, 600));
 
 describe('corpus da voz', () => {
-  const TODOS_FIXOS = [...CASOS_FIXOS, ...CASOS_ROD3, ...CASOS_ROD4, ...CASOS_ROD5, ...CASOS_ROD7, ...CASOS_ROD8, ...CASOS_ROD9, ...CASOS_ROD10, ...CASOS_ROD12, ...CASOS_ROD13, ...CASOS_ROD14, ...CASOS_ROD15, ...CASOS_ROD16, ...CASOS_ROD17, ...CASOS_ROD20, ...CASOS_ROD23, ...CASOS_ROD24, ...CASOS_ROD25, ...CASOS_ROD26, ...CASOS_ROD27, ...CASOS_ROD28, ...CASOS_ROD29, ...CASOS_ROD30, ...CASOS_ROD31, ...CASOS_ROD32, ...CASOS_ROD35, ...CASOS_ROD36, ...CASOS_ROD37, ...CASOS_ROD40, ...CASOS_ROD41, ...CASOS_ROD42, ...CASOS_ROD43, ...CASOS_ROD46, ...CASOS_ROD47, ...CASOS_ROD48, ...CASOS_ROD49, ...CASOS_ROD50, ...CASOS_ROD51, ...CASOS_ROD52, ...CASOS_ROD53, ...CASOS_ROD54, ...CASOS_ROD55, ...CASOS_ROD56];
+  const TODOS_FIXOS = [...CASOS_FIXOS, ...CASOS_ROD3, ...CASOS_ROD4, ...CASOS_ROD5, ...CASOS_ROD7, ...CASOS_ROD8, ...CASOS_ROD9, ...CASOS_ROD10, ...CASOS_ROD12, ...CASOS_ROD13, ...CASOS_ROD14, ...CASOS_ROD15, ...CASOS_ROD16, ...CASOS_ROD17, ...CASOS_ROD20, ...CASOS_ROD23, ...CASOS_ROD24, ...CASOS_ROD25, ...CASOS_ROD26, ...CASOS_ROD27, ...CASOS_ROD28, ...CASOS_ROD29, ...CASOS_ROD30, ...CASOS_ROD31, ...CASOS_ROD32, ...CASOS_ROD35, ...CASOS_ROD36, ...CASOS_ROD37, ...CASOS_ROD40, ...CASOS_ROD41, ...CASOS_ROD42, ...CASOS_ROD43, ...CASOS_ROD46, ...CASOS_ROD47, ...CASOS_ROD48, ...CASOS_ROD49, ...CASOS_ROD50, ...CASOS_ROD51, ...CASOS_ROD52, ...CASOS_ROD53, ...CASOS_ROD54, ...CASOS_ROD55, ...CASOS_ROD56, ...CASOS_ROD57];
   const fixos = medir(TODOS_FIXOS.filter((c) => !c.pendente));
   const ger = medir(gerados);
   const cao = medir(caos);

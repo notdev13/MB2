@@ -208,6 +208,18 @@ describe('interpretador de voz: correções', () => {
     expect(ler('dezoito mil de terraplenagem').categoria).toBe('Serviços (S)');
     expect(ler('900 de vergalhão').categoria).toBe('Materiais (M)');
   });
+
+  it('número pequeno de rótulo não vence o dinheiro; valor pequeno também é lido', () => {
+    expect(valor('areia pro 2º andar 480')).toBe(480_00);
+    expect(valor('pedreiro R$ 480 cômodo 2')).toBe(480_00);
+    expect(valor('areia pro 2º andar 18')).toBe(18_00);
+    expect(valor('mão de obra 95')).toBe(95_00);
+    expect(valor('Anuidade do CREA 1150')).toBe(1150_00);
+    expect(valor('brita 1 por 95')).toBe(95_00);
+    expect(valor('pedreiro 480 andar 2')).toBe(480_00);
+    // sobrou só um inteiro pequeno depois de descartar uma quantidade maior: dúvida, não chute
+    expect(ler('Mourão 100 unidades 18')).toMatchObject({ valor: null, duvidaValor: true });
+  });
 });
 
 describe('possíveis repetidos', () => {

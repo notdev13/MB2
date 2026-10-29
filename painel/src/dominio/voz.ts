@@ -277,7 +277,8 @@ const NOME_LUGAR = new Set(['rua', 'avenida', 'av', 'travessa', 'alameda', 'rodo
 const RUAS = new Set(['rua', 'avenida', 'av', 'travessa', 'alameda', 'rodovia', 'estrada']);
 const TELEFONE = new Set(['telefone', 'fone', 'tel', 'celular', 'whats', 'whatsapp', 'zap', 'contato']);
 // Número que descreve o lugar ou o material, não é valor: "banheiro 2", "cômodo 25", "cp 2", "brita 1".
-const SPEC_PREFIX = new Set(['tamanho', 'tam', 'bota', 'botina', 'calca', 'camisa', 'camiseta', 'sapato', 'tenis', 'luva', 'dn', 'km', 'etapa', 'fase', 'parte', 'medicao', 'boletim', 'pav', 'pavimento', 'cp', 'classe', 'banheiro', 'quarto', 'suite', 'cozinha', 'comodo', 'bloco', 'galpao', 'torre', 'andar']);
+const TAMANHOS = new Set(['tamanho', 'tam', 'bota', 'botina', 'calca', 'camisa', 'camiseta', 'sapato', 'tenis', 'luva']); // numeração de roupa/calçado vai até 99
+const SPEC_PREFIX =new Set(['tamanho', 'tam', 'bota', 'botina', 'calca', 'camisa', 'camiseta', 'sapato', 'tenis', 'luva', 'dn', 'km', 'etapa', 'fase', 'parte', 'medicao', 'boletim', 'pav', 'pavimento', 'cp', 'classe', 'banheiro', 'quarto', 'suite', 'cozinha', 'comodo', 'bloco', 'galpao', 'torre', 'andar']);
 // Medida técnica logo depois do número ("8 milímetros", "220 volts"): o número descreve o material, não é valor nem quantidade.
 const MEDIDA_TECNICA = new Set(['km', 'gb', 'mb', 'tb', 'mega', 'gbps', 'mbps', 'va', 'dbi', 'milimetro', 'milimetros', 'mm', 'centimetro', 'centimetros', 'cm', 'polegada', 'polegadas', 'volt', 'volts', 'v',
   'ampere', 'amperes', 'watts', 'w', 'hz', 'btu', 'btus', 'kva', 'kw', 'kwh', 'kwp', 'cv', 'hp', 'graus', 'rpm', 'bar', 'psi', 'ohms', 'mpa', 'kgf',
@@ -611,12 +612,12 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
     // "4 de 12", "1 de 3": posição numa série (parcela, boleto), não valor
     const serieA = /^\d{1,2}$/.test(p) ? Number(p) : null;
     const serieB = /^\d{1,2}$/.test(ps[i + 2] ?? '') ? Number(ps[i + 2]) : null;
-    if (serieA !== null && serieB !== null && ps[i + 1] === 'de' && serieA <= serieB && !MOEDA.has(ps[i + 3] ?? '') && ps[i + 3] !== 'r$') { ruido.add(i); ruido.add(i + 2); }
+    if (serieA !== null && serieB !== null && ps[i + 1] === 'de' && serieA <= serieB && serieB <= 30 && !MOEDA.has(ps[i + 3] ?? '') && ps[i + 3] !== 'r$') { ruido.add(i); ruido.add(i + 2); }
     if (p === 'x') for (const k of [i - 1, i + 1]) if (começaNumero(ps[k])) ruido.add(k); // "38 x 20 = 760"
     const a = numeroEscrito(p);
     const c = numeroEscrito(ps[i + 2] ?? '');
     if (a !== null && a <= 999 && ps[i + 1] === 'por' && c !== null && c <= 999 && !usadas.has(i) && !usadas.has(i + 2) &&
-      ((a <= 99 && c <= 99) || ps[i + 3] === 'de') && // "120 por 100 de alumínio" (medida em cm)
+      ((a < 10 && c < 10) || (a >= 10 && a <= 99 && c >= 10 && c <= 99) || ps[i + 3] === 'de') && // "120 por 100 de alumínio" (medida em cm)
       !MOEDA.has(ps[i + 3] ?? '') && !(ps[i + 3] === 'r$' && !começaNumero(ps[i + 4])) &&
       ps[i - 1] !== 'r$' && ps[i + 1 - 1] !== 'r$') { ruido.add(i); ruido.add(i + 2); } // "tábua de 2 por 4", "telha 40 por 40"
   });
@@ -637,16 +638,20 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
     const prev = ps[g.inicio - 1] ?? '';
     const depois = ps[g.fim] ?? '';
     if (MEDIDA_TECNICA.has(depois) && depois !== 'metros' && depois !== 'm2' && depois !== 'm3' && depois !== 'm²' && depois !== 'm³') return 'ruido';
-    if (NUMERADORES.has(prev) || (OBRA_NUM.has(prev) && /^\d{1,2}$/.test(ps[g.inicio] ?? ''))) return 'ruido'; // "lote 41", "obra 7": número da obra
+    const maoDeObra = prev === 'obra' && ps[g.inicio - 2] === 'de' && ps[g.inicio - 3] === 'mao'; // "mão de obra 95": é o valor
+    if (NUMERADORES.has(prev) || (OBRA_NUM.has(prev) && !maoDeObra && /^\d{1,2}$/.test(ps[g.inicio] ?? ''))) return 'ruido'; // "lote 41", "obra 7": número da obra
     if (prev === 'final' && /^\d{4}$/.test(ps[g.inicio]) && g.fim === g.inicio + 1) return 'ruido'; // "cartão final 4455"
     const n = g.fim === g.inicio + 1 ? inteiro(ps[g.inicio]) : null;
-    if (n !== null && ((SPEC_PREFIX.has(prev) && n <= (prev === 'dn' ? 999 : 99)) ||
+    // "2º andar 18": o andar vem antes do número, então o 18 continua sendo dinheiro
+    const andarAntes = prev === 'andar' && (/^\d+º$/.test(ps[g.inicio - 2] ?? '') || /^(primeiro|segundo|terceiro|quarto|quinto|sexto|setimo|oitavo|nono|decimo)$/.test(ps[g.inicio - 2] ?? ''));
+    if (n !== null && ((SPEC_PREFIX.has(prev) && !andarAntes && n <= (prev === 'dn' ? 999 : TAMANHOS.has(prev) ? 99 : 30)) ||
       (n >= 1 && n <= 9 && daCategoria(prev) === 'Materiais (M)' && !PERTO_DE_OUTRO_VALOR.test(depois)))) return 'ruido';
     // "2º andar 480": o andar vem antes do número, então o 480 continua sendo dinheiro
     const andarComOrdinal = prev === 'andar' && (numeroEscrito(ps[g.inicio - 2] ?? '') !== null || /^\d+º$/.test(ps[g.inicio - 2] ?? '') || /^(primeiro|segundo|terceiro|quarto|quinto|sexto|setimo|oitavo|nono|decimo)$/.test(ps[g.inicio - 2] ?? ''));
     // "parcela 3" é índice; "última parcela 2.000" é valor
     const documento = DOCUMENTOS.has(prev) && !andarComOrdinal && !(prev === 'parcela' && (g.valor ?? 0) > 99); // "segundo andar 480": o andar vem antes
-    if ((documento || DOCUMENTOS_LONGOS.has(prev)) && /^\d{4,}$/.test(ps[g.inicio])) return 'ruido'; // "nota fiscal 4521": número de documento
+    const minDigitos = ['crea', 'art', 'rrt', 'apolice', 'inscricao'].includes(prev) ? 5 : 4; // "anuidade do CREA 1150" é valor
+    if ((documento || DOCUMENTOS_LONGOS.has(prev)) && ps[g.inicio].length >= minDigitos && /^\d+$/.test(ps[g.inicio])) return 'ruido'; // "nota fiscal 4521": número de documento
     if (/^(metros?|m|m2|m3|m²|m³|kg|quilos?|litros?|toneladas?)$/.test(depois)) return 'ruido'; // "25 kg", "6 metros": medida, não quantidade a conferir
     const rotuloDeLugar = SPEC_PREFIX.has(depois) && inteiro(ps[g.fim + 1]) !== null && (g.valor ?? 0) > 99; // "1200 andar 8", "480 cômodo 2": o 8 e o 2 são o lugar
     // "4 1/2" (disco de 4 1/2), "caixa com 100": o número descreve o material, não é valor nem quantidade
