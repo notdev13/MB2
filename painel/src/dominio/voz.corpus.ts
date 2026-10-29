@@ -405,6 +405,51 @@ export const CASOS_ROD10: Caso[] = [
   { tipo: 'limite', frase: 'cem milhões de terreno', esperado: { valor: null } },
 ];
 
+// Caos: uma frase com UM valor claro (com "R$" ou "reais") misturado a números que não são dinheiro,
+// em ordem aleatória. O valor certo ou null passam; qualquer outro número é erro grave.
+export function gerarCaos(semente: number, quantidade: number, perigoso = false): Caso[] {
+  const r = aleatorio(semente * 104729 + 7);
+  const esc = <T,>(l: T[]): T => l[Math.floor(r() * l.length)];
+  const casos: Caso[] = [];
+  while (casos.length < quantidade) {
+    const reais = esc([35, 90, 120, 250, 360, 780, 1200, 2500, 4800, 12000, 65000]);
+    const cent = r() < 0.2 ? esc([10, 50, 75]) : 0;
+    const valorFala = esc([
+      `R$ ${milhar(reais)}${cent ? ',' + centavosTexto(cent) : ''}`,
+      `${milhar(reais)}${cent ? ',' + centavosTexto(cent) : ''} reais`,
+      cent ? `${porExtenso(reais)} reais e ${porExtenso(cent)} centavos` : `${porExtenso(reais)} reais`,
+    ]);
+    const n = () => esc([2, 3, 5, 8, 10, 12, 20, 40, 100, 250, 889, 4521]);
+    const palavra = () => esc(['dois', 'três', 'cinco', 'dez', 'vinte', 'cem', 'trinta e cinco']);
+    // Inofensivas: números que um humano não confunde com o valor. Perigosas: o valor passa a ser
+    // incerto (conta, estimativa, parcela); lá, null também é resposta certa.
+    const inofensivas = [
+      () => `${n()} ${esc(['sacos', 'metros', 'mm', 'dias', 'horas', 'm2', 'kg', 'latas', 'milímetros'])}`,
+      () => `de ${n()} mm`, () => `dia ${1 + Math.floor(r() * 27)}`, () => `${1 + Math.floor(r() * 27)} de março`,
+      () => `lote ${n()}`, () => `casa ${n()}`, () => `nota fiscal ${n()}`, () => `pedido ${n()}`,
+      () => `às ${1 + Math.floor(r() * 23)}h`, () => `cep 88063000`, () => `número ${n()}`,
+      () => `${palavra()} sacos`, () => `${n()}h`, () => `rua ${n()}`, () => `ano 2026`,
+    ];
+    const perigosas = [
+      () => `${n()}%`, () => `${palavra()} por cento`, () => `uns ${n()}`, () => `mais de ${n()}`, () => `quase ${palavra()}`,
+      () => `${n()} cada`, () => `em ${n()}x`, () => `em ${n()} vezes`, () => `${n()} parcelas`, () => `${palavra()} de entrada`,
+      () => `${n()} de desconto`, () => `metade`, () => `desconto`, () => `${n()} e meio`, () => `${palavra()} e meia`,
+    ];
+    const distracoes = perigoso ? [...inofensivas, ...perigosas] : inofensivas;
+    const enchimento = ['paguei', 'comprei', 'de cimento', 'de areia', 'no pix', 'ontem', 'hoje', 'no boleto', 'pro Ulisses', 'foi', 'então', 'tá', 'a pagar', 'no cartão', 'em dinheiro'];
+    const pedacos = [valorFala];
+    for (let i = r() * 3; i > 0; i--) pedacos.push(esc(distracoes)());
+    for (let i = r() * 4; i > 0; i--) pedacos.push(esc(enchimento));
+    for (let i = pedacos.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [pedacos[i], pedacos[j]] = [pedacos[j], pedacos[i]]; }
+    // Número colado no começo do valor ("ano 2026 mil e duzentos reais") ninguém sabe ler: não entra
+    const NUM = '(\\d[\\d.,]*|um|uma|dois|duas|tres|três|quatro|cinco|seis|sete|oito|nove|dez|onze|doze|treze|quatorze|quinze|dezesseis|dezessete|dezoito|dezenove|vinte|trinta|quarenta|cinquenta|sessenta|setenta|oitenta|noventa|cem|cento|duzentos|trezentos|quatrocentos|quinhentos|seiscentos|setecentos|oitocentos|novecentos|mil|meio|meia|e)';
+    const k = pedacos.indexOf(valorFala);
+    if (k > 0 && new RegExp(`(^|\\s)${NUM}$`).test(pedacos[k - 1]) && new RegExp(`^${NUM}(\\s|$)`).test(valorFala)) continue;
+    casos.push({ frase: pedacos.join(' '), esperado: { valor: reais * 100 + cent }, tipo: perigoso ? 'caos-perigoso' : 'caos' });
+  }
+  return casos;
+}
+
 // ---- gerador de frases ----
 
 function aleatorio(semente: number) {

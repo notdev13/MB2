@@ -166,7 +166,7 @@ const OBRA_NUM = new Set([...NUMERADORES, 'obra', 'numero', 'n']);
 // Número que identifica documento ("nota fiscal 1234", "pedido 4521"), não dinheiro.
 const DOCUMENTOS = new Set(['nota', 'nf', 'pedido', 'orcamento', 'ordem', 'cheque', 'protocolo', 'contrato', 'processo',
   'matricula', 'cpf', 'cnpj', 'telefone', 'fone', 'cep', 'fiscal', 'rua', 'avenida', 'av', 'travessa', 'apto', 'apartamento',
-  'sala', 'andar', 'ano']);
+  'sala', 'andar', 'ano', 'numero']);
 // Quantidade de tempo: o número solto que sobra costuma ser preço por dia/hora, não o total.
 const TEMPO = new Set(['dias', 'hora', 'horas', 'diaria', 'diarias', 'semana', 'semanas', 'meses']);
 // Palavras de conta ("metade de", "desconto de", "300 cada"): o valor falado não é o do lançamento.
@@ -508,6 +508,8 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
       const depois = ps[g.fim];
       if (depois === 'centavo' || depois === 'centavos') { // "noventa centavos"
         centavos = g.valor !== null && Number.isInteger(g.valor) && g.valor < 100 ? g.valor : null;
+        // "...reais e cinquenta centavos" cujo começo foi descartado: os centavos sozinhos não são o valor
+        if (ps[g.inicio - 1] === 'e' && MOEDA.has(ps[g.inicio - 2] ?? '')) centavos = null;
         fim++; moeda = true;
       } else if (depois === 'r$') { // "450 R$"
         moeda = true; fim++;
@@ -532,7 +534,8 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
       // "mil e pouco", "mil e tantos"
       if (ps[g.fim] === 'e' && /^(pouco|poucos|picos|tanto|tantos|alguma)$/.test(ps[g.fim + 1] ?? '')) centavos = null;
       // "3 vezes de 400", "10 parcelas de 300": não dá para saber se o lançamento é a parcela ou o total
-      if (ps[g.inicio - 1] === 'de' && (/^(parcelas|vezes|x)$/.test(ps[g.inicio - 2] ?? '') || /^\d+x$/.test(ps[g.inicio - 2] ?? ''))) centavos = null;
+      const ant = ps[g.inicio - 1] === 'r$' ? g.inicio - 2 : g.inicio - 1; // pula o "R$"
+      if (ps[ant] === 'de' && (/^(parcelas|vezes|x)$/.test(ps[ant - 1] ?? '') || /^\d+x$/.test(ps[ant - 1] ?? ''))) centavos = null;
       // "dia onze mil reais": pode ser dia 11 e mil reais, ou onze mil reais
       const dia = ps[g.inicio - 1] === 'dia' ? lerGrupo(ps, g.inicio) : null;
       if (dia && dia.valor <= 31 && g.valor !== null && g.valor > 31) centavos = null;
@@ -554,7 +557,8 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
   // "200 reais de areia e 100 de brita", "entrada de 1.200 e 3 parcelas de 500": dois valores, na dúvida não escolhe.
   const outroValor = (g: { inicio: number; fim: number; moeda: boolean }) =>
     !g.moeda && (/^(de|pro|pra|para|na|no|ou|ate)$/.test(ps[g.fim] ?? '') || ps[g.inicio - 1] === 'ou' || ps[g.inicio - 1] === 'ate' ||
-      (ps[g.fim] === 'a' && começaNumero(ps[g.fim + 1])) || (/^(parcelas?|vezes|x)$/.test(ps[g.inicio - 2] ?? '') && ps[g.inicio - 1] === 'de'));
+      (ps[g.fim] === 'a' && começaNumero(ps[g.fim + 1])) || (/^(parcelas?|vezes|x)$/.test(ps[g.inicio - 2] ?? '') && ps[g.inicio - 1] === 'de') ||
+      (ps[g.inicio - 1] === 'r$' && ps[g.inicio - 2] === 'de' && /^(parcelas|vezes|x)$/.test(ps[g.inicio - 3] ?? '')));
   if (escolhido && unicos.some((g) => g !== escolhido && outroValor(g))) escolhido = { ...escolhido, centavos: null };
   // "3 dias de servente 150": sem "reais" nem "por", o 150 pode ser a diária, não o total.
   const tempoSolto = numerosDe(ps).some((n) => TEMPO.has(ps[n.fim] ?? '') && !usadas.has(n.inicio));
