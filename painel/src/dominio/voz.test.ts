@@ -116,7 +116,7 @@ describe('interpretador de voz: correções', () => {
     expect(valor('2k de ferro')).toBe(2000_00);
     expect(valor('5 mil e 500 de tinta')).toBe(5500_00);
     expect(valor('dois e meio de madeira')).toBeNull();
-    expect(valor('meia hora de máquina 100')).toBeNull();
+    expect(valor('meia hora de máquina 100')).toBe(100_00);
   });
 
   it('centavos sempre em inteiros', () => {
@@ -296,5 +296,34 @@ describe('interpretador de voz: revisão cega (rodada 58)', () => {
     expect(valor('dias 5 e 6 pedreiro 900')).toBe(900_00);
     expect(valor('OS 17 pintura 2.800')).toBe(2800_00);
     expect(valor('recebi 500 do cliente')).toBeNull();
+  });
+});
+
+describe('interpretador de voz: rodada final', () => {
+  it('"por dia", "N dias" e "diária" nunca viram data', () => {
+    expect(ler('aluguel da betoneira 180 reais por dia, três dias, total 540')).toMatchObject({ valor: 540_00, data: null });
+    expect(ler('diária 150 por dia, dois dias, 300 no total')).toMatchObject({ valor: 300_00, data: null });
+    expect(ler('paguei dia 5 480 de areia').data).toBe('2026-10-05');
+  });
+
+  it('"pra dia N" e "vence dia N" são vencimento: sem data e a pagar', () => {
+    expect(ler('boleto pra dia 20 de ferro 1.300 reais')).toMatchObject({ valor: 1300_00, data: null, pago: false });
+    expect(ler('boleto para o dia 15 tijolo 900')).toMatchObject({ data: null, pago: false });
+    expect(ler('vence dia 18 o boleto da brita 740')).toMatchObject({ data: null, pago: false });
+  });
+
+  it('gastos comuns não ficam em branco', () => {
+    for (const [f, v] of [['disjuntor de 32 A 38 reais', 38], ['deu 2.050 reais o material elétrico', 2050], ['paguei a parcela 3 de 1.500 do terreno', 1500],
+      ['tinta 18 litros por 330', 330], ['meia diária do servente 75 reais', 75], ['uma lata de tinta de 180 reais', 180],
+      ['meio dia de pedreiro 150', 150], ['alugamos andaime 400 reais a semana', 400], ['cei da obra 1234 5678 taxa 340', 340]] as const) {
+      expect(ler(f).valor, f).toBe(v * 100);
+    }
+  });
+
+  it('frases que não são gasto ficam em branco', () => {
+    for (const f of ['o muro tem 2 metros e 20 de altura', 'o boleto de 1.200 chegou duplicado', 'será que 500 reais dá pra pagar a areia',
+      'estimativa de gasto com acabamento 40 mil', 'se o cliente pagar eu compro o ferro de 3 mil', 'sangria do caixa 500', 'tirei do caixa 300']) {
+      expect(ler(f).valor, f).toBeNull();
+    }
   });
 });
