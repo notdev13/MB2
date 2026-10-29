@@ -631,6 +631,28 @@ export const CASOS_ROD17: Caso[] = [
   { tipo: 'quantidade', frase: 'dois caminhões de areia', esperado: { valor: null } },
 ];
 
+// Duplos: duas despesas na mesma fala ("360 de cimento e 200 de areia"). Qualquer valor devolvido é erro:
+// o certo é null e a pessoa lança um de cada vez.
+export function gerarDuplos(semente: number, quantidade: number): Caso[] {
+  const r = aleatorio(semente * 15485863 + 11);
+  const esc = <T,>(l: T[]): T => l[Math.floor(r() * l.length)];
+  const casos: Caso[] = [];
+  const forma = (reais: number) => esc([
+    String(reais), milhar(reais), `${milhar(reais)} reais`, `R$ ${milhar(reais)}`, `R$ ${milhar(reais)},00`,
+    porExtenso(reais), `${porExtenso(reais)} reais`,
+  ]);
+  while (casos.length < quantidade) {
+    const [a, b] = [esc([35, 90, 120, 250, 360, 780, 1200, 2500, 4800, 12000]), esc([40, 100, 150, 300, 450, 900, 1500, 3000, 6500])];
+    if (a === b) continue;
+    const item = () => esc(['cimento', 'areia', 'brita', 'frete', 'tinta', 'prego', 'telha', 'eletricista']);
+    const ligacao = esc([' e ', ', ', ' mais ', ' e depois ', ' e também ', ' além disso ', '. ', '; ']);
+    const parte = (v: number) => esc([`${forma(v)} de ${item()}`, `${item()} ${forma(v)}`, `${forma(v)} pro ${esc(['Ulisses', 'Adriano'])}`]);
+    const verbo = esc(['', 'paguei ', 'comprei ', 'foi ']);
+    casos.push({ frase: verbo + parte(a) + ligacao + parte(b), esperado: { valor: null }, tipo: 'duplo' });
+  }
+  return casos;
+}
+
 // ---- gerador de frases ----
 
 function aleatorio(semente: number) {

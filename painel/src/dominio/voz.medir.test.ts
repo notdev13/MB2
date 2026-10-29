@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CASOS_FIXOS, CASOS_ROD3, CASOS_ROD4, CASOS_ROD5, CASOS_ROD7, CASOS_ROD8, CASOS_ROD9, CASOS_ROD10, CASOS_ROD12, CASOS_ROD13, CASOS_ROD14, CASOS_ROD15, CASOS_ROD16, CASOS_ROD17, CONTEXTO, gerarCaos, gerarCasos, type Caso } from './voz.corpus';
+import { CASOS_FIXOS, CASOS_ROD3, CASOS_ROD4, CASOS_ROD5, CASOS_ROD7, CASOS_ROD8, CASOS_ROD9, CASOS_ROD10, CASOS_ROD12, CASOS_ROD13, CASOS_ROD14, CASOS_ROD15, CASOS_ROD16, CASOS_ROD17, CONTEXTO, gerarCaos, gerarCasos, gerarDuplos, type Caso } from './voz.corpus';
 import { interpretarFala } from './voz';
 
 // Mede o interpretador de voz contra o corpus (fixo + gerado). `npm run voz:medir` imprime a taxa
@@ -39,6 +39,7 @@ const gerados = NIVEIS.flatMap((nivel) => [1, 2, 3].flatMap((k) => gerarCasos(BA
 
 // Frases de caos: o valor tem que ser o certo ou null
 const caosPerigoso = [1, 2, 3, 4, 5].flatMap((k) => gerarCaos(BASE + 1000 + k, 600, true));
+const duplos = [1, 2, 3].flatMap((k) => gerarDuplos(BASE + 3000 + k, 800));
 const caos = [1, 2, 3, 4, 5].flatMap((k) => gerarCaos(BASE + 2000 + k, 600));
 
 describe('corpus da voz', () => {
@@ -46,12 +47,13 @@ describe('corpus da voz', () => {
   const fixos = medir(TODOS_FIXOS.filter((c) => !c.pendente));
   const ger = medir(gerados);
   const cao = medir(caos);
+  const duplo = medir(duplos);
   const caoPerigoso = medir(caosPerigoso);
 
   it('imprime o relatório (npm run voz:medir)', () => {
     if (!ENV.VOZ_MEDIR) return;
     const linhas: string[] = [];
-    for (const [nome, m, n] of [['fixos', medir(TODOS_FIXOS), TODOS_FIXOS.length], ['gerados', ger, gerados.length], ['caos', cao, caos.length], ['caos-perigoso', caoPerigoso, caosPerigoso.length]] as const) {
+    for (const [nome, m, n] of [['fixos', medir(TODOS_FIXOS), TODOS_FIXOS.length], ['gerados', ger, gerados.length], ['caos', cao, caos.length], ['duplos', duplo, duplos.length], ['caos-perigoso', caoPerigoso, caosPerigoso.length]] as const) {
       linhas.push(`\n== ${nome}: ${n} frases`);
       for (const campo of CAMPOS) {
         if (m.total[campo]) linhas.push(`  ${campo.padEnd(9)} ${(((m.certos[campo] ?? 0) / m.total[campo]) * 100).toFixed(1)}%  (${m.certos[campo] ?? 0}/${m.total[campo]})`);
@@ -79,6 +81,7 @@ describe('corpus da voz', () => {
   it('caos: nunca devolve outro número como valor', () => {
     expect(cao.falhas.filter((f) => f.valorErrado)).toEqual([]);
     expect(caoPerigoso.falhas.filter((f) => f.valorErrado)).toEqual([]);
+    expect(duplo.falhas.filter((f) => f.valorErrado)).toEqual([]);
   });
 
   it('caos com números inofensivos: ainda acha o valor', () => {

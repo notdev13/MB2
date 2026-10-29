@@ -28,6 +28,7 @@ const simplificar = (s: string) => semAcento(s.toLowerCase()).replace(/[^a-z0-9]
 function palavrasOriginais(texto: string): string[] {
   return texto
     .replace(/\s*r\$\s*/gi, ' R$ ')
+    .replace(/[.;!?…]+(?=\s|$)/g, ' | ') // fim de frase: "doze mil. cem" são duas coisas
     .replace(/(\d)[ºª°]/g, '$1') // "dia 1º"
     .replace(/[–—]/g, ' ')
     .replace(/([a-zA-ZÀ-ÿ])\/([a-zA-ZÀ-ÿ])/g, '$1 $2') // "pix/boleto"; datas como 17/09 ficam
@@ -397,6 +398,7 @@ const PALAVRAS_CATEGORIA: [string, Categoria][] = [
 const MAPA_CATEGORIA = new Map(PALAVRAS_CATEGORIA);
 
 const VAZIAS = new Set([
+  '', // o "|" de fim de frase
   'paguei', 'pagou', 'pago', 'paga', 'pagamos', 'pagar', 'pagamento', 'gastei', 'gasto', 'gastamos', 'comprei',
   'compra', 'compramos', 'lancar', 'lanca', 'lancamento', 'custo', 'foi', 'de', 'do', 'da', 'dos', 'das', 'no',
   'na', 'nos', 'nas', 'em', 'com', 'o', 'a', 'os', 'as', 'ao', 'aos', 'um', 'uma', 'pro', 'pra', 'para', 'por',
@@ -588,6 +590,16 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
       (ps[g.fim] === 'a' && começaNumero(ps[g.fim + 1])) || (ps[g.inicio - 1] === 'a' && unicos.some((o) => o.fim === g.inicio - 1)) || (/^(parcelas?|vezes|x)$/.test(ps[g.inicio - 2] ?? '') && ps[g.inicio - 1] === 'de') ||
       (ps[g.inicio - 1] === 'r$' && ps[g.inicio - 2] === 'de' && /^(parcelas|vezes|x)$/.test(ps[g.inicio - 3] ?? '')));
   if (escolhido && unicos.some((g) => g !== escolhido && outroValor(g))) escolhido = { ...escolhido, centavos: null };
+ // A pessoa disse um valor com "R$"/"reais" e sobrou outro número solto ("tinta R$ 250 e depois frete 150"):
+  // dois lançamentos numa fala. Só passa se o valor veio depois de "por"/"total", ou se o resto é medida de material ("brita 2").
+  const medidaDeMaterial = (g: { inicio: number; centavos: number | null }) =>
+    g.centavos !== null && g.centavos % 100 === 0 && g.centavos <= 900 && MAPA_CATEGORIA.has(ps[g.inicio - 1] ?? '');
+  // Sobras que não são dinheiro: prazo ("12 meses", "5 anos"), ano ("2026") e número falado pequeno ("Quatro Irmãos").
+  const sobraSemValor = (g: { inicio: number; fim: number; centavos: number | null }) =>
+    /^(ano|anos|mes|meses)$/.test(ps[g.fim] ?? '') || /^(19|20)\d\d$/.test(ps[g.inicio]) ||
+    (palavraNum(ps[g.inicio]) !== undefined && g.centavos !== null && g.centavos < 2000) || medidaDeMaterial(g);
+  if (escolhido && escolhido === comMoeda[0] && comMoeda.length === 1 && !PISTAS.has(ps[escolhido.inicio - 1] ?? '') &&
+    unicos.some((g) => g !== escolhido && !sobraSemValor(g))) escolhido = { ...escolhido, centavos: null };
   // Número falado menor que 20 sem "reais"/"por" ("Dois Irmãos", "dez de frete") é nome ou quantidade.
   if (escolhido && !escolhido.moeda && !PISTAS.has(ps[escolhido.inicio - 1] ?? '') && palavraNum(ps[escolhido.inicio]) !== undefined &&
     escolhido.centavos !== null && escolhido.centavos < 2000) escolhido = { ...escolhido, centavos: null };
