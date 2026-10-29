@@ -25,6 +25,8 @@ export const SEM_FALA_MS = 6000;       // antes de ouvir qualquer palavra
 export const LIMITE_MS = 30000;        // tempo total da escuta
 export const ESPERA_FIM_MS = 1500;     // se o navegador não avisar o fim, fechamos sozinhos
 export const PEDINDO_MS = 20000;      // permissão que nunca responde
+export const NOVA_TENTATIVA_MS = 100;  // start() logo após onend pode falhar no iOS
+export const MAX_TENTATIVAS = 2;       // novas tentativas antes de desistir
 export const MAX_VAZIOS = 4;           // reinícios seguidos sem nenhum resultado
 export const CURTA_MS = 300;           // instância que acaba antes disso é suspeita
 export const MAX_CURTAS = 5;           // reinícios seguidos curtíssimos (laço)
@@ -96,13 +98,13 @@ export function criarSessao(o: OpcoesSessao): Sessao {
   let tLimite: ReturnType<typeof setTimeout> | null = null;
   let tFim: ReturnType<typeof setTimeout> | null = null;
   let tPedindo: ReturnType<typeof setTimeout> | null = null;
+  let tTentativa: ReturnType<typeof setTimeout> | null = null;
   let armado = false;        // relógios de silêncio/limite já começaram
   let manual = false;        // a pessoa tocou para parar (sem fala não é erro)
 
   const limpar = (t: ReturnType<typeof setTimeout> | null) => { if (t) clearTimeout(t); return null; };
-  const limparTimers = () => { tSilencio = limpar(tSilencio); tLimite = limpar(tLimite); tFim = limpar(tFim); tPedindo = limpar(tPedindo); };
-  const junta = (a: string, b: string) => [a.trim(), b.trim()].filter(Boolean).join(' ');
-  const falado = () => junta(acumulado, junta(instFinal, instParcial));
+  const limparTimers = () => { tSilencio = limpar(tSilencio); tLimite = limpar(tLimite); tFim = limpar(tFim); tPedindo = limpar(tPedindo); tTentativa = limpar(tTentativa); };
+  const falado = () => unirSemRepetir(acumulado, juntarTexto(instFinal, instParcial));
   const estado = (e: EstadoVoz) => { if (!morta) o.aoEstado(e); };
 
   function soltar() {
@@ -116,14 +118,14 @@ export function criarSessao(o: OpcoesSessao): Sessao {
     if (!ativa) return;
     ativa = false;
     limparTimers();
-    acumulado = junta(acumulado, junta(instFinal, instParcial));
+    acumulado = falado();
     instFinal = instParcial = '';
     const antigo = r;
     soltar();
     if (antigo) { try { antigo.abort ? antigo.abort() : antigo.stop(); } catch { /* já parado */ } }
     if (morta) return;
     const texto = acumulado.trim();
-    const cod = erro ?? (texto || manual ? null : 'no-speech');
+    const cod = erro === 'start' && texto ? null : erro ?? (texto || manual ? null : 'no-speech');
     estado(cod && !texto ? 'erro' : 'pronto');
     o.aoFim(texto, cod);
   }
@@ -153,6 +155,16 @@ export function criarSessao(o: OpcoesSessao): Sessao {
     tFim = setTimeout(fechar, ESPERA_FIM_MS); // se o onend nunca vier
   }
 
+  // start() logo depois do onend pode lançar InvalidStateError no iOS: tenta de novo antes de desistir.
+  function tentarStart(tentativa: number) {
+    const atual = r;
+    if (!atual || !ativa) return;
+    try { atual.start(); } catch {
+      if (tentativa >= MAX_TENTATIVAS) { erro = erro ?? 'start'; fechar(); return; }
+      tTentativa = setTimeout(() => { tTentativa = null; if (r === atual && ativa) tentarStart(tentativa + 1); }, NOVA_TENTATIVA_MS);
+    }
+  }
+
   function novaInstancia(): boolean {
     const Ctor = o.construtor;
     let n: ReconhecedorVoz;
@@ -164,7 +176,8 @@ export function criarSessao(o: OpcoesSessao): Sessao {
     teveResultado = false;
     inicioInst = Date.now();
     r = n;
-    n.onstart = n.onaudiostart = () => { if (r === n && ativa && !encerrando) { estado('ouvindo'); armar(); } };
+    // Só o áudio aberto (ou o primeiro resultado) conta: o onstart pode vir antes do "Permitir".
+    n.onaudiostart = () => { if (r === n && ativa && !encerrando) { estado('ouvindo'); armar(); } };
     n.onresult = (e) => {
       if (r !== n || !ativa) return;
       let f = '';
@@ -200,7 +213,7 @@ export function criarSessao(o: OpcoesSessao): Sessao {
     n.onend = () => {
       if (r !== n || !ativa) return;
       tFim = limpar(tFim);
-      acumulado = junta(acumulado, junta(instFinal, instParcial));
+      acumulado = falado();
       instFinal = instParcial = '';
       if (!teveResultado) vazios++;
       curtas = Date.now() - inicioInst < CURTA_MS ? curtas + 1 : 0;
@@ -212,7 +225,7 @@ export function criarSessao(o: OpcoesSessao): Sessao {
       // Safari encerrou cedo (pausa): continua ouvindo até o silêncio ou o limite.
       soltar();
       if (!novaInstancia()) { erro = erro ?? 'start'; fechar(); return; }
-      try { r!.start(); } catch { erro = erro ?? 'start'; fechar(); }
+      tentarStart(0);
     };
     return true;
   }
@@ -262,4 +275,32 @@ export function vibrar(ms: number | number[]) {
 /** Junta o texto que já existia com o que acabou de ser falado, sem apagar nada. */
 export function juntarTexto(base: string, falado: string): string {
   return [base.trim(), falado.trim()].filter(Boolean).join(' ');
+}
+
+const normalizar = (p: string) => p.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+/**
+ * Junta o que já foi entendido com o trecho de uma nova instância do reconhecedor. O Safari às vezes
+ * repete o final do trecho anterior ao reiniciar: o começo do trecho novo que repete o final do
+ * anterior (ignorando maiúsculas, acentos e pontuação) é descartado. Vale também para números: na
+ * dúvida, não duplica. Repetições dentro de uma mesma instância não passam por aqui.
+ */
+export function unirSemRepetir(anterior: string, novo: string): string {
+  const a = anterior.trim().split(/\s+/).filter(Boolean);
+  const n = novo.trim().split(/\s+/).filter(Boolean);
+  const na = a.map(normalizar);
+  const nn = n.map(normalizar);
+  // O trecho novo já contém tudo o que havia (o Safari reescreveu com mais contexto): vale o novo.
+  // Uma palavra sozinha só conta se for número; "de" ou "a" soltos poderiam ser fala nova.
+  if (na.length > 0 && na.length <= nn.length && (na.length >= 2 || /\d/.test(na[0]))) {
+    for (let i = 0; i + na.length <= nn.length; i++) {
+      if (na.every((p, j) => p !== '' && p === nn[i + j])) return [...n.slice(0, i), ...a, ...n.slice(i + na.length)].join(' ');
+    }
+  }
+  for (let k = Math.min(na.length, nn.length); k > 0; k--) {
+    let igual = true;
+    for (let i = 0; i < k && igual; i++) igual = na[na.length - k + i] === nn[i] && nn[i] !== '';
+    if (igual) return [...a, ...n.slice(k)].join(' ');
+  }
+  return [...a, ...n].join(' ');
 }

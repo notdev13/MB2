@@ -5,6 +5,7 @@ import { criarSessao, type OpcoesSessao, type Sessao } from './sessaoVoz';
 export class RecSim implements ReconhecedorVoz {
   static todas: RecSim[] = [];
   static falhaNoStart: string | null = null; // faz start() lançar exceção
+  static falhasRestantes = 0;                  // as próximas N chamadas de start() lançam (InvalidStateError)
   lang = ''; interimResults = false; continuous = true;
   onstart: (() => void) | null = null;
   onaudiostart: (() => void) | null = null;
@@ -16,12 +17,15 @@ export class RecSim implements ReconhecedorVoz {
   constructor() { RecSim.todas.push(this); }
   start() {
     if (RecSim.falhaNoStart) throw new Error(RecSim.falhaNoStart);
+    if (RecSim.falhasRestantes > 0) { RecSim.falhasRestantes--; throw new Error('InvalidStateError'); }
     if (this.vivo) throw new Error('InvalidStateError');
     this.vivo = true; this.iniciou++;
   }
   stop() { this.parou++; }
   abort() { this.abortou++; }
   // ----- comandos do teste -----
+  soStart() { this.onstart?.(); }
+  soAudio() { this.onaudiostart?.(); }
   abriu() { this.onstart?.(); this.onaudiostart?.(); }
   /** itens: [texto, final?] — a lista inteira de resultados da instância. */
   resultados(...itens: [string, boolean][]) {
@@ -31,7 +35,7 @@ export class RecSim implements ReconhecedorVoz {
   erro(codigo: string) { this.onerror?.({ error: codigo }); }
   fim() { this.vivo = false; this.onend?.(); }
   static ultima() { return RecSim.todas[RecSim.todas.length - 1]; }
-  static reset() { RecSim.todas = []; RecSim.falhaNoStart = null; }
+  static reset() { RecSim.todas = []; RecSim.falhaNoStart = null; RecSim.falhasRestantes = 0; }
 }
 
 export interface Registro {

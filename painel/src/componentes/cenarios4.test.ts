@@ -83,7 +83,7 @@ describe('Rodada 7: o navegador falha de formas feias', () => {
     rec.fim();
     RecSim.todas.push = original;
     expect(antigo.length).toBe(1);
-    expect(r.fins).toEqual([{ texto: 'areia', erro: 'start' }]);
+    expect(r.fins).toEqual([{ texto: 'areia', erro: null }]);
   });
   it('C60 resultado com lista vazia e item sem [0] não quebra', () => {
     const r = montar(); r.sessao.iniciar(); RecSim.ultima().abriu();

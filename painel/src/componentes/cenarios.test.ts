@@ -163,7 +163,8 @@ describe('Rodada 3: toque duplo, desmontar, falhas', () => {
     const r = montar(); r.sessao.iniciar(); RecSim.ultima().abriu();
     RecSim.ultima().resultados(['cimento', true]);
     RecSim.falhaNoStart = 'x'; RecSim.ultima().fim();
-    expect(r.fins).toEqual([{ texto: 'cimento', erro: 'start' }]);
+    vi.advanceTimersByTime(1000);
+    expect(r.fins).toEqual([{ texto: 'cimento', erro: null }]);
     expect(vi.getTimerCount()).toBe(0);
   });
   it('C21 onend nunca chega depois do stop: fecha sozinho', () => {
