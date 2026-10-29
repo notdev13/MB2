@@ -34,7 +34,7 @@ function palavrasOriginais(texto: string): string[] {
     .replace(/(\d)\s*rs\b/gi, '$1 reais') // "500rs"
     .replace(/\s*r\$\s*/gi, ' R$ ')
     .replace(/[.;!?…]+(?=\s|$)/g, ' | ') // fim de frase: "doze mil. cem" são duas coisas
-    .replace(/(\d)[ºª°]/g, '$1') // "dia 1º"
+    .replace(/(\d)[ºª°]/g, '$1º') // "dia 1º", "13º salário": ordinal não é número solto
     .replace(/[–—]/g, ' ')
     .replace(/([a-zA-ZÀ-ÿ])\/([a-zA-ZÀ-ÿ])/g, '$1 $2') // "pix/boleto"; datas como 17/09 ficam
     .replace(/(\d)\/([a-zA-ZÀ-ÿ])/g, '$1 por $2') // "38/saco" = 38 por saco
@@ -229,7 +229,7 @@ const MOEDA = new Set(['reais', 'real', 'conto', 'contos', 'pila', 'pilas', 'pra
 const NUMERADORES = new Set(['lote', 'casa', 'lt', 'quadra', 'qd']);
 const OBRA_NUM = new Set([...NUMERADORES, 'obra', 'numero', 'n']);
 // Número que identifica documento ("nota fiscal 1234", "pedido 4521"), não dinheiro.
-const DOCUMENTOS = new Set(['cei', 'cno', 'recibo', 'fatura', 'duplicata', 'comprovante', 'cupom', 'romaneio', 'nota', 'nf', 'pedido', 'orcamento', 'ordem', 'cheque', 'protocolo', 'contrato', 'processo',
+const DOCUMENTOS = new Set(['nf-e', 'nfs', 'nfse', 'cei', 'cno', 'recibo', 'fatura', 'duplicata', 'comprovante', 'cupom', 'romaneio', 'nota', 'nf', 'pedido', 'orcamento', 'ordem', 'cheque', 'protocolo', 'contrato', 'processo',
   'matricula', 'cpf', 'cnpj', 'telefone', 'fone', 'cep', 'fiscal', 'apto', 'apartamento',
   'sala', 'andar', 'ano', 'parcela', 'agencia', 'conta', 'numero', 'nfe', 'nº', 'n°', 'n', 'codigo', 'cod', 'ref', 'referencia', 'item', 'modelo', 'serie']);
 // Estes só são documento quando o número tem 4 dígitos ou mais ("RRT 130" ainda pode ser o valor).
@@ -279,7 +279,7 @@ const TELEFONE = new Set(['telefone', 'fone', 'tel', 'celular', 'whats', 'whatsa
 // Número que descreve o lugar ou o material, não é valor: "banheiro 2", "cômodo 25", "cp 2", "brita 1".
 const SPEC_PREFIX = new Set(['tamanho', 'tam', 'bota', 'botina', 'calca', 'camisa', 'camiseta', 'sapato', 'tenis', 'luva', 'dn', 'km', 'etapa', 'fase', 'parte', 'medicao', 'boletim', 'pav', 'pavimento', 'cp', 'classe', 'banheiro', 'quarto', 'suite', 'cozinha', 'comodo', 'bloco', 'galpao', 'torre', 'andar']);
 // Medida técnica logo depois do número ("8 milímetros", "220 volts"): o número descreve o material, não é valor nem quantidade.
-const MEDIDA_TECNICA = new Set(['milimetro', 'milimetros', 'mm', 'centimetro', 'centimetros', 'cm', 'polegada', 'polegadas', 'volt', 'volts', 'v',
+const MEDIDA_TECNICA = new Set(['km', 'gb', 'mb', 'tb', 'mega', 'gbps', 'mbps', 'va', 'dbi', 'milimetro', 'milimetros', 'mm', 'centimetro', 'centimetros', 'cm', 'polegada', 'polegadas', 'volt', 'volts', 'v',
   'ampere', 'amperes', 'watts', 'w', 'hz', 'btu', 'btus', 'kva', 'kw', 'kwh', 'kwp', 'cv', 'hp', 'graus', 'rpm', 'bar', 'psi', 'ohms', 'mpa', 'kgf',
   'kelvin', 'lumens', 'lux', 'micras', 'kcal', 'newtons', 'decibeis', 'hectares', 'alqueires', 'pes', 'jardas', 'milhas', 'gramas', 'miligramas',
   'centilitros', 'ml', 'cl', 'demao', 'demaos', 'metros', 'm2', 'm3', 'm²', 'm³']);
@@ -327,6 +327,8 @@ function montarData(dia: number, mes: number | null, ano: number | null, hoje: s
 // num dia: "dia dois mil e quinhentos reais" não é dia 2.
 function diaDe(ps: string[], i: number): { dia: number; fim: number } | null {
   if (ps[i] === 'primeiro') return { dia: 1, fim: i + 1 };
+  const ordinal = (ps[i] ?? '').match(/^(\d{1,2})º$/);
+  if (ordinal && Number(ordinal[1]) >= 1 && Number(ordinal[1]) <= 31) return { dia: Number(ordinal[1]), fim: i + 1 };
   const n = começaNumero(ps[i]) ? lerNumero(ps, i) : null;
   return n && n.valor !== null && Number.isInteger(n.valor) && n.valor >= 1 && n.valor <= 31 ? { dia: n.valor, fim: n.fim } : null;
 }
@@ -641,7 +643,7 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
     if (n !== null && ((SPEC_PREFIX.has(prev) && n <= (prev === 'dn' ? 999 : 99)) ||
       (n >= 1 && n <= 9 && daCategoria(prev) === 'Materiais (M)' && !PERTO_DE_OUTRO_VALOR.test(depois)))) return 'ruido';
     // "2º andar 480": o andar vem antes do número, então o 480 continua sendo dinheiro
-    const andarComOrdinal = prev === 'andar' && (numeroEscrito(ps[g.inicio - 2] ?? '') !== null || /^(primeiro|segundo|terceiro|quarto|quinto|sexto|setimo|oitavo|nono|decimo)$/.test(ps[g.inicio - 2] ?? ''));
+    const andarComOrdinal = prev === 'andar' && (numeroEscrito(ps[g.inicio - 2] ?? '') !== null || /^\d+º$/.test(ps[g.inicio - 2] ?? '') || /^(primeiro|segundo|terceiro|quarto|quinto|sexto|setimo|oitavo|nono|decimo)$/.test(ps[g.inicio - 2] ?? ''));
     // "parcela 3" é índice; "última parcela 2.000" é valor
     const documento = DOCUMENTOS.has(prev) && !andarComOrdinal && !(prev === 'parcela' && (g.valor ?? 0) > 99); // "segundo andar 480": o andar vem antes
     if ((documento || DOCUMENTOS_LONGOS.has(prev)) && /^\d{4,}$/.test(ps[g.inicio])) return 'ruido'; // "nota fiscal 4521": número de documento
