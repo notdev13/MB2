@@ -10,6 +10,7 @@ import { VALIDACAO7 } from './voz.validacao7';
 import { VALIDACAO8 } from './voz.validacao8';
 import { VALIDACAO9 } from './voz.validacao9';
 import { VALIDACAO10 } from './voz.validacao10';
+import { VALIDACAO11 } from './voz.validacao11';
 
 // Conjunto "cega2": 1.020 frases escritas por um revisor independente (sintéticas). Entra como conjunto fixo de treino.
 // Desacordos conhecidos e aceitos (o revisor espera outra coisa; anotados no relatório):
@@ -125,5 +126,15 @@ describe('validações 9 e 10 (agora treino)', () => {
   it('nenhum valor errado, nenhuma regressão de campos', () => {
     expect(m.errados).toEqual([]);
     expect(m.secundarios).toEqual([]);
+  });
+});
+
+// Validação 11 (rodada 68): reforma residencial, valor no começo/meio/fim, compras online. Medida ANTES dos ajustes:
+// 6 valores errados em 122 (4,9%; 3 deles eram expectativas minhas ambíguas, revistas depois) e 5,4% de brancos; depois virou treino.
+describe('validação 11 (agora treino)', () => {
+  const m = medirLinhas(VALIDACAO11);
+  it('nenhum valor errado, nenhuma regressão de campos', () => {
+    expect(m.errados).toEqual([]);
+    expect(m.secundarios).toEqual(['cobrança só no fim do mês 3.300 => pago:null!=false']);
   });
 });
