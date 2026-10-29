@@ -181,8 +181,12 @@ const TEMPO = new Set(['dias', 'hora', 'horas', 'diaria', 'diarias', 'semana', '
 const CALCULO = new Set(['cada', 'metade', 'dobro', 'triplo', 'desconto', 'abatimento', 'troco', 'sobrou', 'restou', 'restante',
   'diferenca', 'estorno', 'estornei', 'reembolso', 'reembolsei', 'devolveram', 'devolvi', 'devolucao', 'cotacao', 'cotei',
   'proposta', 'simulacao', 'estimativa', 'previsao', 'recebi', 'recebemos', 'recebido', 'aumentou', 'aumento', 'aumentaram', 'reajuste', 'reajustou', 'subiu',
-  'caiu', 'acrescimo', 'caro', 'barato', 'mais', 'menos']); // recebido = receita, não custo
+  'caiu', 'acrescimo', 'caro', 'barato', 'mais', 'menos',
+  // comandos de edição: o interpretador só entende lançamento novo
+  'apaga', 'apagar', 'exclui', 'excluir', 'remove', 'remover', 'cancela', 'cancelar', 'desfaz', 'desfazer', 'deleta',
+  'deletar', 'corrige', 'corrigir', 'altera', 'alterar', 'muda', 'mudar']); // recebido = receita, não custo
 const ESTRANGEIRA = new Set(['dolar', 'dolares', 'euro', 'euros', 'libra', 'libras']);
+const SIMBOLO_ESTRANGEIRO = new Set(['us$', 'usd', 'u$s', 'eur', 'dolar', 'dolares', 'euro', 'euros']);
 const PISTAS = new Set(['por', 'total', 'valor', 'custou', 'ficou']);
 
 // ---- datas ----
@@ -508,7 +512,8 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
   const colados = new Set<Numero>();
   livres.forEach((n, k) => {
     const antes = livres[k - 1];
-    if (antes && antes.fim === n.inicio && numeroEscrito(ps[n.inicio]) !== null && numeroEscrito(ps[antes.fim - 1]) !== null) {
+    if (antes && antes.fim === n.inicio && numeroEscrito(ps[n.inicio]) !== null && numeroEscrito(ps[antes.fim - 1]) !== null &&
+      antes.valor !== n.valor) { // gagueira ("300 300") não é número colado
       colados.add(n); colados.add(antes);
     }
   });
@@ -519,6 +524,9 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
       let fim = g.fim;
       let moeda = ps[g.inicio - 1] === 'r$';
       const depois = ps[g.fim];
+      if (SIMBOLO_ESTRANGEIRO.has(ps[g.inicio - 1] ?? '')) centavos = null; // "US$ 300", "dólares 300"
+      // "150 por dia", "120 ao dia", "40 o saco": preço de cada, não o total
+      if (/^(por|ao|a|o)$/.test(depois ?? '') && (UNIDADES.has(ps[g.fim + 1] ?? '') || TEMPO.has(ps[g.fim + 1] ?? '') || ps[g.fim + 1] === 'dia')) centavos = null;
       if (depois === 'centavo' || depois === 'centavos') { // "noventa centavos"
         centavos = g.valor !== null && Number.isInteger(g.valor) && g.valor < 100 ? g.valor : null;
         // "...reais e cinquenta centavos" cujo começo foi descartado: os centavos sozinhos não são o valor
@@ -579,7 +587,7 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
   if (escolhido && !escolhido.moeda && !PISTAS.has(ps[escolhido.inicio - 1] ?? '') && palavraNum(ps[escolhido.inicio]) !== undefined &&
     escolhido.centavos !== null && escolhido.centavos < 2000) escolhido = { ...escolhido, centavos: null };
   // "3 dias de servente 150": sem "reais" nem "por", o 150 pode ser a diária, não o total.
-  const tempoSolto = numerosDe(ps).some((n) => TEMPO.has(ps[n.fim] ?? '') && !usadas.has(n.inicio));
+  const tempoSolto = numerosDe(ps).some((n) => TEMPO.has(ps[n.fim] ?? '') && !usadas.has(n.inicio) && !(n.valor === 1 && ps[n.fim] === 'diaria'));
   if (escolhido && tempoSolto && !escolhido.moeda && !PISTAS.has(ps[escolhido.inicio - 1] ?? '')) escolhido = { ...escolhido, centavos: null };
   if (escolhido && ps.some((p) => CALCULO.has(p))) escolhido = { ...escolhido, centavos: null };
   // "meio dia de servente 150", "meia hora": metade de alguma coisa que não é "dois e meio"/"meio milhão"

@@ -535,6 +535,32 @@ export const CASOS_ROD14: Caso[] = [
   { tipo: 'obra', frase: 'Olindina e Laureano 300 de areia', esperado: { valor: 300_00, obraId: null } },
 ];
 
+// Rodada 15: comandos (apagar/corrigir), dólar com símbolo, valor por dia sem "reais", repetição e autocorreção na fala.
+export const CASOS_ROD15: Caso[] = [
+  { tipo: 'comando', frase: 'apaga o de 300 reais', esperado: { valor: null } },
+  { tipo: 'comando', frase: 'cancela o lançamento de 450 de areia', esperado: { valor: null } },
+  { tipo: 'comando', frase: 'corrige para 700 reais', esperado: { valor: null } },
+  { tipo: 'dolar', frase: 'US$ 300 de ferro', esperado: { valor: null } },
+  { tipo: 'dolar', frase: 'usd 300 de ferro', esperado: { valor: null } },
+  { tipo: 'dolar', frase: 'dólares 300 de ferro', esperado: { valor: null } },
+  { tipo: 'unitario', frase: 'pedreiro 150 por dia', esperado: { valor: null } },
+  { tipo: 'unitario', frase: 'servente 120 ao dia', esperado: { valor: null } },
+  { tipo: 'unitario', frase: 'pedreiro uma diária de 150', esperado: { valor: 150_00, categoria: MO } },
+  { tipo: 'unitario', frase: 'três diárias de pedreiro', esperado: { valor: null } },
+  { tipo: 'centavos', frase: '3,5 mil reais e 50 centavos', esperado: { valor: 3500_50 } },
+  { tipo: 'centavos', frase: 'R$ 360,50 centavos', esperado: { valor: null } },
+  { tipo: 'centavos', frase: 'trezentos e sessenta e cinquenta centavos', esperado: { valor: null } },
+  { tipo: 'repeticao', frase: 'paguei 300 300 de areia', esperado: { valor: 300_00 } },
+  { tipo: 'repeticao', frase: 'paguei trezentos reais, trezentos reais de areia', esperado: { valor: 300_00 } },
+  { tipo: 'autocorrecao', frase: 'paguei 300, não, 360 de areia', esperado: { valor: null } },
+  { tipo: 'autocorrecao', frase: 'paguei trezentos, quer dizer, trezentos e sessenta', esperado: { valor: null } },
+  { tipo: 'prefixo', frase: 'reais 300 de areia', esperado: { valor: 300_00 } },
+  { tipo: 'prefixo', frase: 'valor em reais 300', esperado: { valor: 300_00 } },
+  { tipo: 'terceiros', frase: 'paguei 300 pro Ulisses de 2 dias', esperado: { valor: null } },
+  { tipo: 'terceiros', frase: 'MIL E QUINHENTOS PRO ULISSES', esperado: { valor: 1500_00, categoria: MO } },
+  { tipo: 'pergunta', frase: 'quanto gastei no lote 39', esperado: { valor: null, obraId: 'l39' } },
+];
+
 // ---- gerador de frases ----
 
 function aleatorio(semente: number) {
