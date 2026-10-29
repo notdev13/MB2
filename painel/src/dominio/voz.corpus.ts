@@ -309,6 +309,36 @@ export const CASOS_ROD7: Caso[] = [
   { tipo: 'pagamento', frase: 'cartão de débito 300 de areia', esperado: { valor: 300_00, pagamento: 'cartao' } },
 ];
 
+// Rodada 8: erros de reconhecimento, pontuação estranha, estimativas e nomes de obra mal ouvidos.
+export const CASOS_ROD8: Caso[] = [
+  { tipo: 'digitos-e', frase: '300 e 60 reais de cimento', esperado: { valor: null } },
+  { tipo: 'digitos-e', frase: 'paguei 1.000 e 500 de areia', esperado: { valor: null } },
+  { tipo: 'feminino', frase: 'duzentas e cinquenta reais de telha', esperado: { valor: 250_00 } },
+  { tipo: 'feminino', frase: 'trezentas telhas por quatrocentas e vinte', esperado: { valor: 420_00 } },
+  { tipo: 'portugal', frase: 'dezasseis mil de laje', esperado: { valor: 16000_00 } },
+  { tipo: 'portugal', frase: 'dezassete reais de prego', esperado: { valor: 17_00 } },
+  { tipo: 'estimativa', frase: 'mil e pouco de areia', esperado: { valor: null } },
+  { tipo: 'estimativa', frase: 'mil e tantos reais de areia', esperado: { valor: null } },
+  { tipo: 'estimativa', frase: 'mais de quinhentos reais de areia', esperado: { valor: null } },
+  { tipo: 'estimativa', frase: 'no máximo 300 de areia', esperado: { valor: null } },
+  { tipo: 'estimativa', frase: 'por volta de 300 reais de areia', esperado: { valor: null } },
+  { tipo: 'estimativa', frase: 'na faixa de 300 reais de areia', esperado: { valor: null } },
+  { tipo: 'estimativa', frase: 'quase 300 reais de areia', esperado: { valor: null } },
+  { tipo: 'espaco', frase: 'R$\u00a01.200 de areia', esperado: { valor: 1200_00 } },
+  { tipo: 'pontuacao', frase: 'paguei… 300 de areia', esperado: { valor: 300_00, pago: true } },
+  { tipo: 'pontuacao', frase: '“trezentos” reais de areia', esperado: { valor: 300_00 } },
+  { tipo: 'pontuacao', frase: 'paguei - 300 - de areia - no pix', esperado: { valor: 300_00, pagamento: 'pix', pago: true } },
+  { tipo: 'pontuacao', frase: 'PAGUEI 300 DE AREIA NO PIX!!!', esperado: { valor: 300_00, pagamento: 'pix', pago: true } },
+  { tipo: 'pontuacao', frase: 'pix/boleto 300 de areia', esperado: { valor: 300_00, pagamento: null } },
+  { tipo: 'dois-valores', frase: 'paguei 360 pro Ulisses e 500 pro Adriano', esperado: { valor: null } },
+  { tipo: 'obra', frase: '300 de areia na olindinha', esperado: { valor: 300_00, obraId: 'oli' } },
+  { tipo: 'obra', frase: '300 de areia no lauriano', esperado: { valor: 300_00, obraId: 'lau' } },
+  { tipo: 'obra', frase: '300 de areia na ecovilla', esperado: { valor: 300_00, obraId: 'eco' } },
+  { tipo: 'obra', frase: '300 de areia no Rio Tavares', esperado: { valor: 300_00, obraId: 'l12' } },
+  { tipo: 'obra', frase: '300 de areia no Campeche', esperado: { valor: 300_00, obraId: 'l39' } },
+  { tipo: 'data', frase: 'sábado via pix 450 de aluguel de andaime', esperado: { valor: 450_00, data: '2026-10-24', pagamento: 'pix' } },
+];
+
 // ---- gerador de frases ----
 
 function aleatorio(semente: number) {

@@ -30,8 +30,9 @@ function palavrasOriginais(texto: string): string[] {
     .replace(/r\$\s*/gi, 'R$ ')
     .replace(/(\d)[ºª°]/g, '$1') // "dia 1º"
     .replace(/[–—]/g, ' ')
+    .replace(/([a-zA-ZÀ-ÿ])\/([a-zA-ZÀ-ÿ])/g, '$1 $2') // "pix/boleto"; datas como 17/09 ficam
     .split(/[\s!?;:()"]+/)
-    .map((p) => p.replace(/^[.,]+|[.,]+$/g, ''))
+    .map((p) => p.replace(/^[.,…'“”‘’«»*_–—-]+|[.,…'“”‘’«»*_–—-]+$/g, ''))
     .filter(Boolean);
 }
 const palavras = (texto: string) => palavrasOriginais(texto).map((p) => semAcento(p.toLowerCase()));
@@ -44,6 +45,8 @@ const NUMEROS: Record<string, number> = {
   dezoito: 18, dezenove: 19, vinte: 20, trinta: 30, quarenta: 40, cinquenta: 50, sessenta: 60, setenta: 70,
   oitenta: 80, noventa: 90, cem: 100, cento: 100, duzentos: 200, trezentos: 300, quatrocentos: 400,
   quinhentos: 500, seiscentos: 600, setecentos: 700, oitocentos: 800, novecentos: 900,
+  duzentas: 200, trezentas: 300, quatrocentas: 400, quinhentas: 500, seiscentas: 600, setecentas: 700, oitocentas: 800,
+  novecentas: 900, dezasseis: 16, dezassete: 17, dezanove: 19, // feminino e português de Portugal
 };
 
 // "5.800", "5800", "360,50", "2,5", "1.234,56", "1,200" -> número; "17/09" e afins não são número.
@@ -274,10 +277,10 @@ function acharData(ps: string[], usadas: Set<number>, hoje: string, info: { semM
     // "segunda parcela", "quarta etapa" não são dias da semana
     // "de segunda a sexta": mais de um dia da semana, sem como saber qual é a data
     const outroDia = ps.some((q, k) => k !== i && SEMANA[q.replace(/-?feira$/, '')] !== undefined);
-    if (semana !== undefined && outroDia && !/^(parcela|parcelas|via|etapa|medicao|fase|vez|parte|rodada|opcao)$/.test(ps[i + 1] ?? '')) {
+    if (semana !== undefined && outroDia && !/^(parcela|parcelas|etapa|medicao|fase|vez|parte|rodada|opcao)$/.test(ps[i + 1] ?? '') || (ps[i + 1] === 'via' && /^(do|da|de)$/.test(ps[i + 2] ?? ''))) {
       usadas.add(i); return null;
     }
-    if (semana !== undefined && !/^(parcela|parcelas|via|etapa|medicao|fase|vez|parte|rodada|opcao)$/.test(ps[i + 1] ?? '')) {
+    if (semana !== undefined && !/^(parcela|parcelas|etapa|medicao|fase|vez|parte|rodada|opcao)$/.test(ps[i + 1] ?? '') || (ps[i + 1] === 'via' && /^(do|da|de)$/.test(ps[i + 2] ?? ''))) {
       usadas.add(i);
       if (ps[i + 1] === 'feira') usadas.add(i + 1);
       for (const k of [i + 1, i + 2]) if (ps[k] === 'passada' || ps[k] === 'passado') usadas.add(k);
@@ -318,6 +321,7 @@ function acharObra(ps: string[], obras: Obra[], usadas: Set<number>): string | n
         // número da obra só vale como "lote 39"; "39 de prego" é dinheiro
         if (/^\d+$/.test(alvo) && !OBRA_NUM.has(ps[i - 1] ?? '')) continue;
         if (simples[i] === alvo) { pontos += /^\d+$/.test(alvo) ? 2 : 1; posicoes.push(i); break; }
+        if (alvo.length >= 7 && !/^\d+$/.test(alvo) && quase(simples[i], alvo)) { pontos += 1; posicoes.push(i); break; }
         if (alvo.length >= 6 && junto === alvo) { pontos += 1; posicoes.push(i, i + 1); break; }
       }
     }
@@ -422,6 +426,16 @@ function aprender(custos: Custo[]): Historico {
   return { pessoas: [...pessoas.values()], votos, descricoes: [...descricoes.values()], fornecedores: [...fornecedores.values()] };
 }
 
+// Uma letra a mais, a menos ou trocada: "olindinha" ~ "olindina".
+function quase(a: string, b: string): boolean {
+  if (Math.abs(a.length - b.length) > 1) return false;
+  let i = 0;
+  while (i < a.length && i < b.length && a[i] === b[i]) i++;
+  if (i === a.length && i === b.length) return true;
+  const [x, y] = [a.slice(i), b.slice(i)];
+  return x.slice(1) === y.slice(1) || x.slice(1) === y || x === y.slice(1);
+}
+
 // "adrian" acha "ADRIANO"; "ulisses" acha "ULISSES".
 const parecido = (falado: string, nome: string) =>
   falado === nome || (falado.length >= 5 && (nome.startsWith(falado) || falado.startsWith(nome)));
@@ -511,7 +525,9 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
         }
       }
       // "uns 500", "mais ou menos 500": estimativa, não é o valor do lançamento
-      if (/ (uns|umas|cerca|cerca de|aproximadamente|quase|mais ou menos|perto de|em torno de)$/.test(' ' + ps.slice(Math.max(0, g.inicio - 3), g.inicio).join(' '))) centavos = null;
+      if (/ (uns|umas|cerca|cerca de|aproximadamente|quase|mais ou menos|perto de|em torno de|mais de|menos de|acima de|abaixo de|ate|no maximo|no minimo|a partir de|por volta de|na faixa de|em media|media de)$/.test(' ' + ps.slice(Math.max(0, g.inicio - 3), g.inicio).join(' '))) centavos = null;
+      // "mil e pouco", "mil e tantos"
+      if (ps[g.fim] === 'e' && /^(pouco|poucos|picos|tanto|tantos|alguma)$/.test(ps[g.fim + 1] ?? '')) centavos = null;
       // "3 vezes de 400", "10 parcelas de 300": não dá para saber se o lançamento é a parcela ou o total
       if (ps[g.inicio - 1] === 'de' && (/^(parcelas|vezes|x)$/.test(ps[g.inicio - 2] ?? '') || /^\d+x$/.test(ps[g.inicio - 2] ?? ''))) centavos = null;
       // "dia onze mil reais": pode ser dia 11 e mil reais, ou onze mil reais
