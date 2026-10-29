@@ -11,6 +11,7 @@ export interface Esperado {
   pago?: boolean | null;
   categoria?: Categoria | null;
   obraId?: string | null;
+  fornecedor?: string;
 }
 export interface Caso {
   frase: string;
@@ -107,6 +108,64 @@ export const CASOS_FIXOS: Caso[] = [
   { tipo: 'numero-obra', frase: 'lote 39 trezentos reais de areia', esperado: { valor: 300_00, obraId: 'l39' } },
 ];
 
+// Rodada 3: frases escritas à mão, mais difíceis (nenhuma foi vista antes pelo interpretador).
+export const CASOS_ROD3: Caso[] = [
+  { tipo: 'dois-valores', frase: 'paguei duzentos e cinquenta reais de areia e cem de brita', esperado: { valor: null } },
+  { tipo: 'dois-valores', frase: 'paguei trezentos e quarenta e cinco reais de cimento, quinhentos e vinte de areia', esperado: { valor: null } },
+  { tipo: 'dois-valores', frase: 'paguei cem reais pro servente e duzentos pro pedreiro', esperado: { valor: null } },
+  { tipo: 'mil', frase: 'R$ 1.500,00 pro Adriano', esperado: { valor: 1500_00, categoria: MO, fornecedor: 'Adriano' } },
+  { tipo: 'base', frase: 'mil e quinhentos reais pro Adriano ontem no pix', esperado: { valor: 1500_00, categoria: MO, data: '2026-10-27', pagamento: 'pix' } },
+  { tipo: 'base', frase: 'o Ulisses recebeu 1.800', esperado: { valor: 1800_00, categoria: MO, fornecedor: 'Ulisses' } },
+  { tipo: 'base', frase: 'dei 500 pro Adrian de diária', esperado: { valor: 500_00, categoria: MO } },
+  { tipo: 'quantidade', frase: 'comprei 3 sacos de cimento por 120 reais', esperado: { valor: 120_00 } },
+  { tipo: 'quantidade', frase: 'comprei três latas de tinta por duzentos e dez reais', esperado: { valor: 210_00 } },
+  { tipo: 'quantidade', frase: 'ferro de 8 milímetros 300 reais', esperado: { valor: 300_00 } },
+  { tipo: 'quantidade', frase: 'disjuntor de 20 por 85 reais', esperado: { valor: 85_00 } },
+  { tipo: 'quantidade', frase: 'brita 1 por 450', esperado: { valor: 450_00 } },
+  { tipo: 'base', frase: 'cimento: 360', esperado: { valor: 360_00 } },
+  { tipo: 'base', frase: 'valor 1500', esperado: { valor: 1500_00 } },
+  { tipo: 'mil', frase: '15 mil', esperado: { valor: 15000_00 } },
+  { tipo: 'mil', frase: 'quinze mil e quinhentos reais', esperado: { valor: 15500_00 } },
+  { tipo: 'milhao', frase: 'um milhão de terreno', esperado: { valor: 1000000_00 } },
+  { tipo: 'conto', frase: 'oitocentos pila', esperado: { valor: 800_00 } },
+  { tipo: 'conto', frase: 'cinquenta contos de areia', esperado: { valor: 50_00 } },
+  { tipo: 'centavos', frase: 'um real e cinquenta centavos', esperado: { valor: 1_50 } },
+  { tipo: 'duvida', frase: 'três reais e 50 de prego', esperado: { valor: null } },
+  { tipo: 'centavos', frase: 'R$ 0,50 de parafuso', esperado: { valor: 50 } },
+  { tipo: 'centavos', frase: 'cinquenta centavos', esperado: { valor: 50 } },
+  { tipo: 'centavos', frase: 'R$ 12,5 de cola', esperado: { valor: 12_50 } },
+  { tipo: 'duvida', frase: 'doze e cinquenta de prego', esperado: { valor: null } },
+  { tipo: 'data', frase: 'paguei 400 no dia 5', esperado: { valor: 400_00, data: '2026-10-05' } },
+  { tipo: 'fornecedor', frase: 'quinhentos de cimento na Cassol', esperado: { valor: 500_00, categoria: MAT } },
+  { tipo: 'digitos', frase: '1 mil e 200 de areia', esperado: { valor: 1200_00 } },
+  { tipo: 'extenso', frase: 'duzentos e vinte mil de laje', esperado: { valor: 220000_00 } },
+  { tipo: 'virgula', frase: '3.5 mil de telha', esperado: { valor: 3500_00 } },
+  { tipo: 'extenso', frase: 'mil duzentos e trinta e quatro reais de fio', esperado: { valor: 1234_00 } },
+  { tipo: 'moeda', frase: 'R$ 360 reais de cimento', esperado: { valor: 360_00 } },
+  { tipo: 'categoria', frase: 'paguei 45 reais de gasolina no pix', esperado: { valor: 45_00, categoria: 'Locação e consumo', pagamento: 'pix' } },
+  { tipo: 'categoria', frase: 'paguei a conta de luz 230', esperado: { valor: 230_00, categoria: 'Locação e consumo' } },
+  { tipo: 'categoria', frase: 'pagamento do ISS 1.200 no boleto', esperado: { valor: 1200_00, categoria: 'Impostos e taxas', pagamento: 'boleto' } },
+  { tipo: 'categoria', frase: 'pintor 600 reais', esperado: { valor: 600_00, categoria: MO } },
+  { tipo: 'categoria', frase: 'rejunte 80 reais', esperado: { valor: 80_00, categoria: MAT } },
+  { tipo: 'data', frase: '100 de areia 10/10/26', esperado: { valor: 100_00, data: '2026-10-10' } },
+  { tipo: 'data', frase: 'sábado passado 100 de areia', esperado: { valor: 100_00, data: '2026-10-24' } },
+  { tipo: 'data', frase: '100 de areia semana passada', esperado: { valor: 100_00, data: null } },
+  { tipo: 'data-futura', frase: '100 de areia segunda que vem', esperado: { valor: 100_00, data: null } },
+  { tipo: 'data-futura', frase: 'próxima sexta 100 de areia', esperado: { valor: 100_00, data: null } },
+  { tipo: 'data-futura', frase: 'pagar amanhã 100 de areia', esperado: { valor: 100_00, data: null, pago: false } },
+  { tipo: 'data', frase: 'ontem à noite 100 de areia', esperado: { valor: 100_00, data: '2026-10-27' } },
+  { tipo: 'data', frase: '100 de areia dia 31', esperado: { valor: 100_00, data: null } },
+  { tipo: 'pago', frase: '300 de areia não foi pago', esperado: { valor: 300_00, pago: false } },
+  { tipo: 'pago', frase: '300 de areia fica pra pagar depois', esperado: { valor: 300_00, pago: false } },
+  { tipo: 'pago', frase: 'ainda não pagou os 300 de areia', esperado: { valor: 300_00, pago: false } },
+  { tipo: 'pago', frase: 'já quitei 300 de areia', esperado: { valor: 300_00, pago: true } },
+  { tipo: 'pagamento', frase: '300 de areia no cheque', esperado: { valor: 300_00, pagamento: 'outro' } },
+  { tipo: 'pagamento', frase: 'depositei 300 pro Ulisses', esperado: { valor: 300_00, pagamento: 'transferencia', categoria: MO } },
+  { tipo: 'pagamento', frase: 'cartão de crédito em 10 vezes 1.000 de piso', esperado: { valor: 1000_00, pagamento: 'cartao', pago: false } },
+  { tipo: 'aprox', frase: 'uns quinhentos reais de gesso', esperado: { valor: null } },
+  { tipo: 'ruido', frase: 'ééé então tá é paguei assim, tipo, 300 de areia', esperado: { valor: 300_00, pago: true } },
+];
+
 // ---- gerador de frases ----
 
 function aleatorio(semente: number) {
@@ -180,6 +239,7 @@ export function gerarCasos(semente: number, quantidade: number, nivel: number): 
   const esc = <T,>(l: T[]): T => l[Math.floor(r() * l.length)];
   const casos: Caso[] = [];
   const hoje = new Date(2026, 9, 28);
+  const OBRAS_N = nivel >= 5 ? [...OBRAS, [['no lote trinta e nove', 'na casa doze'], 'x'] as [string[], string]] : OBRAS;
 
   while (casos.length < quantidade) {
     // valor
@@ -187,7 +247,10 @@ export function gerarCasos(semente: number, quantidade: number, nivel: number): 
       ? ['num', 'num', 'reais', 'rs', 'extenso']
       : nivel === 2
         ? ['num', 'reais', 'rs', 'extenso', 'extenso', 'centavos', 'milvirg', 'conto', 'mil']
-        : ['num', 'extenso', 'centavos', 'milvirg', 'conto', 'mil', 'colado', 'milhar3', 'ext-centavos', 'meio', 'virg-cent']);
+        : nivel <= 4
+          ? ['num', 'extenso', 'centavos', 'milvirg', 'conto', 'mil', 'colado', 'milhar3', 'ext-centavos', 'meio', 'virg-cent']
+          : ['num', 'extenso', 'centavos', 'milvirg', 'mil', 'milhar3', 'ext-centavos', 'meio', 'k', 'dmil', 'rs00', 'rs-pos',
+            'qtd-preco', 'aprox', 'duvida-meio', 'dois-valores', 'reais-cada']);
     let reais = esc([35, 90, 120, 250, 360, 450, 780, 850, 1200, 1500, 2300, 4800, 12000, 25000, 65000]);
     let cent = 0;
     let fala: string;
@@ -210,24 +273,53 @@ export function gerarCasos(semente: number, quantidade: number, nivel: number): 
         if (r() < 0.2) { reais = 500000; fala = 'meio milhão'; } else { reais = k * 1000 + 500; fala = `${porExtenso(k * 1000)} e meio`; }
         break;
       }
+      case 'k': reais = esc([2000, 2500, 3000, 12000]); fala = `${String(reais / 1000).replace('.', ',')}k`; break;
+      case 'dmil': reais = esc([2000, 3000, 2500, 5500]); fala = reais % 1000 ? `${Math.floor(reais / 1000)} mil e ${reais % 1000}` : `${reais / 1000} mil`; break;
+      case 'rs00': fala = `R$ ${milhar(reais)},00`; break;
+      case 'rs-pos': fala = `${reais} R$`; break;
+      case 'qtd-preco': fala = `${esc([20, 200, 50])} ${esc(['telhas', 'tijolos', 'pregos'])} por ${milhar(reais)}`; break;
+      case 'aprox': fala = `${esc(['uns', 'cerca de', 'mais ou menos'])} ${reais}`; break;
+      case 'duvida-meio': fala = `${esc(['dois', 'cinco', 'vinte'])} e meio`; break;
+      case 'dois-valores': fala = `${reais} de cimento e ${esc([300, 700])} de areia`; break;
+      case 'reais-cada': fala = `${esc([10, 20, 30])} sacos a ${esc([40, 55])} reais cada`; break;
       default: fala = String(reais);
     }
-    const valor = reais * 100 + cent;
-    const [item, categoria] = esc(ITENS);
+    const semDe = ['qtd-preco', 'dois-valores', 'reais-cada'].includes(tipoValor);
+    const duvida = ['aprox', 'duvida-meio', 'dois-valores', 'reais-cada'].includes(tipoValor);
+    const valor = duvida ? null : reais * 100 + cent; // "uns 500", "dois e meio": na dúvida, null
+    let [item, categoria] = esc(ITENS);
+    if (tipoValor === 'qtd-preco') { item = fala.split(' ')[1]; categoria = MAT; }
     const esperado: Esperado = { valor };
-    if (nivel >= 2 || r() < 0.7) esperado.categoria = categoria;
+    if ((nivel >= 2 || r() < 0.7) && !['dois-valores', 'reais-cada'].includes(tipoValor)) esperado.categoria = categoria;
 
     // obra
     let obraTxt = '';
     if (r() < 0.6) {
-      const [frases, id] = esc(OBRAS);
+      const [frases, id] = esc(OBRAS_N);
       obraTxt = esc(frases);
-      esperado.obraId = id;
+      esperado.obraId = id === 'x' ? (obraTxt.includes('39') || obraTxt.includes('trinta') ? 'l39' : 'l12') : id;
     }
     // data
     let dataTxt = '';
     const sorteioData = r();
-    if (sorteioData < 0.5) {
+    if (nivel >= 5 && r() < 0.45) {
+      const forma = esc(['atras', 'primeiro', 'barra', 'extenso']);
+      if (forma === 'atras') {
+        const n = 2 + Math.floor(r() * 18);
+        dataTxt = esc([`há ${n} dias`, `${n} dias atrás`, `faz ${porExtenso(n)} dias`]);
+        const d = new Date(hoje); d.setDate(d.getDate() - n); esperado.data = ymd(d);
+      } else if (forma === 'primeiro') {
+        const m = r() < 0.5 ? null : Math.floor(r() * 9);
+        dataTxt = m === null ? 'dia primeiro' : `primeiro de ${MESES[m]}`;
+        esperado.data = `2026-${m === null ? '10' : doisDig(m + 1)}-01`;
+      } else if (forma === 'barra') {
+        const dia = 1 + Math.floor(r() * 27); const m = 1 + Math.floor(r() * 9);
+        dataTxt = `${dia}/${doisDig(m)}${r() < 0.3 ? '/2026' : ''}`; esperado.data = `2026-${doisDig(m)}-${doisDig(dia)}`;
+      } else {
+        const dia = 1 + Math.floor(r() * 27); const m = Math.floor(r() * 9);
+        dataTxt = `${porExtenso(dia)} de ${MESES[m]}`; esperado.data = `2026-${doisDig(m + 1)}-${doisDig(dia)}`;
+      }
+    } else if (sorteioData < 0.5) {
       const dia = 1 + Math.floor(r() * 27);
       const m = nivel >= 2 && r() < 0.5 ? Math.floor(r() * 9) : null; // até setembro
       if (m === null) { dataTxt = esc([`dia ${dia}`, `dia ${nivel >= 3 ? porExtenso(dia) : dia}`]); esperado.data = `2026-10-${doisDig(dia)}`; }
@@ -253,6 +345,7 @@ export function gerarCasos(semente: number, quantidade: number, nivel: number): 
         [['em dinheiro', 'no dinheiro'], 'dinheiro'],
         [['por transferência', 'por ted'], 'transferencia'],
       ];
+      if (nivel >= 5) { opcoes[2][0].push('no cartão de crédito', 'pelo cartão'); opcoes[3][0].push('em espécie'); opcoes[4][0].push('via transferência'); }
       if (nivel >= 2) { opcoes[0][0].push('pelo pique', 'no pique'); opcoes[1][0].push('no bolheto', 'pelo boleto'); }
       const [fr, forma] = esc(opcoes);
       pagTxt = esc(fr); esperado.pagamento = forma;
@@ -263,7 +356,13 @@ export function gerarCasos(semente: number, quantidade: number, nivel: number): 
     if (verbo === 'paguei') esperado.pago = true;
     if (nivel >= 2 && verbo !== 'paguei' && r() < 0.3) {
       pagoTxt = esc(['a pagar', 'a prazo', 'em aberto', 'fiado']); esperado.pago = false;
+      if (nivel >= 5) pagoTxt = esc([pagoTxt, 'pendente', 'preciso pagar', 'em 3 vezes', 'em 3x', 'parcelado', 'devo']);
+      if (nivel >= 5 && r() < 0.2) { pagoTxt = esc(['quitado', 'já quitei']); esperado.pago = true; }
+    } else if (nivel >= 5 && verbo === 'paguei' && r() < 0.15) {
+      pagoTxt = esc(['em 3 vezes', 'parcelado']); esperado.pago = null; // "paguei" + parcelado: não dá para saber
     }
+    if (verbo === 'mandei' && /vezes|3x|parcelado/.test(pagoTxt)) esperado.pago = null;
+    if (nivel >= 5 && verbo === 'mandei' && esperado.pago === undefined) esperado.pago = true;
     // ruído de transcrição
     const ruidoIni = nivel >= 2 && r() < 0.4 ? esc(['então', 'tá', 'hum', 'é', 'ah', 'então tá', 'olha']) + ' ' : '';
     const ruidoFim = nivel >= 2 && r() < 0.2 ? ' ' + esc(['né', 'tá', 'certo', 'pronto']) : '';
@@ -272,19 +371,27 @@ export function gerarCasos(semente: number, quantidade: number, nivel: number): 
     const modelo = Math.floor(r() * (nivel >= 3 ? 5 : 3));
     const sobra = [obraTxt, dataTxt, pagTxt, pagoTxt].filter(Boolean);
     if (nivel >= 2) for (let i = sobra.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [sobra[i], sobra[j]] = [sobra[j], sobra[i]]; }
-    const corpoItem = `${fala} de ${item}`;
+    const corpoItem = semDe ? fala : `${fala} de ${item}`;
     let frase: string;
     if (modelo === 0) frase = [verbo, corpoItem, ...sobra].filter(Boolean).join(' ');
     else if (modelo === 1) frase = [item, fala, ...sobra].join(' ');
     else if (modelo === 2) frase = [...sobra.slice(0, 1), verbo, corpoItem, ...sobra.slice(1)].filter(Boolean).join(' ');
     else if (modelo === 3) frase = [item, ...sobra, fala].join(' ');
-    else frase = [...sobra, verbo, fala, 'de', item].filter(Boolean).join(' ');
-    if (modelo === 1 || modelo === 3) { // sem "de" o item é só palavra solta; "paguei" some do início
-      if (verbo === 'paguei') esperado.pago = undefined;
+    else frase = [...sobra, verbo, fala, ...(semDe ? [] : ['de', item])].filter(Boolean).join(' ');
+    if (modelo === 1 || modelo === 3) { // "paguei" some do início; "mandei" também
+      if (verbo === 'paguei' && esperado.pago === true) esperado.pago = undefined;
+      if (verbo === 'mandei' && esperado.pago === true) esperado.pago = undefined;
+      if (esperado.pago === null) esperado.pago = false; // sem o "paguei", parcelado é a pagar
     }
     frase = (ruidoIni + frase + ruidoFim).replace(/\s+/g, ' ').trim();
+    if (nivel >= 5) { // o iPhone põe maiúscula, vírgulas e ponto final
+      const ps = frase.split(' ').map((p) => (r() < 0.12 ? p + ',' : p));
+      ps[0] = ps[0][0].toUpperCase() + ps[0].slice(1);
+      frase = ps.join(' ').replace(/,$/, '') + (r() < 0.3 ? '.' : '');
+    }
     // "dia 21 mil e quinhentos" ninguém sabe ler (nem uma pessoa): não entra no corpus
-    if (dataTxt && frase.includes(dataTxt + ' ' + fala)) continue;
+    const semVirgula = frase.replace(/,/g, '').toLowerCase();
+    if ((dataTxt && semVirgula.includes((dataTxt + ' ' + fala).toLowerCase())) || (obraTxt && semVirgula.includes((obraTxt + ' ' + fala).toLowerCase()))) continue;
     if (esperado.pago === undefined) delete esperado.pago;
     // a pessoa pode ter dito "mão de obra" por nome; evita ambiguidade item x obra
     casos.push({ frase, esperado, tipo: `${tipo}/m${modelo}` });

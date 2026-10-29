@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { CASOS_FIXOS, CONTEXTO, gerarCasos, type Caso } from './voz.corpus';
+import { CASOS_FIXOS, CASOS_ROD3, CONTEXTO, gerarCasos, type Caso } from './voz.corpus';
 import { interpretarFala } from './voz';
 
 // Mede o interpretador de voz contra o corpus (fixo + gerado). `npm run voz:medir` imprime a taxa
 // de acerto por campo e a lista de falhas; no `npm run check` só confere as garantias abaixo.
 
 const ENV = (globalThis as unknown as { process: { env: Record<string, string | undefined> } }).process.env;
-const CAMPOS = ['valor', 'data', 'pagamento', 'pago', 'categoria', 'obraId'] as const;
+const CAMPOS = ['valor', 'data', 'pagamento', 'pago', 'categoria', 'obraId', 'fornecedor'] as const;
 type Campo = (typeof CAMPOS)[number];
 
 interface Falha { frase: string; campo: Campo; esperado: unknown; veio: unknown; tipo: string; valorErrado: boolean }
@@ -33,19 +33,19 @@ function medir(casos: Caso[]) {
   return { certos, total, falhas, valorErrado, valorNaoEntendido };
 }
 
-const RODADAS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-const NIVEL = (rodada: number) => Math.min(4, Math.ceil(rodada / 2)); // frases mais difíceis a cada rodada
+const NIVEIS = [1, 2, 3, 4, 5]; // do simples ao difícil; 3 sementes de 120 frases por nível
 const BASE = Number(ENV.VOZ_BASE ?? 0); // VOZ_BASE=100 testa frases novas, nunca vistas
-const gerados = RODADAS.flatMap((rod) => gerarCasos(BASE + rod, 150, NIVEL(rod)));
+const gerados = NIVEIS.flatMap((nivel) => [1, 2, 3].flatMap((k) => gerarCasos(BASE + nivel * 10 + k, 120, nivel)));
 
 describe('corpus da voz', () => {
-  const fixos = medir(CASOS_FIXOS.filter((c) => !c.pendente));
+  const TODOS_FIXOS = [...CASOS_FIXOS, ...CASOS_ROD3];
+  const fixos = medir(TODOS_FIXOS.filter((c) => !c.pendente));
   const ger = medir(gerados);
 
   it('imprime o relatório (npm run voz:medir)', () => {
     if (!ENV.VOZ_MEDIR) return;
     const linhas: string[] = [];
-    for (const [nome, m, n] of [['fixos', medir(CASOS_FIXOS), CASOS_FIXOS.length], ['gerados', ger, gerados.length]] as const) {
+    for (const [nome, m, n] of [['fixos', medir(TODOS_FIXOS), TODOS_FIXOS.length], ['gerados', ger, gerados.length]] as const) {
       linhas.push(`\n== ${nome}: ${n} frases`);
       for (const campo of CAMPOS) {
         if (m.total[campo]) linhas.push(`  ${campo.padEnd(9)} ${(((m.certos[campo] ?? 0) / m.total[campo]) * 100).toFixed(1)}%  (${m.certos[campo] ?? 0}/${m.total[campo]})`);
