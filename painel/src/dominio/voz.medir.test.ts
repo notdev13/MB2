@@ -6,6 +6,7 @@ import { CASOS_ROD29 } from './voz.rodadas2';
 import { CASOS_ROD30, CASOS_ROD31 } from './voz.rodadas3';
 import { CASOS_ROD32 } from './voz.rodadas4';
 import { CASOS_ROD35, CASOS_ROD36, CASOS_ROD37 } from './voz.rodadas5';
+import { CASOS_ROD40 } from './voz.rodadas6';
 import { gerarAdjacentes, gerarCego, gerarServicos } from './voz.fuzz';
 
 // Mede o interpretador de voz contra o corpus (fixo + gerado). `npm run voz:medir` imprime a taxa
@@ -51,7 +52,7 @@ const fuzz = [1, 2, 3].flatMap((k) => [...gerarAdjacentes(BASE + 5000 + k, 700),
 const caos = [1, 2, 3, 4, 5].flatMap((k) => gerarCaos(BASE + 2000 + k, 600));
 
 describe('corpus da voz', () => {
-  const TODOS_FIXOS = [...CASOS_FIXOS, ...CASOS_ROD3, ...CASOS_ROD4, ...CASOS_ROD5, ...CASOS_ROD7, ...CASOS_ROD8, ...CASOS_ROD9, ...CASOS_ROD10, ...CASOS_ROD12, ...CASOS_ROD13, ...CASOS_ROD14, ...CASOS_ROD15, ...CASOS_ROD16, ...CASOS_ROD17, ...CASOS_ROD20, ...CASOS_ROD23, ...CASOS_ROD24, ...CASOS_ROD25, ...CASOS_ROD26, ...CASOS_ROD27, ...CASOS_ROD28, ...CASOS_ROD29, ...CASOS_ROD30, ...CASOS_ROD31, ...CASOS_ROD32, ...CASOS_ROD35, ...CASOS_ROD36, ...CASOS_ROD37];
+  const TODOS_FIXOS = [...CASOS_FIXOS, ...CASOS_ROD3, ...CASOS_ROD4, ...CASOS_ROD5, ...CASOS_ROD7, ...CASOS_ROD8, ...CASOS_ROD9, ...CASOS_ROD10, ...CASOS_ROD12, ...CASOS_ROD13, ...CASOS_ROD14, ...CASOS_ROD15, ...CASOS_ROD16, ...CASOS_ROD17, ...CASOS_ROD20, ...CASOS_ROD23, ...CASOS_ROD24, ...CASOS_ROD25, ...CASOS_ROD26, ...CASOS_ROD27, ...CASOS_ROD28, ...CASOS_ROD29, ...CASOS_ROD30, ...CASOS_ROD31, ...CASOS_ROD32, ...CASOS_ROD35, ...CASOS_ROD36, ...CASOS_ROD37, ...CASOS_ROD40];
   const fixos = medir(TODOS_FIXOS.filter((c) => !c.pendente));
   const ger = medir(gerados);
   const cao = medir(caos);
@@ -80,6 +81,27 @@ describe('corpus da voz', () => {
       }
     }
     console.log(linhas.join('\n'));
+  });
+
+  it('casos fixos com ruído de fala (prefixo, sufixo, caixa): o valor não muda', () => {
+    const mutacoes: [string, (f: string) => string][] = [
+      ['então… né', (f) => `Então, ${f} né`], ['por favor', (f) => `${f}, por favor`], ['bom dia', (f) => `Bom dia, ${f}`],
+      ['caixa alta', (f) => f.toUpperCase()], ['maiúscula e ponto', (f) => f[0].toUpperCase() + f.slice(1) + '.'],
+      ['pra mim', (f) => `Olha, ${f} pra mim, obrigado`],
+    ];
+    const base = TODOS_FIXOS.filter((c) => !c.pendente && typeof c.esperado.valor === 'number');
+    for (const [nome, mutar] of mutacoes) {
+      const errados: string[] = [];
+      const brancos: string[] = [];
+      for (const c of base) {
+        const v = interpretarFala(mutar(c.frase), CONTEXTO).valor;
+        if (v === null) brancos.push(mutar(c.frase));
+        else if (v !== c.esperado.valor) errados.push(`${mutar(c.frase)} => ${v} (esperado ${c.esperado.valor})`);
+      }
+      if (ENV.VOZ_MEDIR) console.log(`  mutação "${nome}" nos casos fixos: errados=${errados.length}, em branco=${brancos.length}/${base.length}`, errados.slice(0, 8), brancos.slice(0, 8));
+      expect(errados, nome).toEqual([]);
+      expect(brancos.length / base.length, nome).toBeLessThan(0.02);
+    }
   });
 
   it('casos fixos: todos passam (regressão)', () => {

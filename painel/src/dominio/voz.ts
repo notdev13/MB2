@@ -229,7 +229,7 @@ const TEMPO = new Set(['dias', 'hora', 'horas', 'diaria', 'diarias', 'semana', '
 // Palavras que tiram o valor falado do lançamento: conta, receita, empréstimo, dúvida de quem fala.
 // Só entram palavras que quase nunca aparecem num serviço ou material de obra; o resto fica em FRASES_SEM_VALOR,
 // que exige o contexto ("subiu 200", "proposta de 12 mil", "acho que").
-const CALCULO = new Set(['cada', 'metade', 'dobro', 'triplo', 'terco', 'desconto', 'abatimento', 'troco', 'sobrou', 'restou',
+const CALCULO = new Set(['cada', 'metade', 'dobro', 'triplo', 'terco', 'abatimento', 'troco', 'sobrou', 'restou',
   'diferenca', 'estorno', 'estornei', 'reembolso', 'reembolsei', 'devolveram', 'devolvi', 'devolucao', 'cotei',
   'recebi', 'recebemos', 'talvez', 'provavelmente', 'possivelmente', 'chutando', 'chutei', 'chute', 'aparentemente',
   'precisar', 'precisarei', 'comprarei', 'compraremos', 'pagaram', 'depositaram', 'transferiram', 'recebimento', 'repasse',
@@ -253,6 +253,8 @@ const FRASES_SEM_VALOR = new RegExp(' (' + [
   // quem fala não tem certeza
   '(acho|creio|penso|imagino|suponho|aposto|recordo|estimo|calculo) (que|q)', 'deve (ter|ser)', 'nao sei', 'sei la', 'nao lembro',
   'nao me engano', 'nao tenho certeza', 'sem certeza', 'por alto', 'a olho', 'parece que', 'me parece', 'mais ou menos', 'a menos',
+  // "desconto de 100", "100 de desconto"; "com desconto" sozinho é o preço já descontado
+  '(desconto|abatimento) (de |em |uns )?' + COMECO_DE_NUMERO, COMECO_DE_NUMERO + ' (reais )?(de |em )?(desconto|abatimento)',
   // variação de preço, proposta e receita: só com o número logo depois
   '(subiu|caiu|baixou|aumentou|aumentaram|aumento|reajuste|reajustou|acrescimo) (de |em |uns )?' + COMECO_DE_NUMERO,
   '(proposta|cotacao|orcamento|estimativa|previsao|simulacao) de ' + COMECO_DE_NUMERO, 'receita (de|da|do)',
@@ -591,7 +593,9 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
     if (p === 'x') for (const k of [i - 1, i + 1]) if (começaNumero(ps[k])) ruido.add(k); // "38 x 20 = 760"
     const a = numeroEscrito(p);
     const c = numeroEscrito(ps[i + 2] ?? '');
-    if (a !== null && a <= 99 && ps[i + 1] === 'por' && c !== null && c <= 99 && !MOEDA.has(ps[i + 3] ?? '') && !(ps[i + 3] === 'r$' && !começaNumero(ps[i + 4])) &&
+    if (a !== null && a <= 999 && ps[i + 1] === 'por' && c !== null && c <= 999 && !usadas.has(i) && !usadas.has(i + 2) &&
+      ((a <= 99 && c <= 99) || ps[i + 3] === 'de') && // "120 por 100 de alumínio" (medida em cm)
+      !MOEDA.has(ps[i + 3] ?? '') && !(ps[i + 3] === 'r$' && !começaNumero(ps[i + 4])) &&
       ps[i - 1] !== 'r$' && ps[i + 1 - 1] !== 'r$') { ruido.add(i); ruido.add(i + 2); } // "tábua de 2 por 4", "telha 40 por 40"
   });
 
@@ -619,6 +623,7 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
     // "2º andar 480": o andar vem antes do número, então o 480 continua sendo dinheiro
     const documento = DOCUMENTOS.has(prev) && !(prev === 'andar' && numeroEscrito(ps[g.inicio - 2] ?? '') !== null);
     if ((documento || DOCUMENTOS_LONGOS.has(prev)) && /^\d{4,}$/.test(ps[g.inicio])) return 'ruido'; // "nota fiscal 4521": número de documento
+    if (/^(metros?|m|m2|m3|m²|m³|kg|quilos?|litros?|toneladas?)$/.test(depois)) return 'ruido'; // "25 kg", "6 metros": medida, não quantidade a conferir
     const rotuloDeLugar = SPEC_PREFIX.has(depois) && inteiro(ps[g.fim + 1]) !== null && (g.valor ?? 0) > 99; // "1200 andar 8", "480 cômodo 2": o 8 e o 2 são o lugar
     if ((UNIDADES.has(depois) && !rotuloDeLugar) || contagemPlural(ps, g) || documento || /^\d{4,5}-?\d{4}$/.test(depois) || contagemDeMaterial(ps, g)) return 'descartado';
     return 'candidato';
