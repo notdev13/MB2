@@ -376,6 +376,35 @@ export const CASOS_ROD9: Caso[] = [
   { tipo: 'parcela', frase: 'cartão de crédito parcelado em 12 vezes de 150', esperado: { valor: null, pagamento: 'cartao', pago: false } },
 ];
 
+// Rodada 10: não é custo (estorno, cotação), números de endereço/telefone/ano, alternativas e gíria de dinheiro.
+export const CASOS_ROD10: Caso[] = [
+  { tipo: 'nao-custo', frase: 'estorno de 300 do cimento', esperado: { valor: null } },
+  { tipo: 'nao-custo', frase: 'devolveram 300 reais de areia', esperado: { valor: null } },
+  { tipo: 'nao-custo', frase: 'reembolso de 450 reais', esperado: { valor: null } },
+  { tipo: 'nao-custo', frase: 'cotação de 2 mil de telha', esperado: { valor: null } },
+  { tipo: 'nao-custo', frase: 'proposta de 12 mil do pedreiro', esperado: { valor: null } },
+  { tipo: 'giria', frase: '300 pratas de areia', esperado: { valor: 300_00 } },
+  { tipo: 'giria', frase: 'dois mil mangos de ferro', esperado: { valor: 2000_00 } },
+  { tipo: 'unidade', frase: 'contrato de 12 meses 1.500 reais', esperado: { valor: 1500_00 } },
+  { tipo: 'unidade', frase: 'garantia de 5 anos 800 reais', esperado: { valor: 800_00 } },
+  { tipo: 'endereco', frase: 'rua 7 300 reais de areia', esperado: { valor: 300_00 } },
+  { tipo: 'endereco', frase: 'avenida 25 de agosto 300 reais', esperado: { valor: 300_00 } },
+  { tipo: 'endereco', frase: 'apartamento 302 pintura 800 reais', esperado: { valor: 800_00 } },
+  { tipo: 'telefone', frase: 'ligar 48999998888 pagar 300 de areia', esperado: { valor: 300_00 } },
+  { tipo: 'telefone', frase: 'cep 88063000 areia 300 reais', esperado: { valor: 300_00 } },
+  { tipo: 'telefone', frase: 'pagar 48999998888', esperado: { valor: null } },
+  { tipo: 'ano', frase: 'em 2026 paguei 300 reais de areia', esperado: { valor: 300_00 } },
+  { tipo: 'ano', frase: 'ano 2026 areia 300', esperado: { valor: 300_00 } },
+  { tipo: 'alternativa', frase: '300 ou 400 de areia', esperado: { valor: null } },
+  { tipo: 'alternativa', frase: 'entre 300 e 400 de areia', esperado: { valor: null } },
+  { tipo: 'alternativa', frase: '300 a 400 de areia', esperado: { valor: null } },
+  { tipo: 'alternativa', frase: '300, 400 de areia', esperado: { valor: null } },
+  { tipo: 'alternativa', frase: 'primeiro 300 depois 200 de areia', esperado: { valor: null } },
+  { tipo: 'alternativa', frase: 'trezentos ou quatrocentos reais', esperado: { valor: null } },
+  { tipo: 'limite', frase: 'cinquenta milhões de terreno', esperado: { valor: 50000000_00 } },
+  { tipo: 'limite', frase: 'cem milhões de terreno', esperado: { valor: null } },
+];
+
 // ---- gerador de frases ----
 
 function aleatorio(semente: number) {

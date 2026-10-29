@@ -159,18 +159,20 @@ const UNIDADES = new Set([
   'rolo', 'rolos', 'caixa', 'caixas', 'galao', 'galoes', 'litro', 'litros', 'dias', 'horas', 'vezes', 'parcelas',
   'parcela', 'etapa', 'fase', 'milimetro', 'milimetros', 'mm', 'centimetro', 'centimetros', 'cm', 'polegada', 'polegadas', 'semanas', 'semana',
 ]);
-const MOEDA = new Set(['reais', 'real', 'conto', 'contos', 'pila', 'pilas']);
+const MOEDA = new Set(['reais', 'real', 'conto', 'contos', 'pila', 'pilas', 'pratas', 'mangos']);
 // "lote 39", "casa 12": o número é da obra, não é valor.
 const NUMERADORES = new Set(['lote', 'casa', 'lt', 'quadra', 'qd']);
 const OBRA_NUM = new Set([...NUMERADORES, 'obra', 'numero', 'n']);
 // Número que identifica documento ("nota fiscal 1234", "pedido 4521"), não dinheiro.
 const DOCUMENTOS = new Set(['nota', 'nf', 'pedido', 'orcamento', 'ordem', 'cheque', 'protocolo', 'contrato', 'processo',
-  'matricula', 'cpf', 'cnpj', 'telefone', 'fone', 'cep', 'fiscal']);
+  'matricula', 'cpf', 'cnpj', 'telefone', 'fone', 'cep', 'fiscal', 'rua', 'avenida', 'av', 'travessa', 'apto', 'apartamento',
+  'sala', 'andar', 'ano']);
 // Quantidade de tempo: o número solto que sobra costuma ser preço por dia/hora, não o total.
 const TEMPO = new Set(['dias', 'hora', 'horas', 'diaria', 'diarias', 'semana', 'semanas', 'meses']);
 // Palavras de conta ("metade de", "desconto de", "300 cada"): o valor falado não é o do lançamento.
 const CALCULO = new Set(['cada', 'metade', 'dobro', 'triplo', 'desconto', 'abatimento', 'troco', 'sobrou', 'restou', 'restante',
-  'diferenca']);
+  'diferenca', 'estorno', 'estornei', 'reembolso', 'reembolsei', 'devolveram', 'devolvi', 'devolucao', 'cotacao', 'cotei',
+  'proposta', 'simulacao', 'estimativa', 'previsao']);
 const ESTRANGEIRA = new Set(['dolar', 'dolares', 'euro', 'euros', 'libra', 'libras']);
 const PISTAS = new Set(['por', 'total', 'valor', 'custou', 'ficou']);
 
@@ -538,6 +540,8 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
     })
     // o "50" de "300 reais e 50 centavos" já foi lido junto com o 300
     .filter((g, k, todos) => !todos.slice(0, k).some((o) => g.inicio < o.fim))
+    // Acima de R$ 50 milhões é telefone, CEP ou erro de reconhecimento, não custo de obra.
+    .filter((g) => g.centavos === null || g.centavos <= 5_000_000_000)
     // "um" sozinho é artigo ("um frete de 300"), a não ser que venha com "real"/"conto".
     .filter((g) => !(g.fim - g.inicio === 1 && (ps[g.inicio] === 'um' || ps[g.inicio] === 'uma')) && (g.centavos === null || g.centavos > 0));
   // O mesmo valor repetido ("200 de areia (duzentos reais)") conta uma vez.
@@ -549,7 +553,8 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
   let escolhido = unicos.length === 1 ? unicos[0] : comMoeda.length === 1 ? comMoeda[0] : comPista.length === 1 ? comPista[0] : null;
   // "200 reais de areia e 100 de brita", "entrada de 1.200 e 3 parcelas de 500": dois valores, na dúvida não escolhe.
   const outroValor = (g: { inicio: number; fim: number; moeda: boolean }) =>
-    !g.moeda && (/^(de|pro|pra|para|na|no)$/.test(ps[g.fim] ?? '') || (/^(parcelas?|vezes|x)$/.test(ps[g.inicio - 2] ?? '') && ps[g.inicio - 1] === 'de'));
+    !g.moeda && (/^(de|pro|pra|para|na|no|ou|ate)$/.test(ps[g.fim] ?? '') || ps[g.inicio - 1] === 'ou' || ps[g.inicio - 1] === 'ate' ||
+      (ps[g.fim] === 'a' && começaNumero(ps[g.fim + 1])) || (/^(parcelas?|vezes|x)$/.test(ps[g.inicio - 2] ?? '') && ps[g.inicio - 1] === 'de'));
   if (escolhido && unicos.some((g) => g !== escolhido && outroValor(g))) escolhido = { ...escolhido, centavos: null };
   // "3 dias de servente 150": sem "reais" nem "por", o 150 pode ser a diária, não o total.
   const tempoSolto = numerosDe(ps).some((n) => TEMPO.has(ps[n.fim] ?? '') && !usadas.has(n.inicio));
