@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CASOS_FIXOS, CASOS_ROD3, CASOS_ROD4, CASOS_ROD5, CONTEXTO, gerarCasos, type Caso } from './voz.corpus';
+import { CASOS_FIXOS, CASOS_ROD3, CASOS_ROD4, CASOS_ROD5, CASOS_ROD7, CONTEXTO, gerarCasos, type Caso } from './voz.corpus';
 import { interpretarFala } from './voz';
 
 // Mede o interpretador de voz contra o corpus (fixo + gerado). `npm run voz:medir` imprime a taxa
@@ -33,12 +33,12 @@ function medir(casos: Caso[]) {
   return { certos, total, falhas, valorErrado, valorNaoEntendido };
 }
 
-const NIVEIS = [1, 2, 3, 4, 5]; // do simples ao difícil; 3 sementes de 120 frases por nível
+const NIVEIS = [1, 2, 3, 4, 5, 6]; // do simples ao difícil; 3 sementes de 120 frases por nível
 const BASE = Number(ENV.VOZ_BASE ?? 0); // VOZ_BASE=100 testa frases novas, nunca vistas
 const gerados = NIVEIS.flatMap((nivel) => [1, 2, 3].flatMap((k) => gerarCasos(BASE + nivel * 10 + k, 120, nivel)));
 
 describe('corpus da voz', () => {
-  const TODOS_FIXOS = [...CASOS_FIXOS, ...CASOS_ROD3, ...CASOS_ROD4, ...CASOS_ROD5];
+  const TODOS_FIXOS = [...CASOS_FIXOS, ...CASOS_ROD3, ...CASOS_ROD4, ...CASOS_ROD5, ...CASOS_ROD7];
   const fixos = medir(TODOS_FIXOS.filter((c) => !c.pendente));
   const ger = medir(gerados);
 

@@ -265,6 +265,50 @@ export const CASOS_ROD5: Caso[] = [
   { tipo: 'data-futura', frase: '800 de piso a pagar ontem', esperado: { valor: 800_00, pago: false, data: '2026-10-27' } },
 ];
 
+// Rodada 7: armadilhas de valor (cálculo, unitário, moeda estrangeira, números colados) e de data.
+export const CASOS_ROD7: Caso[] = [
+  { tipo: 'dois-valores', frase: 'paguei 30 de cimento e 20 de areia', esperado: { valor: null } },
+  { tipo: 'dois-valores', frase: 'paguei trinta reais de cimento e vinte de areia', esperado: { valor: null } },
+  { tipo: 'dois-valores', frase: 'cimento 30, areia 20', esperado: { valor: null } },
+  { tipo: 'dois-valores', frase: 'cimento 30 e areia 20', esperado: { valor: null } },
+  { tipo: 'dois-valores', frase: 'duzentos reais mais cinquenta de frete', esperado: { valor: null } },
+  { tipo: 'dois-valores', frase: 'duzentos reais e cinquenta de frete', esperado: { valor: null } },
+  { tipo: 'dois-valores', frase: 'duzentos e cinquenta reais, cem de frete', esperado: { valor: null } },
+  { tipo: 'dois-valores', frase: 'mil e quinhentos menos 200', esperado: { valor: null } },
+  { tipo: 'dois-valores', frase: 'paguei 1.200 mas era 1.500', esperado: { valor: null } },
+  { tipo: 'dois-valores', frase: 'não foi 500, foi 600', esperado: { valor: null } },
+  { tipo: 'dois-valores', frase: 'cinco mil reais mais cem de frete', esperado: { valor: null } },
+  { tipo: 'unitario', frase: 'paguei cem reais pra cada um dos dois', esperado: { valor: null } },
+  { tipo: 'unitario', frase: 'o pedreiro e o servente, 300 cada', esperado: { valor: null } },
+  { tipo: 'calculo', frase: 'metade de 1.000', esperado: { valor: null } },
+  { tipo: 'calculo', frase: 'desconto de 100 em 1.500', esperado: { valor: null } },
+  { tipo: 'calculo', frase: 'sobrou 300 do cimento', esperado: { valor: null } },
+  { tipo: 'moeda-estrangeira', frase: 'mil dólares de ferro', esperado: { valor: null } },
+  { tipo: 'moeda-estrangeira', frase: 'paguei 500 euros', esperado: { valor: null } },
+  { tipo: 'colado', frase: 'R$ 1 200 de areia', esperado: { valor: null } },
+  { tipo: 'colado', frase: 'lote 39 200 reais de areia', esperado: { valor: 200_00, obraId: 'l39' } },
+  { tipo: 'colado', frase: 'mil duzentos cinquenta de areia', esperado: { valor: null } },
+  { tipo: 'nome', frase: 'Quatro Irmãos 500 reais', esperado: { valor: 500_00 } },
+  { tipo: 'nome', frase: 'Quatro Irmãos 500', esperado: { valor: null } },
+  { tipo: 'unidade', frase: '10 m³ de areia 800 reais', esperado: { valor: 800_00 } },
+  { tipo: 'unidade', frase: '10 metros cúbicos de areia por 800', esperado: { valor: 800_00 } },
+  { tipo: 'sem-valor', frase: 'cancela o último lançamento', esperado: { valor: null } },
+  { tipo: 'sem-valor', frase: 'paguei o pedreiro hoje', esperado: { valor: null, data: HOJE, categoria: MO } },
+  { tipo: 'extenso', frase: 'dois mil e quinhentos e cinquenta', esperado: { valor: 2550_00 } },
+  { tipo: 'extenso', frase: 'mil, duzentos', esperado: { valor: 1200_00 } },
+  { tipo: 'extenso', frase: 'R$ 5 mil reais', esperado: { valor: 5000_00 } },
+  { tipo: 'prazo', frase: 'a prazo de 30 dias 1.500 reais', esperado: { valor: 1500_00, pago: false } },
+  { tipo: 'data', frase: 'segunda via do boleto 120 reais', esperado: { valor: 120_00, data: null, pagamento: 'boleto' } },
+  { tipo: 'data', frase: 'mil e quinhentos pro Ulisses de segunda a sexta', esperado: { valor: 1500_00, data: null, categoria: MO } },
+  { tipo: 'data', frase: '15 de março do ano passado 100 de areia', esperado: { valor: 100_00, data: null } },
+  { tipo: 'data', frase: 'dia 10 do mês passado 100 de areia', esperado: { valor: 100_00, data: null } },
+  { tipo: 'data', frase: 'dia 29 de fevereiro 100 de areia', esperado: { valor: 100_00, data: null } },
+  { tipo: 'data', frase: 'ontem 100 de areia dia 10', esperado: { valor: 100_00, data: '2026-10-27' } },
+  { tipo: 'pagamento', frase: 'pix e boleto 300 de areia', esperado: { valor: 300_00, pagamento: null } },
+  { tipo: 'pagamento', frase: 'transferi 2 mil pro Adriano', esperado: { valor: 2000_00, pagamento: 'transferencia', categoria: MO } },
+  { tipo: 'pagamento', frase: 'cartão de débito 300 de areia', esperado: { valor: 300_00, pagamento: 'cartao' } },
+];
+
 // ---- gerador de frases ----
 
 function aleatorio(semente: number) {
@@ -470,7 +514,9 @@ export function gerarCasos(semente: number, quantidade: number, nivel: number): 
 
     // ordem das palavras
     const modelo = Math.floor(r() * (nivel >= 3 ? 5 : 3));
-    const sobra = [obraTxt, dataTxt, pagTxt, pagoTxt].filter(Boolean);
+    // Números que não são dinheiro, jogados no meio da frase: o valor tem que continuar certo (ou null)
+    const distracao = nivel >= 6 && r() < 0.6 ? esc(['nota fiscal 4521', 'pedido 889', 'às 14h', 'CP2', 'de 8 milímetros', 'de 100 mm', '20 sacos', 'lote 41']) : '';
+    const sobra = [obraTxt, dataTxt, pagTxt, pagoTxt, distracao].filter(Boolean);
     if (nivel >= 2) for (let i = sobra.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [sobra[i], sobra[j]] = [sobra[j], sobra[i]]; }
     const corpoItem = semDe ? fala : `${fala} de ${item}`;
     let frase: string;
@@ -492,7 +538,7 @@ export function gerarCasos(semente: number, quantidade: number, nivel: number): 
     }
     // "dia 21 mil e quinhentos" ninguém sabe ler (nem uma pessoa): não entra no corpus
     const semVirgula = frase.replace(/,/g, '').toLowerCase();
-    if ((dataTxt && semVirgula.includes((dataTxt + ' ' + fala).toLowerCase())) || (obraTxt && semVirgula.includes((obraTxt + ' ' + fala).toLowerCase()))) continue;
+    if ((dataTxt && semVirgula.includes((dataTxt + ' ' + fala).toLowerCase())) || (obraTxt && semVirgula.includes((obraTxt + ' ' + fala).toLowerCase())) || (distracao && semVirgula.includes((distracao + ' ' + fala).toLowerCase()))) continue;
     if (esperado.pago === undefined) delete esperado.pago;
     if (esperado.pago === false && dataRelativa) esperado.data = null;
     // a pessoa pode ter dito "mão de obra" por nome; evita ambiguidade item x obra
