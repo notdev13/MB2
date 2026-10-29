@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useDados } from '../dados/contexto';
+import { impactoNoOrcamento } from '../dominio/calculos';
 import { dataBR, hoje, lerReais, reais, reaisParaCampo } from '../dominio/formato';
 import { CATEGORIAS, FORMAS_PAGAMENTO, type Categoria, type Custo, type FormaPagamento } from '../dominio/tipos';
 import { interpretarFala, possiveisRepetidos } from '../dominio/voz';
@@ -35,6 +36,8 @@ export function FormCusto({ custo, obraId, aoFechar }: { custo?: Custo; obraId?:
   const [pago, setPago] = useState(custo?.pago ?? true);
   const [tentou, setTentou] = useState(false);
   const [salvando, setSalvando] = useState(false);
+  const [salvou, setSalvou] = useState(false);
+  const [tremer, setTremer] = useState(0);
   const [entendido, setEntendido] = useState<{ preenchidos: string[]; faltou: string[] } | null>(null);
 
   // Preenche o formulário com o que foi falado; o que não foi entendido fica como estava.
@@ -58,17 +61,24 @@ export function FormCusto({ custo, obraId, aoFechar }: { custo?: Custo; obraId?:
   const centavos = lerReais(valor);
   const erroValor = centavos === null || centavos <= 0 ? 'Informe um valor maior que zero.' : null;
   const erroObra = obra ? null : 'Escolha a obra.';
+  const obraAtual = obras.find((o) => o.id === obra);
+  const impacto = obraAtual ? impactoNoOrcamento(obraAtual, custos, centavos, custo?.id) : null;
   const repetidos = centavos && obra && data ? possiveisRepetidos(custos, { obraId: obra, valor: centavos, data }, custo?.id) : [];
 
   async function salvar(outro: boolean) {
     setTentou(true);
-    if (erroValor || erroObra || !data || salvando) return;
+    if (erroValor || erroObra || !data || salvando) {
+      if (!salvando) setTremer((n) => n + 1);
+      return;
+    }
     setSalvando(true);
     try {
       await salvarCusto({ obraId: obra, data, categoria, descricao: descricao.trim(), fornecedor: fornecedor.trim(),
         valor: centavos!, pagamento, pago }, custo?.id);
       try { localStorage.setItem(CHAVE_ULTIMA_OBRA, obra); } catch { /* sem armazenamento: só não lembra */ }
       avisar(custo ? 'Lançamento atualizado' : 'Custo lançado');
+      setSalvou(true);
+      setTimeout(() => setSalvou(false), 1400);
       if (outro) {
         setValor('');
         setDescricao('');
@@ -119,10 +129,21 @@ export function FormCusto({ custo, obraId, aoFechar }: { custo?: Custo; obraId?:
         )}
         <label className="campo valor">
           <span>Valor (R$)</span>
-          <input inputMode="decimal" placeholder="0,00" value={valor} onChange={(e) => setValor(e.target.value)}
-            autoFocus={!custo} aria-invalid={tentou && !!erroValor} />
+          <input key={tremer} className={tremer > 0 && erroValor ? 'tremer' : undefined} inputMode="decimal" placeholder="0,00"
+            value={valor} onChange={(e) => setValor(e.target.value)} autoFocus={!custo} aria-invalid={tentou && !!erroValor} />
           {tentou && erroValor && <span className="erro">{erroValor}</span>}
         </label>
+        {impacto && obraAtual && (
+          <div className={'impacto' + (impacto.estoura ? ' estoura' : '')} role="status">
+            <p>
+              {impacto.estoura
+                ? <>Vai passar do orçamento em <strong>{reais(impacto.excedente)}</strong>. </>
+                : null}
+              {obraAtual.nome}: {impacto.percAntes}% → <strong>{impacto.percDepois}%</strong> do orçamento
+            </p>
+            <div className="trilho"><i style={{ width: `${Math.min(100, impacto.usoDepois * 100)}%` }} /></div>
+          </div>
+        )}
         <label className="campo">
           <span>Obra</span>
           <select value={obra} onChange={(e) => setObra(e.target.value)}>
@@ -169,7 +190,9 @@ export function FormCusto({ custo, obraId, aoFechar }: { custo?: Custo; obraId?:
           </div>
         )}
         <div className="acoes">
-          <button className="botao cheio" type="submit" disabled={salvando}>Salvar</button>
+          <button className={'botao cheio' + (salvando ? ' carregando' : '') + (salvou ? ' sucesso' : '')} type="submit" disabled={salvando}>
+            {salvando ? 'Salvando…' : salvou ? 'Salvo ✓' : 'Salvar'}
+          </button>
           {!custo && (
             <button className="botao secundario cheio" type="button" disabled={salvando} onClick={() => salvar(true)}>
               Salvar e lançar outro

@@ -176,3 +176,27 @@ h2 { font-size: 13px; font-weight: 600; letter-spacing: -0.02em; color: var(--fo
 @media (prefers-reduced-motion: reduce) { .botao.microfone.ouvindo { animation: none; } }
 .entendi { border: 1px solid var(--graphite); border-radius: 10px; padding: 10px 14px; margin: -6px 0 16px; font-size: 14px; color: var(--bone); }
 .entendi strong { font-weight: 600; }
+
+/* Microinterações do lançamento (sem sombras; desligadas com movimento reduzido) */
+.campo input, .campo select, .campo textarea { transition: border-color 0.18s ease, background-color 0.18s ease; }
+.campo input:focus, .campo select:focus, .campo textarea:focus { background: var(--onyx); }
+.botao { transition: opacity 0.18s ease, background-color 0.18s ease, border-color 0.18s ease, transform 0.12s ease; }
+.botao:active:not(:disabled) { transform: scale(0.98); }
+.botao.carregando:disabled { opacity: 0.7; }
+.botao.sucesso { background: transparent; color: var(--ok); border-color: rgba(157, 191, 166, 0.5); }
+.impacto { margin: -4px 0 14px; padding: 10px 14px; border: 1px solid var(--graphite); border-radius: 10px; font-size: 13px; color: var(--fog); animation: aparecer 0.18s ease-out; }
+.impacto p { margin: 0; }
+.impacto strong { color: var(--white); font-weight: 600; font-variant-numeric: tabular-nums; }
+.impacto .trilho { margin-top: 10px; }
+.impacto .trilho > i { transition: width 0.4s cubic-bezier(0.2, 0.7, 0.2, 1), background-color 0.2s ease; }
+.impacto.estoura { border-color: var(--alerta-borda); color: var(--alerta); }
+.impacto.estoura strong { color: var(--alerta); }
+.impacto.estoura .trilho > i { background: var(--alerta); }
+@keyframes tremer { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-6px); } 45% { transform: translateX(5px); } 70% { transform: translateX(-3px); } 90% { transform: translateX(2px); } }
+.campo input.tremer { animation: tremer 0.35s ease-in-out; }
+.campo input[aria-invalid='true'] { border-color: var(--alerta-borda); }
+@media (prefers-reduced-motion: reduce) {
+  .campo input, .campo select, .campo textarea, .botao, .impacto .trilho > i { transition: none; }
+  .impacto, .campo input.tremer { animation: none; }
+  .botao:active:not(:disabled) { transform: none; }
+}
