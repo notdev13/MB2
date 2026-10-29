@@ -450,6 +450,40 @@ export function gerarCaos(semente: number, quantidade: number, perigoso = false)
   return casos;
 }
 
+// Rodada 12: duas frases numa, preço por unidade com "a", prazos mensais, receita (não é custo) e obras em conflito.
+export const CASOS_ROD12: Caso[] = [
+  { tipo: 'duas-frases', frase: 'paguei 300 de areia. depois paguei 200 de brita', esperado: { valor: null } },
+  { tipo: 'centavos', frase: 'mil e quinhentos reais e vinte centavos', esperado: { valor: 1500_20 } },
+  { tipo: 'centavos', frase: 'dois reais', esperado: { valor: 2_00 } },
+  { tipo: 'centavos', frase: 'R$ 0,99', esperado: { valor: 99 } },
+  { tipo: 'centavos', frase: '99 centavos', esperado: { valor: 99 } },
+  { tipo: 'centavos', frase: 'R$ 1,00 de prego', esperado: { valor: 1_00 } },
+  { tipo: 'zero', frase: 'R$ 0 de prego', esperado: { valor: null } },
+  { tipo: 'zero', frase: 'zero reais de prego', esperado: { valor: null } },
+  { tipo: 'zero', frase: 'paguei nada', esperado: { valor: null } },
+  { tipo: 'mensal', frase: 'dez mil reais por mês', esperado: { valor: 10000_00 } },
+  { tipo: 'mensal', frase: 'três mil por mês durante seis meses', esperado: { valor: null } },
+  { tipo: 'mensal', frase: 'quatro mil e quinhentos reais em seis meses', esperado: { valor: 4500_00 } },
+  { tipo: 'mensal', frase: 'aluguel 1.500 reais por mês', esperado: { valor: 1500_00 } },
+  { tipo: 'unitario', frase: 'cimento 30 reais o saco, 20 sacos', esperado: { valor: null } },
+  { tipo: 'unitario', frase: 'vinte sacos de cimento a trinta reais', esperado: { valor: null } },
+  { tipo: 'unitario', frase: 'vinte sacos a trinta', esperado: { valor: null } },
+  { tipo: 'unitario', frase: 'dois pedreiros a cem', esperado: { valor: null } },
+  { tipo: 'quantidade', frase: 'vinte sacos por seiscentos reais', esperado: { valor: 600_00 } },
+  { tipo: 'quantidade', frase: 'vinte sacos, seiscentos reais', esperado: { valor: 600_00 } },
+  { tipo: 'quantidade', frase: 'vinte sacos ficou seiscentos', esperado: { valor: 600_00 } },
+  { tipo: 'quantidade', frase: 'vinte sacos seiscentos', esperado: { valor: 600_00 } },
+  { tipo: 'obra', frase: 'lote 39 e lote 12 areia 300 reais', esperado: { valor: 300_00, obraId: null } },
+  { tipo: 'obra', frase: 'do Ulisses na casa 12 mil reais', esperado: { valor: null } },
+  { tipo: 'pago', frase: 'boleto pago 400 de piso', esperado: { valor: 400_00, pago: true, pagamento: 'boleto' } },
+  { tipo: 'pago', frase: 'boleto não pago 400 de piso', esperado: { valor: 400_00, pago: false, pagamento: 'boleto' } },
+  { tipo: 'pago', frase: 'boleto a vencer 400 de piso', esperado: { valor: 400_00, pago: false, pagamento: 'boleto' } },
+  { tipo: 'pago', frase: 'boleto vencido 400 de piso', esperado: { valor: 400_00, pago: false, pagamento: 'boleto' } },
+  { tipo: 'pago', frase: 'conta de luz paga 230', esperado: { valor: 230_00, pago: true } },
+  { tipo: 'receita', frase: 'recebi 300 do cliente', esperado: { valor: null } },
+  { tipo: 'receita', frase: 'recebemos 5 mil de entrada do cliente', esperado: { valor: null } },
+];
+
 // ---- gerador de frases ----
 
 function aleatorio(semente: number) {

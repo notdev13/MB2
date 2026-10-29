@@ -172,7 +172,7 @@ const TEMPO = new Set(['dias', 'hora', 'horas', 'diaria', 'diarias', 'semana', '
 // Palavras de conta ("metade de", "desconto de", "300 cada"): o valor falado não é o do lançamento.
 const CALCULO = new Set(['cada', 'metade', 'dobro', 'triplo', 'desconto', 'abatimento', 'troco', 'sobrou', 'restou', 'restante',
   'diferenca', 'estorno', 'estornei', 'reembolso', 'reembolsei', 'devolveram', 'devolvi', 'devolucao', 'cotacao', 'cotei',
-  'proposta', 'simulacao', 'estimativa', 'previsao']);
+  'proposta', 'simulacao', 'estimativa', 'previsao', 'recebi', 'recebemos', 'recebido']); // recebido = receita, não custo
 const ESTRANGEIRA = new Set(['dolar', 'dolares', 'euro', 'euros', 'libra', 'libras']);
 const PISTAS = new Set(['por', 'total', 'valor', 'custou', 'ficou']);
 
@@ -479,7 +479,7 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
   const parcelado = / (parcelad[oa]s?|parcelei|financiad[oa]|\d+ ?x|\d+ (vezes|parcelas)|[a-z]+ (vezes|parcelas)) /.test(junto);
   const disseuPago = / (paguei|pagou|pagamos|pago|paga|mandei|transferi|depositei|quitei|quitamos|quitado|quitada) /.test(junto);
   let pago: boolean | null = null;
-  if (/ (a pagar|falta pagar|vou pagar|vamos pagar|vai pagar|para pagar|pra pagar|em aberto|fiado|a prazo|ainda nao paguei|nao paguei|nao foi pago|nao foi paga|nao pagou|ainda nao pagou|nao pago|pagar|pendente|devo|devendo|vence|vencimento|preciso pagar|tenho que pagar|tenho de pagar|pagar depois) /.test(junto)) pago = false;
+  if (/ (a pagar|falta pagar|vou pagar|vamos pagar|vai pagar|para pagar|pra pagar|em aberto|fiado|a prazo|ainda nao paguei|nao paguei|nao foi pago|nao foi paga|nao pagou|ainda nao pagou|nao pago|pagar|pendente|devo|devendo|vence|vencimento|a vencer|vencido|vencida|vencendo|em atraso|atrasado|atrasada|preciso pagar|tenho que pagar|tenho de pagar|pagar depois) /.test(junto)) pago = false;
   else if (parcelado) pago = disseuPago ? null : false;
   else if (disseuPago) pago = true;
 
@@ -500,6 +500,7 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
       colados.add(n); colados.add(antes);
     }
   });
+  const temQuantidade = numerosDe(ps).some((n) => UNIDADES.has(ps[n.fim] ?? '') && !usadas.has(n.inicio));
   const candidatos = livres
     .map((g) => {
       let centavos = g.valor === null || colados.has(g) ? null : Math.round(g.valor * 100);
@@ -535,6 +536,8 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
       if (ps[g.fim] === 'e' && /^(pouco|poucos|picos|tanto|tantos|alguma)$/.test(ps[g.fim + 1] ?? '')) centavos = null;
       // "3 vezes de 400", "10 parcelas de 300": não dá para saber se o lançamento é a parcela ou o total
       const ant = ps[g.inicio - 1] === 'r$' ? g.inicio - 2 : g.inicio - 1; // pula o "R$"
+      // "20 sacos a 30 reais": o 30 é o preço de cada saco, não o total
+      if (ps[ant] === 'a' && temQuantidade) centavos = null;
       if (ps[ant] === 'de' && (/^(parcelas|vezes|x)$/.test(ps[ant - 1] ?? '') || /^\d+x$/.test(ps[ant - 1] ?? ''))) centavos = null;
       // "dia onze mil reais": pode ser dia 11 e mil reais, ou onze mil reais
       const dia = ps[g.inicio - 1] === 'dia' ? lerGrupo(ps, g.inicio) : null;
