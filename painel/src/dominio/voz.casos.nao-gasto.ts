@@ -360,7 +360,7 @@ export const NAO_GASTO: Linha[] = [
   ['comprei 3 latas de tinta', null],
   ['pedreiro 3 dias 150 por dia', null],
   ['lote 39 cimento 12', null],
-  ['ligar pro fornecedor 48 99912 3456 areia 500', null],
+  ['ligar pro fornecedor 48 90000 0003 areia 500', null],
   ['em 12 meses 24 mil de financiamento', null],
   ['financiamento 12 parcelas de 2.000', null],
   ['10 parcelas de 300 de cimento', null],
