@@ -27,7 +27,7 @@ const simplificar = (s: string) => semAcento(s.toLowerCase()).replace(/[^a-z0-9]
 // Palavras na forma original (acento e maiúsculas); palavras() devolve as mesmas, na mesma ordem.
 function palavrasOriginais(texto: string): string[] {
   return texto
-    .replace(/r\$\s*/gi, 'R$ ')
+    .replace(/\s*r\$\s*/gi, ' R$ ')
     .replace(/(\d)[ºª°]/g, '$1') // "dia 1º"
     .replace(/[–—]/g, ' ')
     .replace(/([a-zA-ZÀ-ÿ])\/([a-zA-ZÀ-ÿ])/g, '$1 $2') // "pix/boleto"; datas como 17/09 ficam
@@ -57,6 +57,7 @@ function numeroEscrito(p: string): number | null {
   if (/^[1-9]\d{0,2}(,\d{3})+(\.\d{1,2})?$/.test(s)) s = s.replace(/,/g, ''); // 1,200 ou 1,200.50
   else if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
   else if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');
+  if (/\.\d{3,}$/.test(s)) return null; // centavos têm no máximo 2 casas: "0,125" não é dinheiro
   const n = Number(s);
   return Number.isFinite(n) ? n : null;
 }
@@ -554,6 +555,9 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
   const tempoSolto = numerosDe(ps).some((n) => TEMPO.has(ps[n.fim] ?? '') && !usadas.has(n.inicio));
   if (escolhido && tempoSolto && !escolhido.moeda && !PISTAS.has(ps[escolhido.inicio - 1] ?? '')) escolhido = { ...escolhido, centavos: null };
   if (escolhido && ps.some((p) => CALCULO.has(p))) escolhido = { ...escolhido, centavos: null };
+  // "meio dia de servente 150", "meia hora": metade de alguma coisa que não é "dois e meio"/"meio milhão"
+  const lidos = numerosDe(ps);
+  if (escolhido && ps.some((p, i) => ehMeio(p) && !lidos.some((n) => i >= n.inicio && i < n.fim))) escolhido = { ...escolhido, centavos: null };
   // Porcentagem ("50% de 2.000", "dez por cento de entrada"): o valor depende de conta que a pessoa não disse.
   if (escolhido && (/\d%/.test(junto) || / por cento /.test(junto))) escolhido = { ...escolhido, centavos: null };
   if (escolhido) {

@@ -339,6 +339,43 @@ export const CASOS_ROD8: Caso[] = [
   { tipo: 'data', frase: 'sábado via pix 450 de aluguel de andaime', esperado: { valor: 450_00, data: '2026-10-24', pagamento: 'pix' } },
 ];
 
+// Rodada 9: formatos de número escrito, ruído de moeda e metade/meio fora de conta.
+export const CASOS_ROD9: Caso[] = [
+  { tipo: 'formato', frase: '1.234,567 de areia', esperado: { valor: null } },
+  { tipo: 'formato', frase: '0,125 de prego', esperado: { valor: null } },
+  { tipo: 'formato', frase: '360.00 de areia', esperado: { valor: 360_00 } },
+  { tipo: 'formato', frase: '1.200.000 de terreno', esperado: { valor: 1200000_00 } },
+  { tipo: 'formato', frase: '1,200,000 de terreno', esperado: { valor: 1200000_00 } },
+  { tipo: 'formato', frase: 'R$ 1200,5 de cola', esperado: { valor: 1200_50 } },
+  { tipo: 'formato', frase: '10.000 de brita', esperado: { valor: 10000_00 } },
+  { tipo: 'formato', frase: '3,50 de prego', esperado: { valor: 3_50 } },
+  { tipo: 'formato', frase: '12.34.56 de areia', esperado: { valor: null } },
+  { tipo: 'artigo', frase: 'um saco de cimento por 40', esperado: { valor: 40_00 } },
+  { tipo: 'artigo', frase: 'um saco de cimento 40 reais o saco', esperado: { valor: null } },
+  { tipo: 'artigo', frase: 'dois cimentos por 80 reais', esperado: { valor: 80_00 } },
+  { tipo: 'artigo', frase: 'dois cimentos 80', esperado: { valor: null } },
+  { tipo: 'dois-valores', frase: '20 reais de gasolina e 30 de óleo', esperado: { valor: null } },
+  { tipo: 'dois-valores', frase: '20 de gasolina, 30 reais', esperado: { valor: null } },
+  { tipo: 'dois-valores', frase: 'o terreno custou 350 mil reais, paguei 50 de entrada', esperado: { valor: null } },
+  { tipo: 'mil', frase: 'entrada 50 mil e o resto em 10 vezes', esperado: { valor: 50000_00 } },
+  { tipo: 'meio', frase: '2 mil e meio', esperado: { valor: 2500_00 } },
+  { tipo: 'meio', frase: '2,5 milhões', esperado: { valor: 2500000_00 } },
+  { tipo: 'meio', frase: '1,1 mil', esperado: { valor: 1100_00 } },
+  { tipo: 'meio', frase: '4,35 mil de ferro', esperado: { valor: 4350_00 } },
+  { tipo: 'meio', frase: 'dois mil, duzentos e dez', esperado: { valor: 2210_00 } },
+  { tipo: 'meio', frase: 'oito e meia', esperado: { valor: null } },
+  { tipo: 'meio', frase: 'meio dia de servente 150', esperado: { valor: null } },
+  { tipo: 'meio', frase: 'meia hora de máquina 100', esperado: { valor: null } },
+  { tipo: 'moeda', frase: 'R$ R$ 300', esperado: { valor: 300_00 } },
+  { tipo: 'moeda', frase: '300,00R$ de areia', esperado: { valor: 300_00 } },
+  { tipo: 'moeda', frase: 'um real', esperado: { valor: 1_00 } },
+  { tipo: 'data', frase: 'dia 15 de setembro de 2025 100 de areia', esperado: { valor: 100_00, data: '2025-09-15' } },
+  { tipo: 'data', frase: '15/9 100 de areia', esperado: { valor: 100_00, data: '2026-09-15' } },
+  { tipo: 'data', frase: '15/09/25 100 de areia', esperado: { valor: 100_00, data: '2025-09-15' } },
+  { tipo: 'data', frase: '32/10 100 de areia', esperado: { valor: 100_00, data: null } },
+  { tipo: 'parcela', frase: 'cartão de crédito parcelado em 12 vezes de 150', esperado: { valor: null, pagamento: 'cartao', pago: false } },
+];
+
 // ---- gerador de frases ----
 
 function aleatorio(semente: number) {
