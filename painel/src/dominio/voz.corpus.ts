@@ -163,7 +163,7 @@ export const CASOS_ROD3: Caso[] = [
   { tipo: 'pagamento', frase: 'depositei 300 pro Ulisses', esperado: { valor: 300_00, pagamento: 'transferencia', categoria: MO } },
   { tipo: 'pagamento', frase: 'cartão de crédito em 10 vezes 1.000 de piso', esperado: { valor: 1000_00, pagamento: 'cartao', pago: false } },
   { tipo: 'aprox', frase: 'uns quinhentos reais de gesso', esperado: { valor: null } },
-  { tipo: 'ruido', frase: 'ééé então tá é paguei assim, tipo, 300 de areia', esperado: { valor: 300_00, pago: true } },
+  { tipo: 'ruido', frase: 'ééé então tá é paguei assim, tipo, 300 de areia', esperado: { valor: null, pago: true } },
 ];
 
 // Rodada 4: números que não são dinheiro (especificação, parcela, preço por unidade, percentual).
@@ -559,6 +559,34 @@ export const CASOS_ROD15: Caso[] = [
   { tipo: 'terceiros', frase: 'paguei 300 pro Ulisses de 2 dias', esperado: { valor: null } },
   { tipo: 'terceiros', frase: 'MIL E QUINHENTOS PRO ULISSES', esperado: { valor: 1500_00, categoria: MO } },
   { tipo: 'pergunta', frase: 'quanto gastei no lote 39', esperado: { valor: null, obraId: 'l39' } },
+];
+
+// Rodada 16: variações das armadilhas já corrigidas (a regra vale só para a frase em que foi achada?).
+export const CASOS_ROD16: Caso[] = [
+  { tipo: 'calculo', frase: 'a metade de 600 reais', esperado: { valor: null } },
+  { tipo: 'calculo', frase: 'o dobro de 300 reais', esperado: { valor: null } },
+  { tipo: 'calculo', frase: 'um terço de 900 reais', esperado: { valor: null } },
+  { tipo: 'estimativa', frase: 'tipo 300 reais de areia', esperado: { valor: null } },
+  { tipo: 'estimativa', frase: 'trezentos reais por aí de areia', esperado: { valor: null } },
+  { tipo: 'estimativa', frase: 'uns 300 e poucos reais de areia', esperado: { valor: null } },
+  { tipo: 'estimativa', frase: 'aproximadamente 300 reais de areia', esperado: { valor: null } },
+  { tipo: 'unitario', frase: '300 reais a unidade de torneira', esperado: { valor: null } },
+  { tipo: 'unitario', frase: '40 reais por metro de cano', esperado: { valor: null } },
+  { tipo: 'unitario', frase: '12 reais o quilo de prego', esperado: { valor: null } },
+  { tipo: 'unitario', frase: '150 reais por pessoa', esperado: { valor: null } },
+  { tipo: 'unitario', frase: '80 reais por hora de máquina', esperado: { valor: null } },
+  { tipo: 'quantidade', frase: '3 baldes de tinta por 540', esperado: { valor: 540_00 } },
+  { tipo: 'quantidade', frase: '4 cargas de areia por 1.200', esperado: { valor: 1200_00 } },
+  { tipo: 'quantidade', frase: '2 pacotes de prego 90 reais', esperado: { valor: 90_00 } },
+  { tipo: 'quantidade', frase: '50 m² de piso por 2.500', esperado: { valor: 2500_00 } },
+  { tipo: 'quantidade', frase: '10 m³ de areia por 800', esperado: { valor: 800_00 } },
+  { tipo: 'documento', frase: 'nº 1234 cimento 500 reais', esperado: { valor: 500_00 } },
+  { tipo: 'documento', frase: 'código 889 prego 20 reais', esperado: { valor: 20_00 } },
+  { tipo: 'documento', frase: 'NFe 5521 areia 300', esperado: { valor: 300_00 } },
+  { tipo: 'data', frase: 'próxima semana pagar 300 de areia', esperado: { valor: 300_00, data: null, pago: false } },
+  { tipo: 'data', frase: 'última sexta 300 de areia', esperado: { valor: 300_00, data: '2026-10-23' } },
+  { tipo: 'pago', frase: 'deixei pendurado 300 de areia', esperado: { valor: 300_00, pago: false } },
+  { tipo: 'pagamento', frase: 'paguei 300 de areia no crédito parcelado', esperado: { valor: 300_00, pagamento: 'cartao', pago: null } },
 ];
 
 // ---- gerador de frases ----
