@@ -1,7 +1,7 @@
 import { BarraOrcamento, GastoPorMes, PorCategoria } from '../componentes/Graficos';
 import { Lancamentos } from '../componentes/Lancamentos';
 import { useDados } from '../dados/contexto';
-import { porCategoria, porMes, resumirObra, resumoGeral, situacaoOrcamento } from '../dominio/calculos';
+import { gastoComOrcamento, porCategoria, porMes, resumirObra, resumoGeral, situacaoOrcamento } from '../dominio/calculos';
 import { hoje, porcentagem, reais, reaisCurto } from '../dominio/formato';
 import type { Custo } from '../dominio/tipos';
 import { ir } from '../navegacao';
@@ -21,6 +21,7 @@ export function Visao({ aoNovaObra, aoAbrirCusto }: { aoNovaObra: () => void; ao
   }
 
   const geral = resumoGeral(obras, custos, ref);
+  const gastoOrcado = gastoComOrcamento(obras, custos);
   const ativas = obras.filter((o) => o.status !== 'concluida').map((o) => resumirObra(o, custos))
     .sort((a, b) => b.usoOrcamento - a.usoOrcamento);
   const perto = ativas.filter((r) => {
@@ -38,10 +39,10 @@ export function Visao({ aoNovaObra, aoAbrirCusto }: { aoNovaObra: () => void; ao
           <div className="nota">
             {geral.orcamentoAtivas > 0
               ? <>de {reaisCurto(geral.orcamentoAtivas)} orçados em {geral.obrasAtivas} obra{geral.obrasAtivas === 1 ? '' : 's'}
-                {' · '}{porcentagem(geral.gastoAtivas, geral.orcamentoAtivas)}%</>
+                {' · '}{porcentagem(gastoOrcado, geral.orcamentoAtivas)}%</>
               : <>em {geral.obrasAtivas} obra{geral.obrasAtivas === 1 ? '' : 's'} · cadastre os orçamentos para comparar</>}
           </div>
-          <BarraOrcamento gasto={geral.gastoAtivas} orcamento={geral.orcamentoAtivas} />
+          <BarraOrcamento gasto={gastoOrcado} orcamento={geral.orcamentoAtivas} />
         </div>
         <div className="cartao">
           <div className="rotulo">Gasto no mês</div>

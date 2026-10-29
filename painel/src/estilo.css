@@ -68,7 +68,6 @@ h2 { font-size: 13px; font-weight: 600; letter-spacing: -0.02em; color: var(--fo
 /* Barras (dados: dourado) */
 .trilho { height: 4px; border-radius: 9999px; background: var(--graphite); overflow: hidden; margin-top: 14px; }
 .trilho > i { display: block; height: 100%; border-radius: 9999px; background: var(--gilded); background-size: 260px 100%; }
-.trilho.estourou > i { background: var(--alerta); }
 
 /* Leitura do orçamento: faixa em texto + marcador de 80% + preenchimento animado */
 .orc .trilho { position: relative; }

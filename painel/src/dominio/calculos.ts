@@ -1,4 +1,3 @@
-import { porcentagem } from './formato';
 import type { Categoria, Custo, Obra } from './tipos';
 
 export interface ResumoObra {
@@ -118,6 +117,20 @@ export const ROTULO_SITUACAO: Record<SituacaoOrcamento, string> = {
 export function textoSituacao(gasto: number, orcamento: number): string {
   const faixa = situacaoOrcamento(gasto, orcamento);
   return faixa === 'atencao' || faixa === 'limite' || faixa === 'estourou'
-    ? `${ROTULO_SITUACAO[faixa]} · ${porcentagem(gasto, orcamento)}%`
+    ? `${ROTULO_SITUACAO[faixa]} · ${percentualDaFaixa(gasto, orcamento, faixa)}%`
     : ROTULO_SITUACAO[faixa];
+}
+
+// Percentual ao lado do rótulo, coerente com a faixa: nunca arredonda para cima até cruzar o limite
+// ("Atenção" não mostra 95%, "No limite" não mostra 100% se ainda não chegou) e "Estourou" mostra 101% ou mais.
+function percentualDaFaixa(gasto: number, orcamento: number, faixa: SituacaoOrcamento): number {
+  const piso = Math.floor((gasto * 100) / orcamento);
+  return faixa === 'estourou' ? Math.max(101, piso) : piso;
+}
+
+// Gasto das obras em aberto que têm orçamento: a base certa para comparar com `orcamentoAtivas`
+// (obras sem orçamento ficam de fora, senão o total estoura sem nenhuma obra ter estourado).
+export function gastoComOrcamento(obras: Obra[], custos: Custo[]): number {
+  const comOrcamento = new Set(obras.filter((o) => o.status !== 'concluida' && o.orcamento > 0).map((o) => o.id));
+  return soma(custos.filter((c) => comOrcamento.has(c.obraId)));
 }

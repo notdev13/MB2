@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useDados } from '../../dados/contexto';
-import { porCategoria, porMes, resumirObra, resumoGeral, type ResumoObra } from '../../dominio/calculos';
+import { gastoComOrcamento, porCategoria, porMes, resumirObra, resumoGeral, type ResumoObra } from '../../dominio/calculos';
 import { mesAnterior, totalDoMes, variacao } from '../../dominio/consultas';
 import { dataBR, hoje, reais, reaisCurto } from '../../dominio/formato';
 import type { Custo } from '../../dominio/tipos';
@@ -38,7 +38,7 @@ export function VisaoD({ aoNovaObra, aoAbrirCusto }: { aoNovaObra: () => void; a
       <div className="d-kpis span-12">
         <Kpi rotulo="Gasto nas obras em aberto" valor={reaisCurto(geral.gastoAtivas)}
           detalhe={geral.orcamentoAtivas > 0
-            ? <>de {reaisCurto(geral.orcamentoAtivas)} orçados<UsoOrcamento gasto={geral.gastoAtivas} orcamento={geral.orcamentoAtivas} /></>
+            ? <>de {reaisCurto(geral.orcamentoAtivas)} orçados<UsoOrcamento gasto={gastoComOrcamento(obras, custos)} orcamento={geral.orcamentoAtivas} /></>
             : `em ${geral.obrasAtivas} obra${geral.obrasAtivas === 1 ? '' : 's'} · sem orçamento cadastrado`} />
         <Kpi rotulo="Gasto no mês" valor={reaisCurto(geral.gastoNoMes)}
           detalhe={<Variacao valor={variacao(geral.gastoNoMes, anterior)} rotulo="do mês passado" />} />

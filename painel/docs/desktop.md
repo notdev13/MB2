@@ -59,7 +59,7 @@ Abaixo de 1280px, os blocos de 4 e 8 colunas ocupam a linha inteira.
   cabeçalho (`aria-sort`), linha clicável por mouse ou Enter, rodapé com total.
 - `TabelaLancamentos`: busca, filtros, ordenação, total do filtro e "mostrar mais" (100 por vez).
 - Gráficos: `ColunasMes` (12 meses, grade com valores redondos, valor ao passar o mouse, mês atual
-  destacado), `BarrasCategoria`, `UsoOrcamento` (barra + % + selo "Estourou"). Todos com tabela
+  destacado), `BarrasCategoria`, `UsoOrcamento` (barra + faixa em texto ("Tranquilo · 62%", "Atenção · 85%", "Estourou · 112%")). Todos com tabela
   escondida para leitor de tela.
 - Botões `d-botao` (`primario` branco cheio, uma ação principal por tela; `secundario` contorno;
   `fantasma`; `pequeno`; `largo`). Filtros em pílula (`d-busca`, `d-select`, `d-segmentos`).

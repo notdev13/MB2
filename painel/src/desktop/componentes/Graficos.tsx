@@ -70,7 +70,8 @@ export function UsoOrcamento({ gasto, orcamento }: { gasto: number; orcamento: n
   const faixa = situacaoOrcamento(gasto, orcamento);
   if (faixa === 'sem-orcamento') return <span className="d-apagado">sem orçamento</span>;
   const pct = porcentagem(gasto, orcamento);
-  const texto = textoSituacao(gasto, orcamento);
+  const base = textoSituacao(gasto, orcamento);
+  const texto = faixa === 'folga' ? `${base} · ${pct}%` : base; // no desktop a folga também mostra o percentual
   return (
     <span className={'d-uso ' + faixa} title={`${reais(gasto)} de ${reais(orcamento)}`}>
       <span className="d-trilho" role="meter" aria-valuemin={0} aria-valuemax={100}
