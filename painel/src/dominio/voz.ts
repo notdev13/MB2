@@ -251,7 +251,7 @@ const GASTO_NA_FALA = /^(paguei|pagamos|gastei|gastamos|comprei|compramos|nota|b
 // "meio fio", "meia cana", "meia parede", "meio tijolo": nome de peça, não metade de nada.
 const PECA_COM_MEIO = /^(fio|cana|parede|tijolo|agua|bloco|esquadria)$/;
 // Palavras de quem fala de saldo, verba, previsão, tabela, aporte ou conferência: o número é outra coisa, não um gasto.
-const NAO_CUSTO = / (saldo (da|do|de|em) (conta|caixa|banco)|saldo (bancario|disponivel|atual)|verba|limite|previsto|prevista|tabela|sinapi|aporte|extrato|meta|teto|estoque|poupanca|lembrar|lembrete|conferir|revisar|verificar|checar|medindo|mede|(a )?media de|estimado|estimada|capital|patrimonio|nota de credito|entrada de dinheiro|pe direito) /;
+const NAO_CUSTO = / (ate agora|ate hoje|ate aqui|ate o momento|acumulado|desde o comeco|desde o inicio|saldo (da|do|de|em) (conta|caixa|banco)|saldo (bancario|disponivel|atual)|verba|limite|previsto|prevista|tabela|sinapi|aporte|extrato|meta|teto|estoque|poupanca|lembrar|lembrete|conferir|revisar|verificar|checar|medindo|mede|(a )?media de|estimado|estimada|capital|patrimonio|nota de credito|entrada de dinheiro|pe direito) /;
 const ESTRANGEIRA =new Set(['dolar', 'dolares', 'euro', 'euros', 'libra', 'libras']);
 const SIMBOLO_ESTRANGEIRO = new Set(['us$', 'usd', 'u$s', 'eur', 'dolar', 'dolares', 'euro', 'euros']);
 // Flexões dos mesmos verbos ('estornaram', 'devolveu'...)
@@ -287,6 +287,9 @@ const FRASES_SEM_VALOR = new RegExp(' (' + [
   'vou (conferir|confirmar|ver|checar|pensar)', 'a (conferir|confirmar|combinar|definir)', 'se (der|puder|conseguir|fechar|rolar|precisar|tiver|a gente)',
   'pode (ser|custar|ficar|sair)', 'vai (custar|sair|ficar)', 'deve (custar|ficar|sair)', 'custe',
   ENTRE_VERBOS + ' ((o|a) )?(valor|preco|total)', ENTRE_VERBOS + '( [a-z]+){1,3} (para|pra) ' + COMECO_DE_NUMERO,
+  // faturamento e cobrança ao cliente são receita: "fatura para o cliente", "cobrei 12 mil do cliente", "a medição do mês fechou em 56 mil"
+  'pagamento (do|da|de) cliente', '(fatura|faturei|faturamos|nota|emiti|emitimos|cobrei|cobramos) (para|pra|pro|ao|do|de|de|a)? ?(o |a )?cliente', 'cobrei', 'cobramos', 'emiti', 'emitimos', 'faturei', 'faturamos',
+  'cliente (deve|deve a gente|esta devendo|ficou devendo)', 'a receber', 'medicao (do|da|de)', 'ja (foram|somam|somou|passou de|chegou a)',
   // "o preço do m2 de piso 85", "o m2 sai a 42 reais": preço de tabela, não pagamento
   'preco( [a-z0-9]+){0,4} ' + COMECO_DE_NUMERO, 'sai (a|por|em) ' + COMECO_DE_NUMERO, 'ainda nao (lancei|lancamos|registrei|anotei|incluimos)',
   // preço combinado ou de tabela no presente: "o orçamento da cobertura é 22 mil", "o preço do saco é 39"
@@ -306,6 +309,9 @@ const MEDIDA_TECNICA = new Set(['km', 'gb', 'mb', 'tb', 'mega', 'gbps', 'mbps', 
   'kelvin', 'lumens', 'lux', 'micras', 'kcal', 'newtons', 'decibeis', 'hectares', 'alqueires', 'pes', 'jardas', 'milhas', 'gramas', 'miligramas',
   'megapixels', 'megapixel', 'mp', 'mah', 'gigas', 'giga', 'watt', 'lumen', 'amp', 'kelvins', 'centilitros', 'ml', 'cl','demao', 'demaos', 'metros', 'm2', 'm3', 'm²', 'm³']);
 // "paguei dez de frete": depois de verbo de gasto, até número falado pequeno é dinheiro.
+// Verbos e palavras que mostram gasto ou situação de pagamento. Frase LONGA sem nenhuma delas (e sem R$/reais, forma de pagamento
+// ou item de obra) é comentário, não lançamento: "a laje tem 48 m2 e o prazo de entrega é 22 depois do feriado".
+const VERBO_DE_LANCAMENTO = /^(paguei|pagou|pagamos|pago|paga|pagos|pagas|pagaram|pagar|gastei|gastou|gastamos|gasto|gastaram|comprei|compramos|compra|comprou|custou|custa|saiu|ficou|deu|foi|foram|fechei|fechou|fechamos|liquidei|quitei|quitamos|acertei|acertamos|repassei|mandei|transferi|depositei|enviei|dei|passei|investi|desembolsei|custeei|bancou|arcamos|lanca|lancar|lance|lancei|anota|anotar|registra|registrar|adiciona|inclui|coloca|bota|poe|marca|salva|devo|devendo|vence|venc|vencimento|pendente|pendurado|fiado|aberto|atrasado|vencido|vencida|total|totalizou|somou|importou|aluguel|alugamos|aluguei|recebeu|levou|pegou|cobrou|peguei|gastos|comprados|pagamento)$/;
 const VERBO_GASTO = /^(paguei|gastei|gastamos|pagamos|custou|saiu|dei|mandei|passei|comprei|foi|deu)$/;
 
 const PERTO_DE_OUTRO_VALOR = /^(de|pro|pra|para|na|no|ou|ate)$/;
@@ -830,6 +836,8 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
       const dia = ps[g.inicio - 1] === 'dia' ? (inteiro(ps[g.inicio]) ?? lerGrupo(ps, g.inicio)?.valor ?? null) : null;
       if (dia !== null && dia <= 31 && g.valor !== null && g.valor > 31) centavos = null;
       // "1 de 3", "20-10": traços e barras de data
+      // "gastei 2,5", "ferro 2,5": uma casa decimal sem "R$"/"reais" é medida ou "2,5 mil", não R$ 2,50
+      if (!moeda && g.fim === g.inicio + 1 && /^\d+,\d$/.test(ps[g.inicio])) centavos = null;
       if (remover && centavos !== null) removidos.push(centavos);
       return { inicio: g.inicio, fim, centavos, moeda, remover };
     })
@@ -912,7 +920,8 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
       const contados = livres.filter((g, k) => papeis[k] !== 'candidato' && g.valor !== null && Number.isInteger(g.valor) && g.valor >= 2 && !marcadoDe(g) && perto(g));
       // Tempo DEPOIS do valor ("pedreiro 450 3 dias") lê-se como "450 por dia"; tempo antes ("3 dias 900") é o total.
       // Equipe colada no valor sem "reais" ("dois pedreiros 450") também não diz se é de cada um.
-      const tempoOuEquipe = contados.some((g) => (g.inicio >= e.fim && /^(dias|horas|semanas|diarias)$/.test(ps[g.fim] ?? '')) || (!e.moeda && /^viagens$/.test(ps[g.fim] ?? '') && ps[g.inicio - 1] !== 'de') || // "frete de 2 viagens 300": o "de" descreve o serviço, o preço é do todo
+      const tempoOuEquipe = contados.some((g) => (g.inicio >= e.fim && /^(dias|horas|semanas|diarias)$/.test(ps[g.fim] ?? '') && !/^(em|ate|daqui|apos)$/.test(ps[g.inicio - 1] ?? '')) || // "vence em 10 dias" é prazo
+        (!e.moeda && /^viagens$/.test(ps[g.fim] ?? '') && ps[g.inicio - 1] !== 'de') || // "frete de 2 viagens 300": o "de" descreve o serviço, o preço é do todo
         (!e.moeda && g.fim + 1 === e.inicio && EQUIPE.test(ps[g.fim] ?? '')));
       const maiorContagem = Math.max(0, ...livres.filter((g, k) => papeis[k] === 'descartado' && g.valor !== null && perto(g) && CONTAGEM.test(ps[g.fim] ?? '') &&
         // "frete de 20 sacos de cimento 60": o que se paga é o transporte, não os sacos
@@ -952,7 +961,8 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
     // "o valor da empreitada é 38 mil" (valor/total/custo/gasto) é o lançamento.
     {
       const k = ps[e.inicio - 1] === 'r$' ? e.inicio - 2 : e.inicio - 1;
-      if (!fechado && !pista(e) && /^(é|está|esta)$/.test(originais[k] ?? '') && k > 0 && !VAZIAS.has(ps[k - 1]) && !ps.slice(Math.max(0, k - 3), k).some((w) => /^(valor|total|custo|gasto|gastos)$/.test(w))) anula();
+      const kk = ps[k] === 'de' && /^(é|está|esta)$/.test(originais[k - 1] ?? '') ? k - 1 : k; // "é de 22 mil"
+      if (!fechado && !pista(e) && /^(é|está|esta)$/.test(originais[kk] ?? '') && kk > 0 && !VAZIAS.has(ps[kk - 1]) && !ps.slice(Math.max(0, kk - 3), kk).some((w) => /^(valor|total|custo|gasto|gastos)$/.test(w))) anula();
     }
     // Parcelado sem "reais"/"R$": o número pode ser a parcela ou o total.
     if (!fechado && !e.moeda && / (\d+x|em \d+ x|\d+ vezes|[a-z]+ vezes|parcelas) /.test(junto)) anula();
@@ -963,6 +973,13 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
     const usadoColadoAMil = ps.some((p, i) => usadas.has(i) && !usadas.has(i + 1) && (ehMilhar(ps[i + 1]) || ehMilhao(ps[i + 1])) && numeroEscrito(p) !== null);
     // Assuntos que não são custo: saldo, verba, previsão, tabela de preço, aporte, lembrete, conferência.
     const naoECusto = NAO_CUSTO.test(junto);
+    // Frase longa (6+ palavras) sem verbo de gasto, sem R$/reais, sem forma de pagamento e sem item de obra: comentário.
+    const palavrasDeFala = ps.filter((w, i) => !usadas.has(i) && w.length >= 3 && !começaNumero(w) && !ehMilhao(w) && !/^[\d.,]+$/.test(w) && !VAZIAS.has(simplificar(w))).length;
+    const singularW = (w: string) => (w.endsWith('s') ? w.slice(0, -1) : w);
+    const comoGasto = e.moeda || ps.some((w) => VERBO_DE_LANCAMENTO.test(w) || daCategoria(w) !== undefined || daCategoria(singularW(w)) !== undefined ||
+      UNIDADES.has(w) || MEDIDA_TECNICA.has(w) || DOCUMENTOS.has(w) || TEMPO.has(w) || PAGAMENTOS.some(([re]) => re.test(w)) ||
+      /^(guia|gps|darf|inss|fgts|iss|das|mei|simples|imposto|tributo|competencia|honorarios|custas|emolumentos|seguro|apolice)$/.test(w));
+    if (!fechado && palavrasDeFala >= 5 && !comoGasto) anula();
     const dataComTraco = ps.some((p) => /^\d{1,2}-\d{1,2}$/.test(p));
     if (negou || naoECusto || usadoColadoAMil || dataComTraco || diasAbsurdos || (ps.includes('financiamento') && ps.some((p) => p === 'meses' || p === 'anos')) || FRASES_SEM_VALOR.test(junto) ||
       // "orçamento do pintor 4 mil mas ainda não fechei": orçamento que ainda não foi aceito não é custo
