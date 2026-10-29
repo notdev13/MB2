@@ -12,6 +12,7 @@ import { VALIDACAO9 } from './voz.validacao9';
 import { VALIDACAO10 } from './voz.validacao10';
 import { VALIDACAO11 } from './voz.validacao11';
 import { VALIDACAO12 } from './voz.validacao12';
+import { VALIDACAO13 } from './voz.validacao13';
 
 // Conjunto "cega2": 1.020 frases escritas por um revisor independente (sintéticas). Entra como conjunto fixo de treino.
 // Desacordos conhecidos e aceitos (o revisor espera outra coisa; anotados no relatório):
@@ -148,5 +149,16 @@ describe('validação 12 (agora treino)', () => {
   it('nenhum valor errado, nenhuma regressão de campos', () => {
     expect(m.errados).toEqual([]);
     expect(m.secundarios).toEqual([]);
+  });
+});
+
+// Validação 13 (rodada 70): estimativa final, 130 frases (106 com valor), escrita antes de ver a saída. Medida ANTES dos ajustes:
+// 7 valores errados (5,4%), todos em frases que não são gasto (dinheiro separado, compra desfeita, "contestar", comentário de preço);
+// nos 106 gastos nenhum valor errado e 1 branco; depois virou treino. "geminadas" sozinho não identifica a obra (palavra genérica).
+describe('validação 13 (agora treino)', () => {
+  const m = medirLinhas(VALIDACAO13);
+  it('nenhum valor errado; só o campo de obra por palavra genérica fica de fora', () => {
+    expect(m.errados).toEqual([]);
+    expect(m.secundarios).toEqual(['geminadas cimento 380 => obra:null!=mor']);
   });
 });
