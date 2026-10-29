@@ -21,6 +21,9 @@ os custos de cada obra e acompanha gasto x orçamento.
 - `npm run build`: gera `dist/` para publicar.
 
 ## Regras
+- **Mobile first** (iPhone/iOS): todo pedido vale primeiro para o celular, e sempre deve haver versão
+  desktop adaptada, funcional e intuitiva.
+- Este repositório é **público**: nada de segredos, chaves, dados de clientes ou de obras reais em arquivo, commit ou PR.
 - Textos da interface em português do Brasil, simples, para quem não é técnico.
 - Dinheiro sempre em **centavos inteiros**; datas como `AAAA-MM-DD`.
 - Regras de negócio em `src/dominio/` (funções puras, com teste). Telas não fazem conta.
@@ -33,5 +36,5 @@ Resumir arquivos alterados, testes rodados com resultado e o que ficou pendente.
 
 ## Time de agentes (`.claude/agents/`)
 A sessão principal é o mestre: planeja, delega quando vale a pena, integra e confere.
-`pesquisador` investiga, `desenvolvedor` implementa, `revisor` revisa sem alterar arquivos.
-Acione só quando ajudar; tarefa pequena o mestre faz sozinho.
+`pesquisador` investiga, `desenvolvedor` implementa, `dev-sites` programa de ponta a ponta seguindo
+este arquivo, `revisor` revisa sem alterar arquivos. Acione só quando ajudar; tarefa pequena o mestre faz sozinho.
