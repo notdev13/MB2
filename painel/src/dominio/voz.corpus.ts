@@ -353,7 +353,7 @@ export const CASOS_ROD9: Caso[] = [
   { tipo: 'artigo', frase: 'um saco de cimento por 40', esperado: { valor: 40_00 } },
   { tipo: 'artigo', frase: 'um saco de cimento 40 reais o saco', esperado: { valor: null } },
   { tipo: 'artigo', frase: 'dois cimentos por 80 reais', esperado: { valor: 80_00 } },
-  { tipo: 'artigo', frase: 'dois cimentos 80', esperado: { valor: null } },
+  { tipo: 'artigo', frase: 'dois cimentos 80', esperado: { valor: 80_00 } },
   { tipo: 'dois-valores', frase: '20 reais de gasolina e 30 de óleo', esperado: { valor: null } },
   { tipo: 'dois-valores', frase: '20 de gasolina, 30 reais', esperado: { valor: null } },
   { tipo: 'dois-valores', frase: 'o terreno custou 350 mil reais, paguei 50 de entrada', esperado: { valor: null } },

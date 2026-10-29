@@ -18,10 +18,10 @@ export const CASOS_ROD29: Caso[] = [
   r('Sessenta e cinco por cento do contrato, 12 mil', null), r('Saldo devedor 8.000, paguei 2.000', null),
   r('Foram 5 homens por 2 dias, 1.500 reais', 1500), r('Mais 2 ajudantes por 3 dias, 600', 600),
   r('6 sacos de cimento 38 cada, 228', 228), r('3 sacos de cimento a 38 cada: 114', 114), r('3 sacos de cimento 114', 114),
-  r('2 sacos de cimento 76', null), r('Cimento: 38 (unidade), 10 sacos', null), r('Fretei 12 viagens a 80, total 960', 960),
+  r('2 sacos de cimento 76', 76), r('Cimento: 38 (unidade), 10 sacos', null), r('Fretei 12 viagens a 80, total 960', 960),
   r('Quinzena do pessoal: 4 pedreiros e 2 serventes, 7.200', 7200), r('Ferro 3/8 12 barras 540', 540, { data: null }),
   r('Tubo 3/4 x 6m 90 reais', 90, { data: null }), r('Compensado 15 mm 2,20 x 1,10 280 reais', 280),
   r('Vidro 1,20 por 2,00 R$ 650', 650), r('Porta 0,80 x 2,10 m R$ 1.200', 1200), r('Janela 1,5 m² 480', 480),
   r('Telha 40x40 caixa com 25 por 1.150', 1150), r('Locação de andaime 30 dias R$ 900', 900), r('Locação de andaime por 30 dias 900', 900),
-  r('Diária do operador 8h, 220 reais', 220), r('Hora extra 2h pedreiro 60', 60), r('Almoço 12 pessoas 288', 288), r('Almoço 3 pessoas 54', null),
+  r('Diária do operador 8h, 220 reais', 220), r('Hora extra 2h pedreiro 60', 60), r('Almoço 12 pessoas 288', 288), r('Almoço 3 pessoas 54', 54),
 ];

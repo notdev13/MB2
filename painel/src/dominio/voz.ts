@@ -778,7 +778,7 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
     // Número falado menor que 20 sem "reais"/"por" ("dez de frete") é nome ou quantidade.
     if (!fechado && !e.moeda && !pista(e) && !VERBO_GASTO.test(ps[e.inicio - 1] ?? '') && palavraNum(ps[e.inicio]) !== undefined && e.centavos !== null && e.centavos < 2000) anula();
     // Um filtro jogou fora algum número ("2º andar", "480 cômodo") e sobrou só um inteiro pequeno: provavelmente não é o valor.
-    if (!fechado && descartados > 0 && !e.moeda && !pista(e) && e.centavos !== null && e.centavos < 10000 && e.centavos % 100 === 0) anula();
+    if (!fechado && descartados > 0 && !e.moeda && !pista(e) && e.centavos !== null && e.centavos < 5000 && e.centavos % 100 === 0) anula();
     // "lote 39 cimento 12": o 12 pode ser o número de outra obra (casa 12)
     if (!e.moeda && !pista(e) && e.centavos !== null && e.centavos % 100 === 0 && outrasObras.has(e.centavos / 100)) anula();
     // Parcelado sem "reais"/"R$": o número pode ser a parcela ou o total.
@@ -854,7 +854,7 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
   const parcelado = / (parcelad[oa]s?|parcelei|financiad[oa]|\d+x|em \d+ x|\d+ (vezes|parcelas)|[a-z]+ (vezes|parcelas)) /.test(junto);
   const disseuPago = / (paguei|pagou|pagamos|pago|paga|mandei|transferi|depositei|quitei|quitamos|quitado|quitada) /.test(junto);
   let pago: boolean | null = null;
-  if (/ (a pagar|falta pagar|vou pagar|vamos pagar|vai pagar|para pagar|pra pagar|em aberto|fiado|a prazo|ainda nao paguei|nao paguei|nao foi pago|nao foi paga|nao pagou|ainda nao pagou|nao pago|pagar|pendente|pendurado|pendurei|devo|devendo|vence|vencimento|a vencer|vencido|vencida|vencendo|em atraso|atrasado|atrasada|preciso pagar|tenho que pagar|tenho de pagar|pagar depois|mais tarde pago|mais tarde pagar) /.test(junto)) pago = false;
+  if (/ (a pagar|falta pagar|vou pagar|vamos pagar|vai pagar|para pagar|pra pagar|em aberto|fiado|a prazo|ainda nao paguei|nao paguei|nao foi pago|nao foi paga|nao pagou|ainda nao pagou|nao pago|pagar|pendente|pendurado|pendurei|devo|devendo|vence|vencimento|a vencer|vai vencer|vencer|vencido|vencida|vencendo|em atraso|atrasado|atrasada|preciso pagar|tenho que pagar|tenho de pagar|pagar depois|mais tarde pago|mais tarde pagar) /.test(junto)) pago = false;
   else if (parcelado) pago = disseuPago ? null : false;
   else if (disseuPago) pago = true;
 
@@ -862,7 +862,8 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
   const data = pago === false && dataInfo.semMes ? null : dataFalada;
 
   const numerosDeOutrasObras = new Set<number>();
-  for (const o of contexto.obras) if (o.id !== obraId) for (const w of palavras(o.nome)) if (/^\d+$/.test(w)) numerosDeOutrasObras.add(Number(w));
+  // Só desconfia de número igual ao de outra obra quando a fala já citou uma obra ("lote 39 cimento 12"): sem obra citada, 12 é só 12.
+  if (obraId !== null) for (const o of contexto.obras) if (o.id !== obraId) for (const w of palavras(o.nome)) if (/^\d+$/.test(w)) numerosDeOutrasObras.add(Number(w));
   const { valor, duvida: duvidaValor } = acharValor(ps, palavrasOriginais(texto), usadas, numerosDeOutrasObras);
 
   // Categoria, descrição e fornecedor, do mais certo para o menos certo.
