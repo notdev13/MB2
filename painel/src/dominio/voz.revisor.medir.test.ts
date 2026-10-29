@@ -11,11 +11,11 @@ const ENV = (globalThis as unknown as { process: { env: Record<string, string | 
 const OBRAS: Record<string, string> = { lote39: 'l39', casa12: 'l12' };
 const TODOS: C[] = [...CASOS, ...CASOS2];
 
-export function medirRevisor(ler: (f: string) => ReturnType<typeof interpretarFala>) {
+export function medirRevisor(ler: (f: string) => ReturnType<typeof interpretarFala>, mutar: (f: string) => string = (f) => f) {
   const r = { total: TODOS.length, comValor: 0, comuns: 0, errados: [] as string[], branco: [] as string[], brancoComuns: [] as string[],
     campos: [] as string[], camposTotal: 0 };
   for (const c of TODOS) {
-    const x = ler(c.f);
+    const x = ler(mutar(c.f));
     const esperado = c.v === null ? null : Math.round(c.v * 100);
     if (esperado !== null) { r.comValor++; if (!c.dificil) r.comuns++; }
     if (x.valor !== null && x.valor !== esperado) r.errados.push(`${c.f} => ${x.valor} (esperado ${esperado})`);
@@ -29,6 +29,17 @@ export function medirRevisor(ler: (f: string) => ReturnType<typeof interpretarFa
   }
   return r;
 }
+
+// Ruído que não muda o sentido: o resultado tem que ser o mesmo da frase limpa (valor, pelo menos).
+const MUTACOES: [string, (f: string) => string][] = [
+  ['então… né', (f) => `Então, ${f} né`], ['maiúscula e ponto', (f) => f[0].toUpperCase() + f.slice(1) + '.'],
+  ['por favor', (f) => `${f}, por favor`], ['lança aí', (f) => `Lança aí: ${f}`], ['tá + tá?', (f) => `Tá, ${f}, tá?`],
+  ['tudo maiúsculo', (f) => f.toUpperCase()], ['anota', (f) => `Anota aí que ${f}`],
+  ['bom dia', (f) => `Bom dia, ${f}`], ['boa tarde, obrigado', (f) => `Boa tarde, ${f}, obrigado`], ['olha', (f) => `Olha, ${f} viu`],
+  ['opa… ok', (f) => `Opa... ${f}... ok`], ['pra mim', (f) => `${f} pra mim`], ['aqui', (f) => `Aqui, ${f} mesmo`],
+  ['espaços e quebra', (f) => `  ${f.replace(/ /g, '  ')}\n`], ['escuta', (f) => `Escuta, ${f}, beleza?`],
+  ['eu + agora', (f) => `Eu ${f} agora`], ['por gentileza', (f) => `${f}, por gentileza`],
+];
 
 describe('régua do revisor', () => {
   const m = medirRevisor((f) => interpretarFala(f, CONTEXTO));
@@ -44,6 +55,15 @@ describe('régua do revisor', () => {
       ...m.brancoComuns.map((e) => `   - ${e}`),
       `  data/pagamento/pago/obra errados: ${pct(m.campos.length, m.camposTotal)}`, ...m.campos.map((e) => `   ~ ${e}`),
     ].join('\n'));
+  });
+
+  it('ruído de fala não muda o valor', () => {
+    for (const [nome, mutar] of MUTACOES) {
+      const x = medirRevisor((f) => interpretarFala(f, CONTEXTO), mutar);
+      if (ENV.VOZ_MEDIR) console.log(`  mutação "${nome}": valor errado=${x.errados.length}, em branco (comuns)=${pct(x.brancoComuns.length, x.comuns)}`, x.errados.slice(0, 8), x.brancoComuns.slice(0, 8));
+      expect(x.errados, nome).toEqual([]);
+      expect(x.brancoComuns.length / x.comuns, nome).toBeLessThan(0.03);
+    }
   });
 
   it('nunca devolve valor errado', () => {

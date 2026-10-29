@@ -28,6 +28,7 @@ const simplificar = (s: string) => semAcento(s.toLowerCase()).replace(/[^a-z0-9]
 // Palavras na forma original (acento e maiúsculas); palavras() devolve as mesmas, na mesma ordem.
 function palavrasOriginais(texto: string): string[] {
   return texto
+    .replace(/\bbom dia\b/gi, ' ') // saudação, não é "dia 12"
     .replace(/\brs\s*(?=\d)/gi, 'R$ ') // "rs 500"
     .replace(/(\d)\s*rs\b/gi, '$1 reais') // "500rs"
     .replace(/\s*r\$\s*/gi, ' R$ ')
@@ -566,7 +567,8 @@ const parecido = (falado: string, nome: string) =>
 function acharValor(ps: string[], originais: string[], usadas: Set<number>, outrasObras: Set<number>): { valor: number | null; duvida: boolean } {
   const junto = ' ' + ps.join(' ') + ' ';
   const ehDigitos = (p: string | undefined) => /^\d+$/.test(p ?? '');
-  const maiuscula = (i: number) => /^[A-ZÀ-Ý]/.test(originais[i] ?? '');
+  const escritoEmCaixaAlta = !originais.some((w) => /[a-zà-ÿ]/.test(w)); // "300 A JANELA": tudo maiúsculo não diz nada sobre nome próprio
+  const maiuscula = (i: number) => !escritoEmCaixaAlta && /^[A-ZÀ-Ý]/.test(originais[i] ?? '');
   const inteiro = (p: string | undefined) => { const n = p === undefined ? null : numeroEscrito(p); return n !== null && Number.isInteger(n) ? n : null; };
 
   // Números que descrevem endereço, telefone ou medida ("rua 7", "telefone 48 99999 8888", "40 por 40").
@@ -666,7 +668,7 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
         const unid = ps[fim + 1] ?? '';
         // "200 reais por dia", "40 reais o saco", "10 reais cada": preço de cada, não o total
         if (ps[fim] === 'por' && unid && !começaNumero(unid) && !PAGAMENTOS.some(([re]) => re.test(unid)) &&
-          !/^(mes|ano|ai|isso|tudo|conta|fora|dentro|todo|total)$/.test(unid)) remover = true;
+          !/^(mes|ano|ai|ali|aqui|isso|tudo|conta|fora|dentro|todo|total|favor|gentileza|exemplo|enquanto|volta|baixo|cima|ele|ela|eles|elas|mim|nada|fim|sinal|causa|ultimo|primeiro)$/.test(unid)) remover = true;
         if (ps[fim] === 'por' && unid === 'ai') centavos = null; // "trezentos reais por aí"
         if (ps[fim] === 'cada') cadaConsumido = true;
         if (ps[fim] === 'cada' || (/^(por|ao|a|o)$/.test(ps[fim] ?? '') && precoPorUnidade(unid, maiuscula(fim + 1)))) remover = true;
