@@ -15,6 +15,7 @@ export interface Interpretacao {
   fornecedor: string;
   pagamento: FormaPagamento | null;
   pago: boolean | null;
+  duvidaValor?: boolean; // havia número na fala mas não deu para ter certeza de qual é o valor
   faltou: ('valor' | 'obra')[];
 }
 
@@ -484,50 +485,11 @@ function quase(a: string, b: string): boolean {
 const parecido = (falado: string, nome: string) =>
   falado === nome || (falado.length >= 5 && (nome.startsWith(falado) || falado.startsWith(nome)));
 
-// ---- tudo junto ----
-
-export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos: Custo[]; hoje: string }): Interpretacao {
-  const ps = palavras(texto);
-  const usadas = new Set<number>();
-  const simples = ps.map(simplificar);
-
-  const obraId = acharObra(ps, contexto.obras, usadas);
-  const dataInfo = { semMes: false };
-  // A primeira data falada vale; as outras ("ontem ... a pagar dia 10") só saem do caminho do valor.
-  let dataFalada: string | null = null;
-  for (let primeira = true; ; primeira = false) {
-    const antes = usadas.size;
-    const achada = acharData(ps, usadas, contexto.hoje, dataInfo, primeira);
-    if (usadas.size === antes) break;
-    if (primeira) dataFalada = achada;
-  }
-
-  let pagamento: FormaPagamento | null = null;
-  let duasFormas = false;
-  ps.forEach((p, i) => {
-    for (const [re, forma] of PAGAMENTOS) {
-      if (!re.test(p)) continue;
-      if (pagamento && pagamento !== forma) duasFormas = true; // "pix e boleto": dúvida
-      pagamento ??= forma; usadas.add(i);
-    }
-  });
-  if (duasFormas) pagamento = null;
-
-  // A pagar: "a pagar", "falta pagar", "vou pagar", "em aberto", "fiado", "a prazo", "pagar dia 30".
-  // Parcelado ("em 3 vezes", "3x", "10 parcelas") também fica a pagar, mas se a pessoa disse
-  // "paguei" junto fica em dúvida (null): pode ser o cartão já pago ou só a primeira parcela.
+// Valor do lançamento em centavos. Marca em `usadas` os números que leu. Quando há números mas não dá para
+// ter certeza qual é o valor, devolve null com `duvida` verdadeiro (a tela pode avisar "confira o valor").
+function acharValor(ps: string[], usadas: Set<number>): { valor: number | null; duvida: boolean } {
   const junto = ' ' + ps.join(' ') + ' ';
-  const parcelado = / (parcelad[oa]s?|parcelei|financiad[oa]|\d+ ?x|\d+ (vezes|parcelas)|[a-z]+ (vezes|parcelas)) /.test(junto);
-  const disseuPago = / (paguei|pagou|pagamos|pago|paga|mandei|transferi|depositei|quitei|quitamos|quitado|quitada) /.test(junto);
-  let pago: boolean | null = null;
-  if (/ (a pagar|falta pagar|vou pagar|vamos pagar|vai pagar|para pagar|pra pagar|em aberto|fiado|a prazo|ainda nao paguei|nao paguei|nao foi pago|nao foi paga|nao pagou|ainda nao pagou|nao pago|pagar|pendente|pendurado|pendurei|devo|devendo|vence|vencimento|a vencer|vencido|vencida|vencendo|em atraso|atrasado|atrasada|preciso pagar|tenho que pagar|tenho de pagar|pagar depois) /.test(junto)) pago = false;
-  else if (parcelado) pago = disseuPago ? null : false;
-  else if (disseuPago) pago = true;
-
-  // "A pagar sexta" / "a pagar dia 30" é vencimento no futuro; o interpretador só sabe voltar no tempo, então deixa em branco.
-  const data = pago === false && dataInfo.semMes ? null : dataFalada;
-
-  // Valor: o único número do lançamento, ou o único com "reais"/"R$"/"centavos" perto. Quantidade,
+  // O único número do lançamento, ou o único com "reais"/"R$"/"centavos" perto. Quantidade,
   // data, número da obra e preço por unidade não contam. Na dúvida fica null (a pessoa digita).
   const livres = numerosDe(ps)
     .filter((g) => ![...Array(g.fim - g.inicio).keys()].some((k) => usadas.has(g.inicio + k)))
@@ -612,7 +574,7 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
       (ps[g.fim] === 'a' && começaNumero(ps[g.fim + 1])) || (ps[g.inicio - 1] === 'a' && unicos.some((o) => o.fim === g.inicio - 1)) || (/^(parcelas?|vezes|x)$/.test(ps[g.inicio - 2] ?? '') && ps[g.inicio - 1] === 'de') ||
       (ps[g.inicio - 1] === 'r$' && ps[g.inicio - 2] === 'de' && /^(parcelas|vezes|x)$/.test(ps[g.inicio - 3] ?? '')));
   if (escolhido && unicos.some((g) => g !== escolhido && outroValor(g))) escolhido = { ...escolhido, centavos: null };
- // A pessoa disse um valor com "R$"/"reais" e sobrou outro número solto ("tinta R$ 250 e depois frete 150"):
+  // A pessoa disse um valor com "R$"/"reais" e sobrou outro número solto ("tinta R$ 250 e depois frete 150"):
   // dois lançamentos numa fala. Só passa se o valor veio depois de "por"/"total", ou se o resto é medida de material ("brita 2").
   const medidaDeMaterial = (g: { inicio: number; centavos: number | null }) =>
     g.centavos !== null && g.centavos % 100 === 0 && g.centavos <= 900 && daCategoria(ps[g.inicio - 1] ?? '') !== undefined;
@@ -643,7 +605,53 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
     for (let k = escolhido.inicio; k < escolhido.fim; k++) usadas.add(k);
     if (ps[escolhido.inicio - 1] === 'r$') usadas.add(escolhido.inicio - 1);
   }
-  const valor = escolhido?.centavos ?? null;
+  return { valor: escolhido?.centavos ?? null, duvida: escolhido?.centavos === null || (!escolhido && candidatos.length > 0) };
+}
+
+// ---- tudo junto ----
+
+export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos: Custo[]; hoje: string }): Interpretacao {
+  const ps = palavras(texto);
+  const usadas = new Set<number>();
+  const simples = ps.map(simplificar);
+
+  const obraId = acharObra(ps, contexto.obras, usadas);
+  const dataInfo = { semMes: false };
+  // A primeira data falada vale; as outras ("ontem ... a pagar dia 10") só saem do caminho do valor.
+  let dataFalada: string | null = null;
+  for (let primeira = true; ; primeira = false) {
+    const antes = usadas.size;
+    const achada = acharData(ps, usadas, contexto.hoje, dataInfo, primeira);
+    if (usadas.size === antes) break;
+    if (primeira) dataFalada = achada;
+  }
+
+  let pagamento: FormaPagamento | null = null;
+  let duasFormas = false;
+  ps.forEach((p, i) => {
+    for (const [re, forma] of PAGAMENTOS) {
+      if (!re.test(p)) continue;
+      if (pagamento && pagamento !== forma) duasFormas = true; // "pix e boleto": dúvida
+      pagamento ??= forma; usadas.add(i);
+    }
+  });
+  if (duasFormas) pagamento = null;
+
+  // A pagar: "a pagar", "falta pagar", "vou pagar", "em aberto", "fiado", "a prazo", "pagar dia 30".
+  // Parcelado ("em 3 vezes", "3x", "10 parcelas") também fica a pagar, mas se a pessoa disse
+  // "paguei" junto fica em dúvida (null): pode ser o cartão já pago ou só a primeira parcela.
+  const junto = ' ' + ps.join(' ') + ' ';
+  const parcelado = / (parcelad[oa]s?|parcelei|financiad[oa]|\d+ ?x|\d+ (vezes|parcelas)|[a-z]+ (vezes|parcelas)) /.test(junto);
+  const disseuPago = / (paguei|pagou|pagamos|pago|paga|mandei|transferi|depositei|quitei|quitamos|quitado|quitada) /.test(junto);
+  let pago: boolean | null = null;
+  if (/ (a pagar|falta pagar|vou pagar|vamos pagar|vai pagar|para pagar|pra pagar|em aberto|fiado|a prazo|ainda nao paguei|nao paguei|nao foi pago|nao foi paga|nao pagou|ainda nao pagou|nao pago|pagar|pendente|pendurado|pendurei|devo|devendo|vence|vencimento|a vencer|vencido|vencida|vencendo|em atraso|atrasado|atrasada|preciso pagar|tenho que pagar|tenho de pagar|pagar depois) /.test(junto)) pago = false;
+  else if (parcelado) pago = disseuPago ? null : false;
+  else if (disseuPago) pago = true;
+
+  // "A pagar sexta" / "a pagar dia 30" é vencimento no futuro; o interpretador só sabe voltar no tempo, então deixa em branco.
+  const data = pago === false && dataInfo.semMes ? null : dataFalada;
+
+  const { valor, duvida: duvidaValor } = acharValor(ps, usadas);
 
   // Categoria, descrição e fornecedor, do mais certo para o menos certo.
   const hist = aprender(contexto.custos);
@@ -701,7 +709,7 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
   if (!obraId && contexto.obras.length > 1) faltou.push('obra');
   return {
     valor, data, obraId, categoria: categoria && CATEGORIAS.includes(categoria) ? categoria : null,
-    descricao, fornecedor, pagamento, pago, faltou,
+    descricao, fornecedor, pagamento, pago, faltou, ...(duvidaValor ? { duvidaValor } : {}),
   };
 }
 

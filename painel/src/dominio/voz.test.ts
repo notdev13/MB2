@@ -97,6 +97,118 @@ describe('lançamento falado', () => {
   });
 });
 
+// Falhas achadas no laço de testes (corpus em voz.corpus.ts, medidas em voz.medir.test.ts).
+// Regra de ouro: na dúvida o valor é null e entra em `faltou`; nunca um valor errado.
+describe('interpretador de voz: correções', () => {
+  const valor = (t: string) => ler(t).valor;
+
+  it('vírgula de milhar: "1,200" é mil e duzentos, não R$ 1,20', () => {
+    expect(valor('cimento 1,200')).toBe(1200_00);
+    expect(valor('1,200.50 de areia')).toBe(1200_50);
+    expect(valor('1.234,567 de areia')).toBeNull(); // centavos têm no máximo 2 casas
+    expect(valor('pegou 48999998888')).toBeNull(); // telefone não é dinheiro
+  });
+
+  it('"e meio", milhão e k', () => {
+    expect(valor('dois mil e meio de areia')).toBe(2500_00);
+    expect(valor('meio milhão de terreno')).toBe(500000_00);
+    expect(valor('dois milhões e meio de terreno')).toBe(2500000_00);
+    expect(valor('2k de ferro')).toBe(2000_00);
+    expect(valor('5 mil e 500 de tinta')).toBe(5500_00);
+    expect(valor('dois e meio de madeira')).toBeNull();
+    expect(valor('meia hora de máquina 100')).toBeNull();
+  });
+
+  it('centavos sempre em inteiros', () => {
+    expect(valor('noventa centavos de parafuso')).toBe(90);
+    expect(valor('1,1 mil de ferro')).toBe(1100_00); // 1.1 * 1000 em ponto flutuante dá 1100.0000000000002
+    expect(valor('R$ 0,30 de prego')).toBe(30);
+    expect(valor('trezentos reais e cinquenta centavos')).toBe(300_50);
+    expect(valor('três reais e 50 de prego')).toBeNull(); // "e 50" sem a palavra centavos: dúvida
+    expect(Number.isInteger(valor('R$ 1.234,56 Cassol'))).toBe(true);
+  });
+
+  it('reconhecimento errado de pagamento', () => {
+    expect(ler('paguei 300 pelo pique').pagamento).toBe('pix');
+    expect(ler('bolheto de 800').pagamento).toBe('boleto');
+    expect(ler('pix e boleto 300 de areia').pagamento).toBeNull(); // duas formas: dúvida
+    expect(ler('300 de areia no cheque').pagamento).toBe('outro');
+    expect(ler('transferi 2 mil pro Adriano').pagamento).toBe('transferencia');
+  });
+
+  it('parcelado e a prazo ficam a pagar, sem inventar data', () => {
+    expect(ler('vinte mil de laje a prazo')).toMatchObject({ pago: false, valor: 20000_00 });
+    expect(ler('3 mil em 3 vezes')).toMatchObject({ pago: false, valor: 3000_00 });
+    expect(ler('paguei 3 mil em 3 vezes').pago).toBeNull();
+    expect(ler('parcelado em 3x de 500').valor).toBeNull(); // parcela ou total?
+    expect(ler('800 de piso a pagar dia 30').data).toBeNull(); // vencimento futuro
+    expect(ler('boleto de 400 vence dia 5 de novembro').data).toBeNull();
+    expect(ler('pendente 300 de areia').pago).toBe(false);
+    expect(ler('já quitei 300 de areia').pago).toBe(true);
+  });
+
+  it('ruído de fala não vira descrição nem valor', () => {
+    expect(ler('então tá hum é paguei 200 de areia')).toMatchObject({ valor: 200_00, descricao: 'Areia' });
+    expect(ler('paguei… 300 de areia').pago).toBe(true);
+    expect(ler('R$ 1.200 de areia').valor).toBe(1200_00);
+  });
+
+  it('datas: há N dias, primeiro, dois dias da semana, ano passado', () => {
+    expect(ler('há 3 dias 300 de areia').data).toBe('2026-10-25');
+    expect(ler('dia primeiro 300 de areia').data).toBe('2026-10-01');
+    expect(ler('dia vinte e cinco 300 de areia').data).toBe('2026-10-25');
+    expect(ler('1500 de segunda a sexta').data).toBeNull();
+    expect(ler('15 de março do ano passado 100 de areia').data).toBeNull();
+    expect(ler('100 de areia segunda que vem').data).toBeNull();
+    expect(ler('100 de areia 32/10').data).toBeNull();
+  });
+
+  it('número que não é dinheiro: quantidade, documento, medida, endereço', () => {
+    expect(valor('comprei 200 telhas')).toBeNull();
+    expect(valor('200 telhas por 780')).toBe(780_00);
+    expect(valor('nota fiscal 1234 de cimento 500 reais')).toBe(500_00);
+    expect(valor('tubo de 100 mm 80 reais')).toBe(80_00);
+    expect(valor('rua 7 300 reais de areia')).toBe(300_00);
+    expect(valor('Madeireira Dois Irmãos')).toBeNull();
+    expect(valor('em 2026 paguei 300 reais de areia')).toBe(300_00);
+  });
+
+  it('dois valores na mesma fala, preço por unidade e estimativa: null', () => {
+    expect(valor('paguei 360 de cimento e 200 de areia')).toBeNull();
+    expect(valor('tinta R$ 250 e depois frete 150')).toBeNull();
+    expect(valor('doze mil. cem pro Ulisses')).toBeNull(); // o ponto separa as frases
+    expect(valor('20 sacos de cimento a 30 reais')).toBeNull();
+    expect(valor('15 sacos de cimento a 40 reais cada')).toBeNull();
+    expect(valor('pedreiro 150 por dia')).toBeNull();
+    expect(valor('120 reais por vara de eletricista')).toBeNull();
+    expect(valor('uns 500 reais de gesso')).toBeNull();
+    expect(valor('na casa dos R$ 900 de piso')).toBeNull();
+    expect(valor('mil e pouco de areia')).toBeNull();
+    expect(valor('R$ 1 200 de areia')).toBeNull(); // 1.200 ou 1 e 200?
+  });
+
+  it('não é custo ou não é afirmação: null', () => {
+    for (const t of ['estorno de 300 do cimento', 'recebi 300 do cliente', 'metade de 1.000', 'desconto de 100 em 1.500',
+      'mil dólares de ferro', 'US$ 300 de ferro', 'apaga o de 300 reais', 'vou comprar 300 de cimento',
+      'quanto custa 300 de cimento', 'não foi 300 de cimento', 'talvez 300 de cimento', 'paguei 50% de 2.000']) {
+      expect(valor(t), t).toBeNull();
+    }
+    expect(valor('preciso pagar 300 de areia')).toBe(300_00);
+    expect(valor('não foi pago 300 de areia')).toBe(300_00);
+  });
+
+  it('avisa quando havia número mas não deu para ter certeza', () => {
+    expect(ler('paguei 360 de cimento e 200 de areia')).toMatchObject({ valor: null, duvidaValor: true, faltou: ['valor', 'obra'] });
+    expect(ler('cimento').duvidaValor).toBeUndefined();
+    expect(ler('paguei 360 de cimento').duvidaValor).toBeUndefined();
+  });
+
+  it('categoria casa palavras com letra repetida (terraplenagem, ferro)', () => {
+    expect(ler('dezoito mil de terraplenagem').categoria).toBe('Serviços (S)');
+    expect(ler('900 de vergalhão').categoria).toBe('Materiais (M)');
+  });
+});
+
 describe('possíveis repetidos', () => {
   it('mesma obra e valor em até 7 dias', () => {
     const base = [
