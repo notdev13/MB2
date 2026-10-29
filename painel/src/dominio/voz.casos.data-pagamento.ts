@@ -892,7 +892,7 @@ export const DATA_PAGAMENTO: Linha[] = [
   ['marlene: porta e janela 3.900', 3900, { o: 'mar', b: true }],
   ['lagoa azul, taxa da prefeitura 540,00', 540, { o: 'lag', b: true }],
   ['morro das pedras: pedreiro semana 2.100', 2100, { o: 'mor', b: true }],
-  ['chave pix 48999887766 pagamento 350', 350, { pg: 'pix', b: true }],
+  ['chave pix 48900000001 pagamento 350', 350, { pg: 'pix', b: true }],
   ['pix pra chave 48 99988 7766 de 350', 350, { pg: 'pix', b: true }],
   ['lote 39 quadra 12 areia 320', 320, { o: 'l39', b: true }],
   ['casa 12 bloco B apto 301 pintura 780', 780, { o: 'c12', b: true }],
