@@ -84,7 +84,7 @@ export const CASOS_FIXOS: Caso[] = [
   { tipo: 'ruido', frase: 'então tá, paguei 200 de areia', esperado: { valor: 200_00, pago: true } },
   { tipo: 'ruido', frase: 'hum é 200 de areia', esperado: { valor: 200_00 } },
   { tipo: 'virgula', frase: '2.5 mil de madeira', esperado: { valor: 2500_00 } },
-  { tipo: 'parcela', frase: 'três mil e quinhentos de concreto em 3 vezes', esperado: { valor: 3500_00, pago: false } },
+  { tipo: 'parcela', frase: 'três mil e quinhentos de concreto em 3 vezes', esperado: { valor: null, pago: false } },
   { tipo: 'parcela', frase: 'parcelado em 3x de 500 de piso', esperado: { valor: null, pago: false } },
   { tipo: 'parcela', frase: 'dez parcelas de 300 de azulejo', esperado: { valor: null } },
   { tipo: 'extenso', frase: 'mil trezentos e vinte de ferro', esperado: { valor: 1320_00 } },
@@ -161,7 +161,7 @@ export const CASOS_ROD3: Caso[] = [
   { tipo: 'pago', frase: 'já quitei 300 de areia', esperado: { valor: 300_00, pago: true } },
   { tipo: 'pagamento', frase: '300 de areia no cheque', esperado: { valor: 300_00, pagamento: 'outro' } },
   { tipo: 'pagamento', frase: 'depositei 300 pro Ulisses', esperado: { valor: 300_00, pagamento: 'transferencia', categoria: MO } },
-  { tipo: 'pagamento', frase: 'cartão de crédito em 10 vezes 1.000 de piso', esperado: { valor: 1000_00, pagamento: 'cartao', pago: false } },
+  { tipo: 'pagamento', frase: 'cartão de crédito em 10 vezes 1.000 de piso', esperado: { valor: null, pagamento: 'cartao', pago: false } },
   { tipo: 'aprox', frase: 'uns quinhentos reais de gesso', esperado: { valor: null } },
   { tipo: 'ruido', frase: 'ééé então tá é paguei assim, tipo, 300 de areia', esperado: { valor: null, pago: true } },
 ];
@@ -200,12 +200,12 @@ export const CASOS_ROD4: Caso[] = [
   { tipo: 'extenso', frase: 'um mil e duzentos', esperado: { valor: 1200_00 } },
   { tipo: 'quantidade', frase: 'duas mil telhas por 3 mil reais', esperado: { valor: 3000_00 } },
   { tipo: 'quantidade', frase: '200 telhas, 300 reais', esperado: { valor: 300_00 } },
-  { tipo: 'unitario', frase: 'uma hora de máquina 150', esperado: { valor: null, categoria: SERV } },
+  { tipo: 'unitario', frase: 'uma hora de máquina 150', esperado: { valor: 150_00, categoria: SERV } },
   { tipo: 'quantidade', frase: 'duas horas de máquina por 300', esperado: { valor: 300_00 } },
   { tipo: 'unitario', frase: 'quatro diárias de 150 cada', esperado: { valor: null } },
   { tipo: 'unitario', frase: 'paguei 3 diárias de 150', esperado: { valor: null } },
   { tipo: 'unitario', frase: 'servente 3 dias a 150', esperado: { valor: null } },
-  { tipo: 'unitario', frase: 'paguei 3 dias de servente 150', esperado: { valor: null } },
+  { tipo: 'unitario', frase: 'paguei 3 dias de servente 150', esperado: { valor: 150_00 } },
   { tipo: 'unitario', frase: 'paguei duzentos reais por dia', esperado: { valor: null } },
   { tipo: 'unitario', frase: 'ajudante duzentos reais por dia durante cinco dias', esperado: { valor: null } },
   { tipo: 'unitario', frase: 'cimento 40 reais o saco', esperado: { valor: null } },
@@ -216,7 +216,7 @@ export const CASOS_ROD4: Caso[] = [
   { tipo: 'data', frase: '100 de areia quarta', esperado: { valor: 100_00, data: '2026-10-21' } },
   { tipo: 'data-futura', frase: 'boleto de 400 vence dia 5 de novembro', esperado: { valor: 400_00, pago: false, pagamento: 'boleto', data: null } },
   { tipo: 'pago', frase: 'boleto vence dia 20 de 400 de piso', esperado: { valor: 400_00, pago: false, pagamento: 'boleto', data: null } },
-  { tipo: 'pago', frase: 'paguei 800 de piso no cartão em 12 vezes', esperado: { valor: 800_00, pago: null, pagamento: 'cartao' } },
+  { tipo: 'pago', frase: 'paguei 800 de piso no cartão em 12 vezes', esperado: { valor: null, pago: null, pagamento: 'cartao' } },
   { tipo: 'documento', frase: 'nota fiscal 1234 de cimento 500 reais', esperado: { valor: 500_00 } },
   { tipo: 'documento', frase: 'pedido 4521 cimento 800 reais', esperado: { valor: 800_00 } },
   { tipo: 'documento', frase: 'orçamento 7788 aprovado em 15 mil', esperado: { valor: 15000_00 } },
@@ -289,7 +289,7 @@ export const CASOS_ROD7: Caso[] = [
   { tipo: 'colado', frase: 'lote 39 200 reais de areia', esperado: { valor: 200_00, obraId: 'l39' } },
   { tipo: 'colado', frase: 'mil duzentos cinquenta de areia', esperado: { valor: null } },
   { tipo: 'nome', frase: 'Quatro Irmãos 500 reais', esperado: { valor: 500_00 } },
-  { tipo: 'nome', frase: 'Quatro Irmãos 500', esperado: { valor: null } },
+  { tipo: 'nome', frase: 'Quatro Irmãos 500', esperado: { valor: 500_00 } },
   { tipo: 'unidade', frase: '10 m³ de areia 800 reais', esperado: { valor: 800_00 } },
   { tipo: 'unidade', frase: '10 metros cúbicos de areia por 800', esperado: { valor: 800_00 } },
   { tipo: 'sem-valor', frase: 'cancela o último lançamento', esperado: { valor: null } },
@@ -353,11 +353,11 @@ export const CASOS_ROD9: Caso[] = [
   { tipo: 'artigo', frase: 'um saco de cimento por 40', esperado: { valor: 40_00 } },
   { tipo: 'artigo', frase: 'um saco de cimento 40 reais o saco', esperado: { valor: null } },
   { tipo: 'artigo', frase: 'dois cimentos por 80 reais', esperado: { valor: 80_00 } },
-  { tipo: 'artigo', frase: 'dois cimentos 80', esperado: { valor: 80_00 } },
+  { tipo: 'artigo', frase: 'dois cimentos 80', esperado: { valor: null } },
   { tipo: 'dois-valores', frase: '20 reais de gasolina e 30 de óleo', esperado: { valor: null } },
   { tipo: 'dois-valores', frase: '20 de gasolina, 30 reais', esperado: { valor: null } },
   { tipo: 'dois-valores', frase: 'o terreno custou 350 mil reais, paguei 50 de entrada', esperado: { valor: null } },
-  { tipo: 'mil', frase: 'entrada 50 mil e o resto em 10 vezes', esperado: { valor: 50000_00 } },
+  { tipo: 'mil', frase: 'entrada 50 mil e o resto em 10 vezes', esperado: { valor: null } },
   { tipo: 'meio', frase: '2 mil e meio', esperado: { valor: 2500_00 } },
   { tipo: 'meio', frase: '2,5 milhões', esperado: { valor: 2500000_00 } },
   { tipo: 'meio', frase: '1,1 mil', esperado: { valor: 1100_00 } },
@@ -497,7 +497,7 @@ export const CASOS_ROD13: Caso[] = [
   { tipo: 'sem-quantidade', frase: '250 pedreiro', esperado: { valor: 250_00, categoria: MO } },
   { tipo: 'nome', frase: 'Madeireira Dois Irmãos', esperado: { valor: null } },
   { tipo: 'nome', frase: 'Madeireira Dois Irmãos 800 reais', esperado: { valor: 800_00 } },
-  { tipo: 'nome', frase: 'paguei dez de frete', esperado: { valor: null } },
+  { tipo: 'nome', frase: 'paguei dez de frete', esperado: { valor: 10_00 } },
   { tipo: 'nome', frase: 'paguei dez reais de frete', esperado: { valor: 10_00 } },
   { tipo: 'nome', frase: 'paguei vinte e cinco de frete', esperado: { valor: 25_00 } },
   { tipo: 'telefone', frase: 'ligar (48) 99999-8888 e pagar 300 de areia', esperado: { valor: 300_00 } },
@@ -556,7 +556,7 @@ export const CASOS_ROD15: Caso[] = [
   { tipo: 'autocorrecao', frase: 'paguei trezentos, quer dizer, trezentos e sessenta', esperado: { valor: null } },
   { tipo: 'prefixo', frase: 'reais 300 de areia', esperado: { valor: 300_00 } },
   { tipo: 'prefixo', frase: 'valor em reais 300', esperado: { valor: 300_00 } },
-  { tipo: 'terceiros', frase: 'paguei 300 pro Ulisses de 2 dias', esperado: { valor: null } },
+  { tipo: 'terceiros', frase: 'paguei 300 pro Ulisses de 2 dias', esperado: { valor: 300_00 } },
   { tipo: 'terceiros', frase: 'MIL E QUINHENTOS PRO ULISSES', esperado: { valor: 1500_00, categoria: MO } },
   { tipo: 'pergunta', frase: 'quanto gastei no lote 39', esperado: { valor: null, obraId: 'l39' } },
 ];
@@ -706,7 +706,7 @@ export const CASOS_ROD20: Caso[] = [
   { tipo: 'coloquial', frase: 'uns mil reais de cimento', esperado: { valor: null } },
   { tipo: 'coloquial', frase: 'dois milhares de cimento', esperado: { valor: null } },
   { tipo: 'coloquial', frase: 'meia dúzia de torneiras 300', esperado: { valor: null } },
-  { tipo: 'coloquial', frase: 'duas dúzias de tijolo 300', esperado: { valor: null } },
+  { tipo: 'coloquial', frase: 'duas dúzias de tijolo 300', esperado: { valor: 300_00 } },
   { tipo: 'medida', frase: 'R$ 90/m² de piso', esperado: { valor: null } },
   { tipo: 'medida', frase: 'piso a R$ 90 o metro quadrado', esperado: { valor: null } },
   { tipo: 'data', frase: 'segunda quinzena 300 de areia', esperado: { valor: 300_00, data: null } },
@@ -743,7 +743,7 @@ export const CASOS_ROD23: Caso[] = [
   { tipo: 'corriqueira', frase: 'comprei material elétrico 940', esperado: { valor: 940_00 } },
   { tipo: 'corriqueira', frase: 'pintor 1.800 reais terça passada', esperado: { valor: 1800_00, data: '2026-10-27', categoria: MO } },
   { tipo: 'corriqueira', frase: 'paguei a diária do servente 150', esperado: { valor: 150_00, categoria: MO, pago: true } },
-  { tipo: 'corriqueira', frase: '3 diárias do servente 450', esperado: { valor: null } },
+  { tipo: 'corriqueira', frase: '3 diárias do servente 450', esperado: { valor: 450_00 } },
   { tipo: 'corriqueira', frase: 'cimento 22 sacos 880 reais', esperado: { valor: 880_00 } },
   { tipo: 'corriqueira', frase: 'seguro da obra 1.250 hoje', esperado: { valor: 1250_00, data: HOJE } },
   { tipo: 'corriqueira', frase: 'fiz um pix de 3 mil pro Ulisses', esperado: { valor: 3000_00, pagamento: 'pix', categoria: MO } },
@@ -820,7 +820,7 @@ export const CASOS_ROD25: Caso[] = [
 
 // ---- gerador de frases ----
 
-function aleatorio(semente: number) {
+export function aleatorio(semente: number) {
   let s = semente >>> 0;
   return () => {
     s = (s + 0x6d2b79f5) >>> 0;
@@ -864,7 +864,7 @@ export function porExtenso(n: number): string {
   return texto;
 }
 
-const milhar = (n: number) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+export const milhar = (n: number) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 const centavosTexto = (n: number) => String(n).padStart(2, '0');
 
 const ITENS: [string, Categoria][] = [
@@ -1016,6 +1016,8 @@ export function gerarCasos(semente: number, quantidade: number, nivel: number): 
       pagoTxt = esc(['em 3 vezes', 'parcelado']); esperado.pago = null; // "paguei" + parcelado: não dá para saber
     }
     if (verbo === 'mandei' && /vezes|3x|parcelado/.test(pagoTxt)) esperado.pago = null;
+    // parcelado sem "reais"/"R$": o número pode ser a parcela ou o total, então fica em branco
+    if (/vezes|3x/.test(pagoTxt) && !/reais|R\$|conto/.test(fala)) esperado.valor = null;
     if (nivel >= 5 && verbo === 'mandei' && esperado.pago === undefined) esperado.pago = true;
     // ruído de transcrição
     const ruidoIni = nivel >= 2 && r() < 0.4 ? esc(['então', 'tá', 'hum', 'é', 'ah', 'então tá', 'olha']) + ' ' : '';

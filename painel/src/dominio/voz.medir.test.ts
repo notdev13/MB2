@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CASOS_FIXOS, CASOS_ROD3, CASOS_ROD4, CASOS_ROD5, CASOS_ROD7, CASOS_ROD8, CASOS_ROD9, CASOS_ROD10, CASOS_ROD12, CASOS_ROD13, CASOS_ROD14, CASOS_ROD15, CASOS_ROD16, CASOS_ROD17, CASOS_ROD20, CASOS_ROD23, CASOS_ROD24, CASOS_ROD25, CONTEXTO, gerarCaos, gerarCasos, gerarDuplos, gerarFamilias, type Caso } from './voz.corpus';
 import { interpretarFala } from './voz';
+import { gerarAdjacentes, gerarCego, gerarServicos } from './voz.fuzz';
 
 // Mede o interpretador de voz contra o corpus (fixo + gerado). `npm run voz:medir` imprime a taxa
 // de acerto por campo e a lista de falhas; no `npm run check` só confere as garantias abaixo.
@@ -41,6 +42,7 @@ const gerados = NIVEIS.flatMap((nivel) => [1, 2, 3].flatMap((k) => gerarCasos(BA
 const caosPerigoso = [1, 2, 3, 4, 5].flatMap((k) => gerarCaos(BASE + 1000 + k, 600, true));
 const duplos = [1, 2, 3].flatMap((k) => gerarDuplos(BASE + 3000 + k, 800));
 const familias = [1, 2, 3].flatMap((k) => gerarFamilias(BASE + 4000 + k, 800));
+const fuzz = [1, 2, 3].flatMap((k) => [...gerarAdjacentes(BASE + 5000 + k, 700), ...gerarServicos(BASE + 6000 + k, 700), ...gerarCego(BASE + 7000 + k, 700)]);
 const caos = [1, 2, 3, 4, 5].flatMap((k) => gerarCaos(BASE + 2000 + k, 600));
 
 describe('corpus da voz', () => {
@@ -49,13 +51,16 @@ describe('corpus da voz', () => {
   const ger = medir(gerados);
   const cao = medir(caos);
   const duplo = medir(duplos);
+  const fz = medir(fuzz);
+  const fzMarcadas = fuzz.filter((c) => c.tipo.endsWith('marcado'));
+  const fzBranco = fzMarcadas.filter((c) => interpretarFala(c.frase, CONTEXTO).valor === null);
   const familia = medir(familias);
   const caoPerigoso = medir(caosPerigoso);
 
   it('imprime o relatório (npm run voz:medir)', () => {
     if (!ENV.VOZ_MEDIR) return;
     const linhas: string[] = [];
-    for (const [nome, m, n] of [['fixos', medir(TODOS_FIXOS), TODOS_FIXOS.length], ['gerados', ger, gerados.length], ['caos', cao, caos.length], ['duplos', duplo, duplos.length], ['famílias', familia, familias.length], ['caos-perigoso', caoPerigoso, caosPerigoso.length]] as const) {
+    for (const [nome, m, n] of [['fixos', medir(TODOS_FIXOS), TODOS_FIXOS.length], ['gerados', ger, gerados.length], ['caos', cao, caos.length], ['duplos', duplo, duplos.length], ['fuzz do revisor (adjacentes, serviços, cego)', fz, fuzz.length], ['famílias', familia, familias.length], ['caos-perigoso', caoPerigoso, caosPerigoso.length]] as const) {
       linhas.push(`\n== ${nome}: ${n} frases`);
       for (const campo of CAMPOS) {
         if (m.total[campo]) linhas.push(`  ${campo.padEnd(9)} ${(((m.certos[campo] ?? 0) / m.total[campo]) * 100).toFixed(1)}%  (${m.certos[campo] ?? 0}/${m.total[campo]})`);
@@ -85,10 +90,16 @@ describe('corpus da voz', () => {
     expect(caoPerigoso.falhas.filter((f) => f.valorErrado)).toEqual([]);
     expect(duplo.falhas.filter((f) => f.valorErrado)).toEqual([]);
     expect(familia.falhas.filter((f) => f.valorErrado)).toEqual([]);
+    expect(fz.falhas.filter((f) => f.valorErrado)).toEqual([]);
   });
 
   it('caos com números inofensivos: ainda acha o valor', () => {
     expect((cao.certos.valor ?? 0) / cao.total.valor).toBeGreaterThan(0.97);
+  });
+
+  it('fuzz: valor com "R$"/"reais" colado quase nunca fica em branco', () => {
+    if (ENV.VOZ_MEDIR) console.log(`fuzz marcadas em branco: ${fzBranco.length}/${fzMarcadas.length}`, fzBranco.slice(0, 15).map((c) => c.frase));
+    expect(fzBranco.length / fzMarcadas.length).toBeLessThan(0.03);
   });
 
   it('entende o valor na grande maioria das frases geradas', () => {

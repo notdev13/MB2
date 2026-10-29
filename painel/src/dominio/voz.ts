@@ -69,7 +69,7 @@ const ehMilhar = (p: string | undefined) => p === 'mil';
 const ehMilhao = (p: string | undefined) => p === 'milhao' || p === 'milhoes';
 const ehMeio = (p: string | undefined) => p === 'meio' || p === 'meia';
 // "2,5k" = 2.500
-const numeroK = (p: string) => { const m = p.match(/^(\d[\d.,]*)k$/); return m ? numeroEscrito(m[1]) : null; };
+const numeroK = (p: string) => { const m = p.match(/^(\d[\d.,]*)k$/); const n = m ? numeroEscrito(m[1]) : null; return n !== null && n <= 99 ? n : null; }; // 500k não é custo de obra
 const começaNumero = (p: string | undefined) =>
   p !== undefined && (numeroEscrito(p) !== null || numeroK(p) !== null || palavraNum(p) !== undefined || ehMilhar(p));
 
@@ -106,6 +106,8 @@ function lerNumero(ps: string[], i: number): Numero | null {
   let ambiguo = false;
   if (ehMeio(ps[j]) && ehMilhao(ps[j + 1])) return { inicio: i, fim: j + 2, valor: 500_000 };
   const escrito = numeroEscrito(ps[j]);
+  // "1.2" pode ser R$ 1,20 ou 1.200: só vale com "mil"/"milhão" depois
+  if (escrito !== null && /^\d+\.\d$/.test(ps[j]) && !/^0\./.test(ps[j]) && !ehMilhar(ps[j + 1]) && !ehMilhao(ps[j + 1])) return null;
   const emK = numeroK(ps[j]);
   if (escrito !== null || emK !== null) {
     total = escrito ?? (emK as number) * 1000; j++;
@@ -154,10 +156,11 @@ function contagemDeMaterial(ps: string[], g: { inicio: number; fim: number }): b
 }
 
 // "40 reais o saco", "300 a janela": depois de "o/a/por" vem a unidade ou o material, então é preço de cada.
-function precoPorUnidade(w: string | undefined): boolean {
+function precoPorUnidade(w: string | undefined, nomeProprio = false): boolean {
   if (!w) return false;
-  return UNIDADES.has(w) || TEMPO.has(w) || PRECO_POR.has(w) || daCategoria(w) === 'Materiais (M)' ||
-    daCategoria(w.replace(/s$/, '')) === 'Materiais (M)';
+  if (UNIDADES.has(w) || TEMPO.has(w) || PRECO_POR.has(w)) return true;
+  // "R$ 650 à Tintas Colorado": com maiúscula é fornecedor, não material
+  return !nomeProprio && (daCategoria(w) === 'Materiais (M)' || daCategoria(w.replace(/s$/, '')) === 'Materiais (M)');
 }
 
 function numerosDe(ps: string[]): Numero[] {
@@ -175,7 +178,8 @@ const UNIDADES = new Set([
   'rolo', 'rolos', 'caixa', 'caixas', 'galao', 'galoes', 'litro', 'litros', 'dias', 'horas', 'vezes', 'parcelas',
   'pessoa', 'cabeca', 'folha', 'chapa', 'vara', 'par', 'pares', 'comodo', 'comodos', 'ponto', 'tomada', 'lampada', 'pacote', 'pacotes', 'saca', 'sacas', 'balde', 'baldes', 'tambor', 'tambores', 'carrada', 'carradas', 'carga',
   'cargas', 'carreta', 'carretas', 'fardo', 'fardos', 'm²', 'm³', 'parcela', 'etapa', 'fase', 'viagem', 'viagens', 'pessoas', 'homens', 'funcionarios', 'operarios', 'pedreiros', 'serventes',
-  'ajudantes', 'quartos', 'andares', 'casas', 'lotes', 'pontos', 'tomadas', 'lampadas', 'milimetro', 'milimetros', 'mm', 'centimetro', 'centimetros', 'cm', 'polegada', 'polegadas', 'semanas', 'semana',
+  'ajudantes', 'quartos', 'andares', 'casas', 'lotes', 'pontos', 'tomadas', 'lampadas', 'milimetro', 'milimetros', 'mm', 'centimetro', 'centimetros', 'cm', 'polegada', 'polegadas', 'banheiros', 'andar', 'volt', 'volts', 'v', 'ampere', 'amperes', 'watts', 'w', 'hz', 'demao', 'demaos',
+  'diaria', 'diarias',
 ]);
 const MOEDA = new Set(['reais', 'real', 'conto', 'contos', 'pila', 'pilas', 'pratas', 'mangos']);
 // "lote 39", "casa 12": o número é da obra, não é valor.
@@ -183,34 +187,50 @@ const NUMERADORES = new Set(['lote', 'casa', 'lt', 'quadra', 'qd']);
 const OBRA_NUM = new Set([...NUMERADORES, 'obra', 'numero', 'n']);
 // Número que identifica documento ("nota fiscal 1234", "pedido 4521"), não dinheiro.
 const DOCUMENTOS = new Set(['nota', 'nf', 'pedido', 'orcamento', 'ordem', 'cheque', 'protocolo', 'contrato', 'processo',
-  'matricula', 'cpf', 'cnpj', 'telefone', 'fone', 'cep', 'fiscal', 'rua', 'avenida', 'av', 'travessa', 'apto', 'apartamento',
-  'sala', 'andar', 'ano', 'numero', 'nfe', 'nº', 'n°', 'n', 'codigo', 'cod', 'ref', 'referencia', 'item', 'modelo', 'serie']);
-// Quantidade de tempo: o número solto que sobra costuma ser preço por dia/hora, não o total.
+  'matricula', 'cpf', 'cnpj', 'telefone', 'fone', 'cep', 'fiscal', 'apto', 'apartamento',
+  'sala', 'andar', 'ano', 'parcela', 'agencia', 'conta', 'numero', 'nfe', 'nº', 'n°', 'n', 'codigo', 'cod', 'ref', 'referencia', 'item', 'modelo', 'serie']);
 // Só para "X reais a dúzia": preço por unidade; "duas dúzias" sozinho continua valendo como número solto.
 const PRECO_POR = new Set(['duzia', 'duzias', 'metro', 'dia', 'degrau', 'lance', 'trecho', 'pe', 'centimetro']);
 const TEMPO = new Set(['dias', 'hora', 'horas', 'diaria', 'diarias', 'semana', 'semanas', 'meses']);
-// Palavras de conta ("metade de", "desconto de", "300 cada"): o valor falado não é o do lançamento.
+// Palavras que tiram o valor falado do lançamento: conta, estimativa, receita, pergunta, intenção.
+// Só entram palavras que quase nunca aparecem num serviço ou material de obra.
 const CALCULO = new Set(['cada', 'metade', 'dobro', 'triplo', 'terco', 'desconto', 'abatimento', 'troco', 'sobrou', 'restou', 'restante',
   'diferenca', 'estorno', 'estornei', 'reembolso', 'reembolsei', 'devolveram', 'devolvi', 'devolucao', 'cotacao', 'cotei',
-  'proposta', 'simulacao', 'estimativa', 'previsao', 'recebi', 'recebemos', 'recebido', 'aumentou', 'aumento', 'aumentaram', 'reajuste', 'reajustou', 'subiu',
-  'caiu', 'acrescimo', 'caro', 'barato', 'mais', 'menos',
+  'simulacao', 'estimativa', 'previsao', 'recebi', 'recebemos', 'recebido', 'aumentou', 'aumento', 'aumentaram', 'reajuste',
+  'reajustou', 'subiu', 'caiu', 'acrescimo',
   // quem fala não tem certeza, ou é receita/empréstimo
-  'acho', 'talvez', 'creio', 'engano', 'lembro', 'provavelmente', 'possivelmente', 'chutando', 'chutei', 'chute', 'sei',
-  'imagino', 'suponho', 'parece', 'aposto', 'aparentemente', 'edita', 'editar', 'atualiza', 'atualizar', 'troca', 'trocar',
-  'substitui', 'substituir', 'penso', 'recordo', 'estimo', 'calculo', 'alto', 'olho', 'esquece', 'ignora', 'anula', 'anular',
-  'retira', 'tira', 'precisar', 'precisarei', 'comprarei', 'compraremos', 'pagaram', 'depositaram', 'transferiram',
-  'recebimento', 'repasse', 'repassei', 'caucao', 'venda', 'vendas', 'vendi', 'vendemos',
-  'lucro', 'faturamento', 'receita', 'cliente', 'clientes',
-  // ainda não aconteceu, ou é pergunta/preço de tabela
-  'comprar', 'gastar', 'orcar', 'contratar', 'quanto', 'quantos', 'qual', 'quais', 'quando', 'queria', 'quero', 'pretendo',
-  'pretendemos', 'planejo', 'custa', 'custam', 'custaria', 'custara', 'seria', 'sera', 'deve',
-  // comandos de edição: o interpretador só entende lançamento novo
-  'apaga', 'apagar', 'exclui', 'excluir', 'remove', 'remover', 'cancela', 'cancelar', 'desfaz', 'desfazer', 'deleta',
-  'deletar', 'corrige', 'corrigir', 'altera', 'alterar', 'muda', 'mudar']); // recebido = receita, não custo
+  'acho', 'talvez', 'creio', 'engano', 'lembro', 'provavelmente', 'possivelmente', 'chutando', 'chutei', 'chute',
+  'imagino', 'suponho', 'aposto', 'aparentemente', 'penso', 'recordo', 'estimo', 'precisar', 'precisarei', 'comprarei',
+  'compraremos', 'pagaram', 'depositaram', 'transferiram', 'recebimento', 'repasse', 'repassei', 'caucao', 'venda', 'vendas',
+  'vendi', 'vendemos', 'lucro', 'faturamento',
+  // pergunta ou preço de tabela
+  'orcar', 'contratar', 'quanto', 'quantos', 'qual', 'quais', 'queria', 'quero', 'pretendo', 'pretendemos', 'planejo', 'custa',
+  'custam', 'custaria', 'custara', 'seria', 'sera']);
 const ESTRANGEIRA = new Set(['dolar', 'dolares', 'euro', 'euros', 'libra', 'libras']);
 const SIMBOLO_ESTRANGEIRO = new Set(['us$', 'usd', 'u$s', 'eur', 'dolar', 'dolares', 'euro', 'euros']);
-// Flexões dos mesmos verbos ('estornaram', 'devolveu', 'cancelei'...)
-const RAIZ_CALCULO = /^(estorn|reembols|devolv|cancel|apag|exclu|desfa|delet|corrig|aument|reajust|emprest|ressarc|apague|corrija|cancele|edite|atualize|substitua|troque|anul|esquec|ignor|retir)/;
+// Flexões dos mesmos verbos ('estornaram', 'devolveu'...)
+const RAIZ_CALCULO = /^(estorn|reembols|devolv|aument|reajust|emprest|ressarc)/;
+// Frases de dúvida, intenção, comando e receita (olham o texto todo, não uma palavra solta).
+const FRASES_SEM_VALOR = new RegExp(' (' + [
+  '(apaga|apague|exclui|exclua|remove|remova|cancela|cancele|desfaz|desfaca|corrige|corrija|altera|altere|edita|edite|atualiza|atualize|' +
+    'substitui|substitua|anula|anule|esquece|ignora|retira|tira|troca|troque|muda|mude) (o|a|os|as|aquele|aquela|esse|essa|isso|ultimo|ultima|lancamento|gasto|custo|para|pra)',
+  '(vou|vamos|preciso|precisamos|pretendo|queria|quero|tenho que|tenho de|temos que|precisa) (comprar|gastar|orcar|contratar|fechar)',
+  'deve (ter|ser)', 'calculo que', '(iremos|vamos|ia) gastar', 'nao sei', 'sei la', 'por alto', 'a olho', 'parece que', 'me parece', 'a menos', 'cliente (pagou|pagaram|depositou|transferiu)',
+  '(proposta|cotacao|orcamento|estimativa|previsao|simulacao) de', 'receita (de|da|do)', 'mais ou menos',
+].join('|') + ') ');
+// Espaço, bairro ou prédio: o número que vem depois é endereço, não dinheiro.
+const NOME_LUGAR = new Set(['rua', 'avenida', 'av', 'travessa', 'alameda', 'rodovia', 'estrada', 'residencial', 'edificio',
+  'condominio', 'sitio', 'chacara', 'loteamento']);
+const RUAS = new Set(['rua', 'avenida', 'av', 'travessa', 'alameda', 'rodovia', 'estrada']);
+const TELEFONE = new Set(['telefone', 'fone', 'tel', 'celular', 'whats', 'whatsapp', 'zap', 'contato']);
+// Número que descreve o lugar ou o material, não é valor: "banheiro 2", "cômodo 25", "cp 2", "brita 1".
+const SPEC_PREFIX = new Set(['cp', 'classe', 'banheiro', 'quarto', 'suite', 'cozinha', 'comodo', 'bloco', 'galpao', 'torre', 'andar']);
+// Medida técnica logo depois do número ("8 milímetros", "220 volts"): o número descreve o material, não é valor nem quantidade.
+const MEDIDA_TECNICA = new Set(['milimetro', 'milimetros', 'mm', 'centimetro', 'centimetros', 'cm', 'polegada', 'polegadas', 'volt', 'volts', 'v',
+  'ampere', 'amperes', 'watts', 'w', 'hz', 'demao', 'demaos', 'metros', 'm2', 'm3', 'm²', 'm³']);
+// "paguei dez de frete": depois de verbo de gasto, até número falado pequeno é dinheiro.
+const VERBO_GASTO = /^(paguei|gastei|gastamos|pagamos|custou|saiu|dei|mandei|passei|comprei|foi|deu)$/;
+const PERTO_DE_OUTRO_VALOR = /^(de|pro|pra|para|na|no|ou|ate)$/;
 const PISTAS = new Set(['por', 'total', 'valor', 'custou', 'ficou']);
 
 // ---- datas ----
@@ -281,6 +301,7 @@ function acharData(ps: string[], usadas: Set<number>, hoje: string, info: { semM
     if (usadas.has(i)) continue; // já foi lido como outra data
     const p = ps[i];
     if (p === 'hoje' || p === 'agora' || p === 'agorinha') { usadas.add(i); return hoje; }
+    if (p === 'ontem' && ps[i - 1] === 'de' && ps[i - 2] === 'antes') { usadas.add(i); usadas.add(i - 1); usadas.add(i - 2); return diasAntes(hoje, 2); }
     if (p === 'ontem') { usadas.add(i); return diasAntes(hoje, 1); }
     if (p === 'anteontem') { usadas.add(i); return diasAntes(hoje, 2); }
     const atras = haQuantosDias(ps, i);
@@ -296,6 +317,8 @@ function acharData(ps: string[], usadas: Set<number>, hoje: string, info: { semM
       return montarData(Number(barra[1]), Number(barra[2]), barra[3] ? Number(barra[3]) : null, hoje);
     }
     // "17 de setembro", "dia 17 de setembro", "dia vinte e cinco", "dia 17"
+    // "rua 15 de novembro", "residencial dez de abril": nome de lugar, não data
+    if (NOME_LUGAR.has(ps[i - 1] ?? '')) continue;
     const ini = p === 'dia' ? i + 1 : i;
     const d = diaDe(ps, ini);
     if (d) {
@@ -487,51 +510,102 @@ const parecido = (falado: string, nome: string) =>
 
 // Valor do lançamento em centavos. Marca em `usadas` os números que leu. Quando há números mas não dá para
 // ter certeza qual é o valor, devolve null com `duvida` verdadeiro (a tela pode avisar "confira o valor").
-function acharValor(ps: string[], usadas: Set<number>): { valor: number | null; duvida: boolean } {
+// Princípio: número com "R$"/"reais" colado é dinheiro e nunca é descartado como quantidade ou documento;
+// o resto só vale se for o único que sobra e nada na fala o contradiz. Na dúvida, null.
+function acharValor(ps: string[], originais: string[], usadas: Set<number>, outrasObras: Set<number>): { valor: number | null; duvida: boolean } {
   const junto = ' ' + ps.join(' ') + ' ';
-  // O único número do lançamento, ou o único com "reais"/"R$"/"centavos" perto. Quantidade,
-  // data, número da obra e preço por unidade não contam. Na dúvida fica null (a pessoa digita).
-  const livres = numerosDe(ps)
-    .filter((g) => ![...Array(g.fim - g.inicio).keys()].some((k) => usadas.has(g.inicio + k)))
-    .filter((g) => !UNIDADES.has(ps[g.fim] ?? '') && !NUMERADORES.has(ps[g.inicio - 1] ?? '') &&
-      !DOCUMENTOS.has(ps[g.inicio - 1] ?? '') && !/^\d{4,5}-?\d{4}$/.test(ps[g.fim] ?? '') && // "(48) 99999-8888"
-      !contagemDeMaterial(ps, g)); // "200 telhas": quantidade, não dinheiro
+  const ehDigitos = (p: string | undefined) => /^\d+$/.test(p ?? '');
+  const maiuscula = (i: number) => /^[A-ZÀ-Ý]/.test(originais[i] ?? '');
+  const inteiro = (p: string | undefined) => { const n = p === undefined ? null : numeroEscrito(p); return n !== null && Number.isInteger(n) ? n : null; };
+
+  // Números que descrevem endereço, telefone ou medida ("rua 7", "telefone 48 99999 8888", "40 por 40").
+  const ruido = new Set<number>();
+  let diasAbsurdos = false;
+  ps.forEach((p, i) => {
+    if (RUAS.has(p)) for (let k = i + 1; k <= i + 4 && k < ps.length; k++) if (começaNumero(ps[k])) { ruido.add(k); break; }
+    if (NOME_LUGAR.has(p) && !RUAS.has(p) && começaNumero(ps[i + 1])) ruido.add(i + 1); // "residencial dez de abril"
+    // "pedreiro 450 faz 450 dias": ninguém sabe de que dia
+    if ((p === 'faz' || p === 'ha') && (inteiro(ps[i + 1]) ?? 0) > 365 && TEMPO.has(ps[i + 2] ?? '')) diasAbsurdos = true;
+    if (TELEFONE.has(p)) for (let k = i + 1; k <= i + 4 && ehDigitos(ps[k]); k++) ruido.add(k);
+    const a = inteiro(p);
+    const c = inteiro(ps[i + 2]);
+    if (a !== null && a <= 99 && ps[i + 1] === 'por' && c !== null && c <= 99 && !MOEDA.has(ps[i + 3] ?? '') && ps[i + 3] !== 'r$' &&
+      ps[i - 1] !== 'r$' && ps[i + 1 - 1] !== 'r$') { ruido.add(i); ruido.add(i + 2); } // "tábua de 2 por 4", "telha 40 por 40"
+  });
+
+  // Tokens já lidos como data ou obra viram "|" para não se juntarem ao número seguinte ("casa 12: mil e duzentos").
+  const livres = numerosDe(ps.map((p, i) => (usadas.has(i) ? '|' : p))).filter((g) => ![...Array(g.fim - g.inicio).keys()].some((k) => usadas.has(g.inicio + k)));
+  const temQuantidade = livres.some((n) => UNIDADES.has(ps[n.fim] ?? ''));
+
+  // Cada número vira: candidato, ruído (descreve outra coisa) ou descartado (parece quantidade/documento).
+  type Papel = 'candidato' | 'ruido' | 'descartado';
+  const marcadoDe = (g: Numero) => {
+    const depois = ps[g.fim] ?? '';
+    return ps[g.inicio - 1] === 'r$' || (depois === 'r$' && !começaNumero(ps[g.fim + 1])) || MOEDA.has(depois) || ESTRANGEIRA.has(depois) || depois === 'centavo' || depois === 'centavos';
+  };
+  const papelDe = (g: Numero): Papel => {
+    if (ruido.has(g.inicio)) return 'ruido';
+    if (marcadoDe(g)) return 'candidato'; // "R$ 480 cômodo 2", "nota 800 reais": o dinheiro vence
+    const prev = ps[g.inicio - 1] ?? '';
+    const depois = ps[g.fim] ?? '';
+    if (MEDIDA_TECNICA.has(depois) && depois !== 'metros' && depois !== 'm2' && depois !== 'm3' && depois !== 'm²' && depois !== 'm³') return 'ruido';
+    if (NUMERADORES.has(prev) || (OBRA_NUM.has(prev) && /^\d{1,2}$/.test(ps[g.inicio] ?? ''))) return 'ruido'; // "lote 41", "obra 7": número da obra
+    const n = g.fim === g.inicio + 1 ? inteiro(ps[g.inicio]) : null;
+    if (n !== null && ((SPEC_PREFIX.has(prev) && n <= 99) ||
+      (n >= 1 && n <= 9 && daCategoria(prev) === 'Materiais (M)' && !PERTO_DE_OUTRO_VALOR.test(depois)))) return 'ruido';
+    // "2º andar 480": o andar vem antes do número, então o 480 continua sendo dinheiro
+    const documento = DOCUMENTOS.has(prev) && !(prev === 'andar' && numeroEscrito(ps[g.inicio - 2] ?? '') !== null);
+    if (documento && /^\d{4,}$/.test(ps[g.inicio])) return 'ruido'; // "nota fiscal 4521": número de documento
+    if (UNIDADES.has(depois) || documento || /^\d{4,5}-?\d{4}$/.test(depois) || contagemDeMaterial(ps, g)) return 'descartado';
+    return 'candidato';
+  };
+  const papeis = livres.map(papelDe);
+  const descartados = papeis.filter((p) => p === 'descartado').length;
+  const aberto = livres.filter((_, k) => papeis[k] === 'candidato');
+
   // Dois números escritos colados ("1 200", "R$ 1 250,00") podem ser um valor só ou dois: dúvida nos dois.
   const colados = new Set<Numero>();
-  livres.forEach((n, k) => {
-    const antes = livres[k - 1];
-    if (antes && antes.fim === n.inicio && numeroEscrito(ps[n.inicio]) !== null && numeroEscrito(ps[antes.fim - 1]) !== null &&
+  aberto.forEach((n, k) => {
+    const antes = aberto[k - 1];
+    if (antes && antes.fim === n.inicio && inteiro(ps[n.inicio]) !== null && inteiro(ps[antes.fim - 1]) !== null &&
       antes.valor !== n.valor) { // gagueira ("300 300") não é número colado
       colados.add(n); colados.add(antes);
     }
   });
-  const temQuantidade = numerosDe(ps).some((n) => UNIDADES.has(ps[n.fim] ?? '') && !usadas.has(n.inicio));
-  const candidatos = livres
+
+  const candidatos = aberto
     .map((g) => {
       let centavos = g.valor === null || colados.has(g) ? null : Math.round(g.valor * 100);
       let fim = g.fim;
       let moeda = ps[g.inicio - 1] === 'r$';
+      let remover = false; // é preço de cada unidade: some, não atrapalha o resto
       const depois = ps[g.fim];
-      if (SIMBOLO_ESTRANGEIRO.has(ps[g.inicio - 1] ?? '')) centavos = null; // "US$ 300", "dólares 300"
-      // "150 por dia", "120 ao dia", "40 o saco": preço de cada, não o total
-      if (/^(por|ao|a|o)$/.test(depois ?? '') && (precoPorUnidade(ps[g.fim + 1]))) centavos = null;
+      const ant = ps[g.inicio - 1] === 'r$' ? g.inicio - 2 : g.inicio - 1; // pula o "R$"
+      if (SIMBOLO_ESTRANGEIRO.has(ps[ant] ?? '')) centavos = null; // "US$ 300", "dólares 300"
+      const MEDIDAS = /^(metros?|m2|m3|m²|m³|kg|quilos?|litros?|toneladas?)$/;
+      // "40 metros por 45 reais" é preço do metro; acima de R$ 1.000 já é o total ("12 metros por 1.400")
+      if (ps[g.inicio - 1] === 'por' && MEDIDAS.test(ps[g.inicio - 2] ?? '') && começaNumero(ps[g.inicio - 3]) && (g.valor ?? 0) < 1000) remover = true;
+      if (depois === 'cada' || (/^(por|ao|a|o)$/.test(depois ?? '') && precoPorUnidade(ps[g.fim + 1], maiuscula(g.fim + 1)))) remover = true; // "150 por dia", "40 o saco"
       if (depois === 'por' && ps[g.fim + 1] === 'ai') centavos = null; // "trezentos por aí"
-      if (ps[g.fim] === 'reais' && ps[g.fim + 1] === 'por' && ps[g.fim + 2] === 'ai') centavos = null;
+      if (depois === 'por' && ps[g.fim + 1] === 'mes' && ps.includes('meses')) remover = true; // "3 mil por mês durante seis meses"
+      if (depois === 'pau' || depois === 'paus') centavos = null; // gíria que pode ser outra coisa
       if (depois === 'centavo' || depois === 'centavos') { // "noventa centavos"
         centavos = g.valor !== null && Number.isInteger(g.valor) && g.valor < 100 ? g.valor : null;
         // "...reais e cinquenta centavos" cujo começo foi descartado: os centavos sozinhos não são o valor
         if (ps[g.inicio - 1] === 'e' && MOEDA.has(ps[g.inicio - 2] ?? '')) centavos = null;
         fim++; moeda = true;
-      } else if (depois === 'r$') { // "450 R$"
+      } else if (depois === 'r$' && !começaNumero(ps[g.fim + 1])) { // "450 R$"
         moeda = true; fim++;
       } else if (depois && ESTRANGEIRA.has(depois)) { // dólar não é real: a pessoa converte
         centavos = null; moeda = true; fim++;
       } else if (depois && MOEDA.has(depois)) {
         moeda = true; fim++;
-        // preço por unidade ("200 reais por dia", "40 reais o saco", "10 reais cada"), não o total
         const unid = ps[fim + 1] ?? '';
-        if (ps[fim] === 'por' && unid && !começaNumero(unid) && !PAGAMENTOS.some(([re]) => re.test(unid)) && !/^(mes|ano|ai|isso|tudo|conta|fora|dentro|todo|total)$/.test(unid)) centavos = null;
-        if (ps[fim] === 'cada' || (/^(por|ao|a|o)$/.test(ps[fim] ?? '') && precoPorUnidade(unid))) centavos = null;
+        // "200 reais por dia", "40 reais o saco", "10 reais cada": preço de cada, não o total
+        if (ps[fim] === 'por' && unid && !começaNumero(unid) && !PAGAMENTOS.some(([re]) => re.test(unid)) &&
+          !/^(mes|ano|ai|isso|tudo|conta|fora|dentro|todo|total)$/.test(unid)) remover = true;
+        if (ps[fim] === 'por' && unid === 'ai') centavos = null; // "trezentos reais por aí"
+        if (ps[fim] === 'cada' || (/^(por|ao|a|o)$/.test(ps[fim] ?? '') && precoPorUnidade(unid, maiuscula(fim + 1)))) remover = true;
         else if (ps[fim] === 'e' && começaNumero(ps[fim + 1])) {
           // "360 reais e 50 centavos" (só vale com a palavra "centavos"; "reais e 50" é dúvida)
           const resto = lerNumero(ps, fim + 1);
@@ -540,72 +614,104 @@ function acharValor(ps: string[], usadas: Set<number>): { valor: number | null; 
             centavos += resto.valor; fim = resto.fim + 1;
           } else { centavos = null; if (resto) fim = resto.fim; }
         }
+        if (ps[g.fim + 1] === 'mais' && /^(caro|barato)$/.test(ps[g.fim + 2] ?? '')) centavos = null; // "200 reais mais caro"
       }
+      if (ps[g.fim] === 'mais' && /^(caro|barato)$/.test(ps[g.fim + 1] ?? '')) centavos = null; // "200 mais caro"
       // "uns 500", "mais ou menos 500": estimativa, não é o valor do lançamento
-      if (/ (uns|umas|cerca|cerca de|aproximadamente|quase|mais ou menos|perto de|em torno de|tipo|mais de|menos de|na casa dos|na casa de|casa dos|acima de|abaixo de|ate|no maximo|no minimo|a partir de|por volta de|na faixa de|em media|media de)$/.test(' ' + ps.slice(Math.max(0, g.inicio - (ps[g.inicio - 1] === 'r$' ? 4 : 3)), ps[g.inicio - 1] === 'r$' ? g.inicio - 1 : g.inicio).join(' '))) centavos = null;
+      const prefixo = ps.slice(Math.max(0, ant + 1 - 3), ant + 1).join(' ');
+      if (/ (uns|umas|cerca|cerca de|aproximadamente|quase|mais ou menos|perto de|em torno de|tipo|mais de|menos de|na casa dos|na casa de|casa dos|acima de|abaixo de|ate|no maximo|no minimo|a partir de|por volta de|na faixa de|em media|media de)$/.test(' ' + prefixo)) centavos = null;
+      // "mais 500 de areia": soma ou subtração, não um valor sozinho
+      if (ps[ant] === 'mais' || ps[ant] === 'menos') centavos = null;
       // "mil e pouco", "mil e tantos"
       if (ps[g.fim] === 'e' && /^(pouco|poucos|picos|tanto|tantos|alguma)$/.test(ps[g.fim + 1] ?? '')) centavos = null;
       // "3 vezes de 400", "10 parcelas de 300": não dá para saber se o lançamento é a parcela ou o total
-      const ant = ps[g.inicio - 1] === 'r$' ? g.inicio - 2 : g.inicio - 1; // pula o "R$"
-      // "20 sacos a 30 reais": o 30 é o preço de cada saco, não o total
-      if (ps[ant] === 'a' && temQuantidade) centavos = null;
       if (ps[ant] === 'de' && (/^(parcelas|vezes|x)$/.test(ps[ant - 1] ?? '') || /^\d+x$/.test(ps[ant - 1] ?? ''))) centavos = null;
-      // "dia onze mil reais": pode ser dia 11 e mil reais, ou onze mil reais
-      const dia = ps[g.inicio - 1] === 'dia' ? lerGrupo(ps, g.inicio) : null;
-      if (dia && dia.valor <= 31 && g.valor !== null && g.valor > 31) centavos = null;
-      return { inicio: g.inicio, fim, centavos, moeda };
+      // "3 diárias de 150", "10 dias de 300": preço de cada dia
+      if (ps[ant] === 'de' && TEMPO.has(ps[ant - 1] ?? '') && começaNumero(ps[ant - 2]) && !/^(um|uma|1)$/.test(ps[ant - 2] ?? '')) remover = true;
+      // "20 sacos a 30 reais": o 30 é o preço de cada saco, não o total
+      if (ps[ant] === 'a' && temQuantidade) remover = true;
+      // "dia 200", "dia onze mil reais": não é data; pode ser valor ou dia seguido de valor
+      if (ps[ant] === 'dia' && !moeda) centavos = null;
+      const dia = ps[g.inicio - 1] === 'dia' ? (inteiro(ps[g.inicio]) ?? lerGrupo(ps, g.inicio)?.valor ?? null) : null;
+      if (dia !== null && dia <= 31 && g.valor !== null && g.valor > 31) centavos = null;
+      // "1 de 3", "20-10": traços e barras de data
+      return { inicio: g.inicio, fim, centavos, moeda, remover };
     })
+    .filter((g) => !g.remover)
     // o "50" de "300 reais e 50 centavos" já foi lido junto com o 300
     .filter((g, k, todos) => !todos.slice(0, k).some((o) => g.inicio < o.fim))
     // Acima de R$ 50 milhões é telefone, CEP ou erro de reconhecimento, não custo de obra.
     .filter((g) => g.centavos === null || g.centavos <= 5_000_000_000)
     // "um" sozinho é artigo ("um frete de 300"), a não ser que venha com "real"/"conto".
     .filter((g) => !(g.fim - g.inicio === 1 && (ps[g.inicio] === 'um' || ps[g.inicio] === 'uma')) && (g.centavos === null || g.centavos > 0));
+
+  // Com outro candidato na fala, ano ("em 2026") e número falado pequeno ("Quatro Irmãos") são ruído.
+  const soltos = candidatos.length > 1 ? candidatos.filter((g) => {
+    if (g.moeda || PISTAS.has(ps[g.inicio - 1] ?? '')) return true;
+    if (g.fim === g.inicio + 1 && /^20\d\d$/.test(ps[g.inicio])) return false;
+    const falado = palavraNum(ps[g.inicio]) !== undefined && g.centavos !== null && g.centavos < 2000;
+    if (falado && VERBO_GASTO.test(ps[g.inicio - 1] ?? '')) return true;
+    return !(falado && !PERTO_DE_OUTRO_VALOR.test(ps[g.fim] ?? '') && !(ps[g.fim] === 'a' && começaNumero(ps[g.fim + 1])));
+  }) : candidatos;
+
   // O mesmo valor repetido ("200 de areia (duzentos reais)") conta uma vez.
-  const unicos = candidatos.filter((g, k) => g.centavos === null || !candidatos.slice(0, k).some((o) => o.centavos === g.centavos));
-  for (const g of unicos) if (candidatos.some((o) => o.centavos === g.centavos && o.moeda)) g.moeda = true;
+  const unicos = soltos.filter((g, k) => g.centavos === null || !soltos.slice(0, k).some((o) => o.centavos === g.centavos));
+  for (const g of unicos) if (soltos.some((o) => o.centavos === g.centavos && o.moeda)) g.moeda = true;
   const comMoeda = unicos.filter((g) => g.moeda);
   // "200 telhas por 780": o número depois de "por"/"total" é o valor, o outro é quantidade.
-  const comPista = unicos.filter((g) => g.moeda || PISTAS.has(ps[g.inicio - 1] ?? ''));
+  const pista = (g: { inicio: number }) => PISTAS.has(ps[g.inicio - 1] ?? '');
+  const comPista = unicos.filter((g) => g.moeda || pista(g));
   let escolhido = unicos.length === 1 ? unicos[0] : comMoeda.length === 1 ? comMoeda[0] : comPista.length === 1 ? comPista[0] : null;
-  // "200 reais de areia e 100 de brita", "entrada de 1.200 e 3 parcelas de 500": dois valores, na dúvida não escolhe.
-  const outroValor = (g: { inicio: number; fim: number; moeda: boolean }) =>
-    !g.moeda && (/^(de|pro|pra|para|na|no|ou|ate)$/.test(ps[g.fim] ?? '') || /^(comprei|compramos|pedi|levei|trouxe|entregaram)$/.test(ps[g.inicio - 1] ?? '') || ps[g.inicio - 1] === 'ou' || ps[g.inicio - 1] === 'ate' ||
-      (ps[g.fim] === 'a' && começaNumero(ps[g.fim + 1])) || (ps[g.inicio - 1] === 'a' && unicos.some((o) => o.fim === g.inicio - 1)) || (/^(parcelas?|vezes|x)$/.test(ps[g.inicio - 2] ?? '') && ps[g.inicio - 1] === 'de') ||
-      (ps[g.inicio - 1] === 'r$' && ps[g.inicio - 2] === 'de' && /^(parcelas|vezes|x)$/.test(ps[g.inicio - 3] ?? '')));
-  if (escolhido && unicos.some((g) => g !== escolhido && outroValor(g))) escolhido = { ...escolhido, centavos: null };
-  // A pessoa disse um valor com "R$"/"reais" e sobrou outro número solto ("tinta R$ 250 e depois frete 150"):
-  // dois lançamentos numa fala. Só passa se o valor veio depois de "por"/"total", ou se o resto é medida de material ("brita 2").
-  const medidaDeMaterial = (g: { inicio: number; centavos: number | null }) =>
-    g.centavos !== null && g.centavos % 100 === 0 && g.centavos <= 900 && daCategoria(ps[g.inicio - 1] ?? '') !== undefined;
-  // Sobras que não são dinheiro: prazo ("12 meses", "5 anos"), ano ("2026") e número falado pequeno ("Quatro Irmãos").
-  const sobraSemValor = (g: { inicio: number; fim: number; centavos: number | null }) =>
-    /^(ano|anos|mes|meses)$/.test(ps[g.fim] ?? '') || /^(19|20)\d\d$/.test(ps[g.inicio]) ||
-    (palavraNum(ps[g.inicio]) !== undefined && g.centavos !== null && g.centavos < 2000) || medidaDeMaterial(g);
-  if (escolhido && escolhido === comMoeda[0] && comMoeda.length === 1 && !PISTAS.has(ps[escolhido.inicio - 1] ?? '') &&
-    unicos.some((g) => g !== escolhido && !sobraSemValor(g))) escolhido = { ...escolhido, centavos: null };
-  // Número falado menor que 20 sem "reais"/"por" ("Dois Irmãos", "dez de frete") é nome ou quantidade.
-  if (escolhido && !escolhido.moeda && !PISTAS.has(ps[escolhido.inicio - 1] ?? '') && palavraNum(ps[escolhido.inicio]) !== undefined &&
-    escolhido.centavos !== null && escolhido.centavos < 2000) escolhido = { ...escolhido, centavos: null };
-  // "3 dias de servente 150": sem "reais" nem "por", o 150 pode ser a diária, não o total.
-  const tempoSolto = numerosDe(ps).some((n) => TEMPO.has(ps[n.fim] ?? '') && !usadas.has(n.inicio) && !(n.valor === 1 && ps[n.fim] === 'diaria'));
-  if (escolhido && tempoSolto && !escolhido.moeda && !PISTAS.has(ps[escolhido.inicio - 1] ?? '')) escolhido = { ...escolhido, centavos: null };
-  // "não foi 300", "não era 300": a pessoa está dizendo que esse NÃO é o valor
-  const negou = ps.some((p, k) => p === 'nao' && /^(foi|era|e|sao|eram|ficou|fica|vai|sera)$/.test(ps[k + 1] ?? '') &&
-    !/^(pago|paga|pagos|pagas)$/.test(ps[k + 2] ?? ''));
-  // "preciso comprar" é intenção; "preciso pagar" é conta a pagar (vale como lançamento)
-  const precisa = ps.some((p, k) => /^(preciso|precisamos|precisa)$/.test(p) && ps[k + 1] !== 'pagar');
-  if (escolhido && (negou || precisa || ps.some((p) => CALCULO.has(p) || RAIZ_CALCULO.test(p)))) escolhido = { ...escolhido, centavos: null };
-  // "meio dia de servente 150", "meia hora": metade de alguma coisa que não é "dois e meio"/"meio milhão"
-  const lidos = numerosDe(ps);
-  if (escolhido && ps.some((p, i) => ehMeio(p) && !lidos.some((n) => i >= n.inicio && i < n.fim))) escolhido = { ...escolhido, centavos: null };
-  // Porcentagem ("50% de 2.000", "dez por cento de entrada"): o valor depende de conta que a pessoa não disse.
-  if (escolhido && (/\d%/.test(junto) || / por cento /.test(junto))) escolhido = { ...escolhido, centavos: null };
+  const anula = () => { if (escolhido) escolhido = { ...escolhido, centavos: null }; };
+
   if (escolhido) {
-    for (let k = escolhido.inicio; k < escolhido.fim; k++) usadas.add(k);
-    if (ps[escolhido.inicio - 1] === 'r$') usadas.add(escolhido.inicio - 1);
+    const e = escolhido;
+    // "bloco 14 de 400 reais": o 14 só descreve o 400
+    const descritor = (g: { fim: number }) => ps[g.fim] === 'de' && (g.fim + 1 === e.inicio || (ps[g.fim + 1] === 'r$' && g.fim + 2 === e.inicio));
+    // "200 reais de areia e 100 de brita", "entrada de 1.200 e 3 parcelas de 500": dois valores, na dúvida não escolhe.
+    const outroValor = (g: { inicio: number; fim: number; moeda: boolean }) => !g.moeda && !descritor(g) && (
+      PERTO_DE_OUTRO_VALOR.test(ps[g.fim] ?? '') || /^(comprei|compramos|pedi|levei|trouxe|entregaram)$/.test(ps[g.inicio - 1] ?? '') ||
+      ps[g.inicio - 1] === 'ou' || ps[g.inicio - 1] === 'ate' ||
+      (ps[g.fim] === 'a' && começaNumero(ps[g.fim + 1])) || (ps[g.inicio - 1] === 'a' && unicos.some((o) => o.fim === g.inicio - 1)) ||
+      (/^(parcelas?|vezes|x)$/.test(ps[g.inicio - 2] ?? '') && ps[g.inicio - 1] === 'de') ||
+      (ps[g.inicio - 1] === 'r$' && ps[g.inicio - 2] === 'de' && /^(parcelas|vezes|x)$/.test(ps[g.inicio - 3] ?? '')));
+    if (unicos.some((g) => g !== e && outroValor(g))) anula();
+    // Valor com "R$"/"reais" e sobrou outro número solto ("tinta R$ 250 e depois frete 150"): dois lançamentos numa fala.
+    // Passa se o valor veio depois de "por"/"total", ou se a sobra é prazo, ano, número falado pequeno ou descrição.
+    const sobraSemValor = (g: { inicio: number; fim: number; centavos: number | null }) =>
+      /^(ano|anos|mes|meses)$/.test(ps[g.fim] ?? '') || /^(19|20)\d\d$/.test(ps[g.inicio]) || descritor(g) ||
+      (g.fim === e.inicio && g.centavos !== null && g.centavos % 100 !== 0 && g.centavos < 1000) ||
+      // inteiro de 1 a 9 solto ("Ferragens 3 Marias"), a não ser que some outro valor ("e 5", "mais 5") ou seja "5 de ..."
+      (g.centavos !== null && g.centavos % 100 === 0 && g.centavos <= 900 && g.fim === g.inicio + 1 && inteiro(ps[g.inicio]) !== null &&
+        !PERTO_DE_OUTRO_VALOR.test(ps[g.fim] ?? '') && !/^(e|mais|menos|ou|ate|a)$/.test(ps[g.inicio - 1] ?? '')) || // "fio 2,5 150 reais"
+      (palavraNum(ps[g.inicio]) !== undefined && g.centavos !== null && g.centavos < 2000);
+    if (e === comMoeda[0] && comMoeda.length === 1 && !pista(e) && unicos.some((g) => g !== e && !sobraSemValor(g))) anula();
+    // Número falado menor que 20 sem "reais"/"por" ("dez de frete") é nome ou quantidade.
+    if (!e.moeda && !pista(e) && !VERBO_GASTO.test(ps[e.inicio - 1] ?? '') && palavraNum(ps[e.inicio]) !== undefined && e.centavos !== null && e.centavos < 2000) anula();
+    // Um filtro jogou fora algum número ("2º andar", "480 cômodo") e sobrou só um inteiro pequeno: provavelmente não é o valor.
+    if (descartados > 0 && !e.moeda && !pista(e) && e.centavos !== null && e.centavos < 10000 && e.centavos % 100 === 0) anula();
+    // "lote 39 cimento 12": o 12 pode ser o número de outra obra (casa 12)
+    if (!e.moeda && !pista(e) && e.centavos !== null && e.centavos % 100 === 0 && outrasObras.has(e.centavos / 100)) anula();
+    // Parcelado sem "reais"/"R$": o número pode ser a parcela ou o total.
+    if (!e.moeda && / (\d+ ?x|\d+ vezes|[a-z]+ vezes|parcelas) /.test(junto)) anula();
+    // Frases de dúvida, estimativa, receita ou comando; palavras de conta; datas com traço ("20-10").
+    const negou = ps.some((p, k) => p === 'nao' && /^(foi|era|e|sao|eram|ficou|fica|vai|sera)$/.test(ps[k + 1] ?? '') &&
+      !/^(pago|paga|pagos|pagas)$/.test(ps[k + 2] ?? ''));
+    // "casa 12 mil reais", "dia 5 mil reais": o 12 era da obra ou o valor era 12 mil?
+    const usadoColadoAMil = ps.some((p, i) => usadas.has(i) && !usadas.has(i + 1) && (ehMilhar(ps[i + 1]) || ehMilhao(ps[i + 1])) && numeroEscrito(p) !== null);
+    const precisa = ps.some((p, k) => /^(preciso|precisamos|precisa)$/.test(p) && ps[k + 1] !== 'pagar');
+    const dataComTraco = ps.some((p) => /^\d{1,2}-\d{1,2}$/.test(p));
+    if (negou || precisa || usadoColadoAMil || dataComTraco || diasAbsurdos || FRASES_SEM_VALOR.test(junto) || ps.some((p) => CALCULO.has(p) || RAIZ_CALCULO.test(p))) anula();
+    // "meio dia de servente 150", "meia hora": metade de alguma coisa que não é "dois e meio"/"meio milhão"
+    const lidos = numerosDe(ps);
+    if (ps.some((p, i) => ehMeio(p) && !lidos.some((n) => i >= n.inicio && i < n.fim))) anula();
+    // Porcentagem ("50% de 2.000", "dez por cento de entrada"): o valor depende de conta que a pessoa não disse.
+    if (/\d%/.test(junto) || / por cento /.test(junto)) anula();
+    for (let k = e.inicio; k < e.fim; k++) usadas.add(k);
+    if (ps[e.inicio - 1] === 'r$') usadas.add(e.inicio - 1);
   }
-  return { valor: escolhido?.centavos ?? null, duvida: escolhido?.centavos === null || (!escolhido && candidatos.length > 0) };
+  const valor = escolhido?.centavos ?? null;
+  return { valor, duvida: valor === null && (candidatos.length > 0 || descartados > 0) };
 }
 
 // ---- tudo junto ----
@@ -644,14 +750,16 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
   const parcelado = / (parcelad[oa]s?|parcelei|financiad[oa]|\d+ ?x|\d+ (vezes|parcelas)|[a-z]+ (vezes|parcelas)) /.test(junto);
   const disseuPago = / (paguei|pagou|pagamos|pago|paga|mandei|transferi|depositei|quitei|quitamos|quitado|quitada) /.test(junto);
   let pago: boolean | null = null;
-  if (/ (a pagar|falta pagar|vou pagar|vamos pagar|vai pagar|para pagar|pra pagar|em aberto|fiado|a prazo|ainda nao paguei|nao paguei|nao foi pago|nao foi paga|nao pagou|ainda nao pagou|nao pago|pagar|pendente|pendurado|pendurei|devo|devendo|vence|vencimento|a vencer|vencido|vencida|vencendo|em atraso|atrasado|atrasada|preciso pagar|tenho que pagar|tenho de pagar|pagar depois) /.test(junto)) pago = false;
+  if (/ (a pagar|falta pagar|vou pagar|vamos pagar|vai pagar|para pagar|pra pagar|em aberto|fiado|a prazo|ainda nao paguei|nao paguei|nao foi pago|nao foi paga|nao pagou|ainda nao pagou|nao pago|pagar|pendente|pendurado|pendurei|devo|devendo|vence|vencimento|a vencer|vencido|vencida|vencendo|em atraso|atrasado|atrasada|preciso pagar|tenho que pagar|tenho de pagar|pagar depois|mais tarde pago|mais tarde pagar) /.test(junto)) pago = false;
   else if (parcelado) pago = disseuPago ? null : false;
   else if (disseuPago) pago = true;
 
   // "A pagar sexta" / "a pagar dia 30" é vencimento no futuro; o interpretador só sabe voltar no tempo, então deixa em branco.
   const data = pago === false && dataInfo.semMes ? null : dataFalada;
 
-  const { valor, duvida: duvidaValor } = acharValor(ps, usadas);
+  const numerosDeOutrasObras = new Set<number>();
+  for (const o of contexto.obras) if (o.id !== obraId) for (const w of palavras(o.nome)) if (/^\d+$/.test(w)) numerosDeOutrasObras.add(Number(w));
+  const { valor, duvida: duvidaValor } = acharValor(ps, palavrasOriginais(texto), usadas, numerosDeOutrasObras);
 
   // Categoria, descrição e fornecedor, do mais certo para o menos certo.
   const hist = aprender(contexto.custos);

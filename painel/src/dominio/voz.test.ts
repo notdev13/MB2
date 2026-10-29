@@ -138,7 +138,8 @@ describe('interpretador de voz: correções', () => {
 
   it('parcelado e a prazo ficam a pagar, sem inventar data', () => {
     expect(ler('vinte mil de laje a prazo')).toMatchObject({ pago: false, valor: 20000_00 });
-    expect(ler('3 mil em 3 vezes')).toMatchObject({ pago: false, valor: 3000_00 });
+    expect(ler('3 mil reais em 3 vezes')).toMatchObject({ pago: false, valor: 3000_00 });
+    expect(ler('3 mil em 3 vezes')).toMatchObject({ pago: false, valor: null }); // parcela ou total?
     expect(ler('paguei 3 mil em 3 vezes').pago).toBeNull();
     expect(ler('parcelado em 3x de 500').valor).toBeNull(); // parcela ou total?
     expect(ler('800 de piso a pagar dia 30').data).toBeNull(); // vencimento futuro
