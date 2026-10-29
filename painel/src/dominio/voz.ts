@@ -164,6 +164,10 @@ const DOCUMENTOS = new Set(['nota', 'nf', 'pedido', 'orcamento', 'ordem', 'chequ
   'matricula', 'cpf', 'cnpj', 'telefone', 'fone', 'cep', 'fiscal']);
 // Quantidade de tempo: o número solto que sobra costuma ser preço por dia/hora, não o total.
 const TEMPO = new Set(['dias', 'hora', 'horas', 'diaria', 'diarias', 'semana', 'semanas', 'meses']);
+// Palavras de conta ("metade de", "desconto de", "300 cada"): o valor falado não é o do lançamento.
+const CALCULO = new Set(['cada', 'metade', 'dobro', 'triplo', 'desconto', 'abatimento', 'troco', 'sobrou', 'restou', 'restante',
+  'diferenca']);
+const ESTRANGEIRA = new Set(['dolar', 'dolares', 'euro', 'euros', 'libra', 'libras']);
 const PISTAS = new Set(['por', 'total', 'valor', 'custou', 'ficou']);
 
 // ---- datas ----
@@ -222,8 +226,16 @@ function haQuantosDias(ps: string[], i: number): { dias: number; fim: number } |
   return { dias: n.valor * mult, fim: n.fim + (atras ? 2 : 1) };
 }
 
-function acharData(ps: string[], usadas: Set<number>, hoje: string, info: { semMes: boolean }): string | null {
+function acharData(ps: string[], usadas: Set<number>, hoje: string, info: { semMes: boolean }, primeira = true): string | null {
+  // "ano passado", "mês passado", "semana passada": o interpretador não sabe contar isso, a data fica em branco.
+  if (primeira) {
+    for (let i = 0; i + 1 < ps.length; i++) {
+      const relativo = /^(passado|passada|retrasado|retrasada)$/.test(ps[i + 1]) || (ps[i + 1] === 'que' && ps[i + 2] === 'vem');
+      if (relativo && (ps[i] === 'ano' || ps[i] === 'mes' || ps[i] === 'semana')) { usadas.add(i); usadas.add(i + 1); return null; }
+    }
+  }
   for (let i = 0; i < ps.length; i++) {
+    if (usadas.has(i)) continue; // já foi lido como outra data
     const p = ps[i];
     if (p === 'hoje') { usadas.add(i); return hoje; }
     if (p === 'ontem') { usadas.add(i); return diasAntes(hoje, 1); }
@@ -260,6 +272,11 @@ function acharData(ps: string[], usadas: Set<number>, hoje: string, info: { semM
     if (p === 'amanha' || (p === 'que' && ps[i + 1] === 'vem') || p === 'proxima' || p === 'proximo') { usadas.add(i); return null; }
     const semana = SEMANA[p.replace(/-?feira$/, '')];
     // "segunda parcela", "quarta etapa" não são dias da semana
+    // "de segunda a sexta": mais de um dia da semana, sem como saber qual é a data
+    const outroDia = ps.some((q, k) => k !== i && SEMANA[q.replace(/-?feira$/, '')] !== undefined);
+    if (semana !== undefined && outroDia && !/^(parcela|parcelas|via|etapa|medicao|fase|vez|parte|rodada|opcao)$/.test(ps[i + 1] ?? '')) {
+      usadas.add(i); return null;
+    }
     if (semana !== undefined && !/^(parcela|parcelas|via|etapa|medicao|fase|vez|parte|rodada|opcao)$/.test(ps[i + 1] ?? '')) {
       usadas.add(i);
       if (ps[i + 1] === 'feira') usadas.add(i + 1);
@@ -324,7 +341,7 @@ const PAGAMENTOS: [RegExp, FormaPagamento][] = [
   [/^(pix|pique|piques|piks|pics|pixe)$/, 'pix'],
   [/^(boletos?|bolhetos?|bolletos?|boleta)$/, 'boleto'],
   [/^(cartao|credito|debito)$/, 'cartao'],
-  [/^(transferencia|ted|doc|deposito|depositei)$/, 'transferencia'],
+  [/^(transferencia|transferi|ted|doc|deposito|depositei)$/, 'transferencia'],
   [/^(dinheiro|especie|cash)$/, 'dinheiro'],
   [/^(cheque|cheques)$/, 'outro'],
 ];
@@ -418,12 +435,25 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
 
   const obraId = acharObra(ps, contexto.obras, usadas);
   const dataInfo = { semMes: false };
-  const dataFalada = acharData(ps, usadas, contexto.hoje, dataInfo);
+  // A primeira data falada vale; as outras ("ontem ... a pagar dia 10") só saem do caminho do valor.
+  let dataFalada: string | null = null;
+  for (let primeira = true; ; primeira = false) {
+    const antes = usadas.size;
+    const achada = acharData(ps, usadas, contexto.hoje, dataInfo, primeira);
+    if (usadas.size === antes) break;
+    if (primeira) dataFalada = achada;
+  }
 
   let pagamento: FormaPagamento | null = null;
+  let duasFormas = false;
   ps.forEach((p, i) => {
-    for (const [re, forma] of PAGAMENTOS) if (re.test(p)) { pagamento ??= forma; usadas.add(i); }
+    for (const [re, forma] of PAGAMENTOS) {
+      if (!re.test(p)) continue;
+      if (pagamento && pagamento !== forma) duasFormas = true; // "pix e boleto": dúvida
+      pagamento ??= forma; usadas.add(i);
+    }
   });
+  if (duasFormas) pagamento = null;
 
   // A pagar: "a pagar", "falta pagar", "vou pagar", "em aberto", "fiado", "a prazo", "pagar dia 30".
   // Parcelado ("em 3 vezes", "3x", "10 parcelas") também fica a pagar, mas se a pessoa disse
@@ -441,12 +471,21 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
 
   // Valor: o único número do lançamento, ou o único com "reais"/"R$"/"centavos" perto. Quantidade,
   // data, número da obra e preço por unidade não contam. Na dúvida fica null (a pessoa digita).
-  const candidatos = numerosDe(ps)
+  const livres = numerosDe(ps)
     .filter((g) => ![...Array(g.fim - g.inicio).keys()].some((k) => usadas.has(g.inicio + k)))
     .filter((g) => !UNIDADES.has(ps[g.fim] ?? '') && !NUMERADORES.has(ps[g.inicio - 1] ?? '') &&
-      !DOCUMENTOS.has(ps[g.inicio - 1] ?? ''))
+      !DOCUMENTOS.has(ps[g.inicio - 1] ?? ''));
+  // Dois números escritos colados ("1 200", "R$ 1 250,00") podem ser um valor só ou dois: dúvida nos dois.
+  const colados = new Set<Numero>();
+  livres.forEach((n, k) => {
+    const antes = livres[k - 1];
+    if (antes && antes.fim === n.inicio && numeroEscrito(ps[n.inicio]) !== null && numeroEscrito(ps[antes.fim - 1]) !== null) {
+      colados.add(n); colados.add(antes);
+    }
+  });
+  const candidatos = livres
     .map((g) => {
-      let centavos = g.valor === null ? null : Math.round(g.valor * 100);
+      let centavos = g.valor === null || colados.has(g) ? null : Math.round(g.valor * 100);
       let fim = g.fim;
       let moeda = ps[g.inicio - 1] === 'r$';
       const depois = ps[g.fim];
@@ -455,6 +494,8 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
         fim++; moeda = true;
       } else if (depois === 'r$') { // "450 R$"
         moeda = true; fim++;
+      } else if (depois && ESTRANGEIRA.has(depois)) { // dólar não é real: a pessoa converte
+        centavos = null; moeda = true; fim++;
       } else if (depois && MOEDA.has(depois)) {
         moeda = true; fim++;
         // preço por unidade ("200 reais por dia", "40 reais o saco", "10 reais cada"), não o total
@@ -496,6 +537,7 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
   // "3 dias de servente 150": sem "reais" nem "por", o 150 pode ser a diária, não o total.
   const tempoSolto = numerosDe(ps).some((n) => TEMPO.has(ps[n.fim] ?? '') && !usadas.has(n.inicio));
   if (escolhido && tempoSolto && !escolhido.moeda && !PISTAS.has(ps[escolhido.inicio - 1] ?? '')) escolhido = { ...escolhido, centavos: null };
+  if (escolhido && ps.some((p) => CALCULO.has(p))) escolhido = { ...escolhido, centavos: null };
   // Porcentagem ("50% de 2.000", "dez por cento de entrada"): o valor depende de conta que a pessoa não disse.
   if (escolhido && (/\d%/.test(junto) || / por cento /.test(junto))) escolhido = { ...escolhido, centavos: null };
   if (escolhido) {
