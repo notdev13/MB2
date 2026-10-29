@@ -176,3 +176,17 @@ h2 { font-size: 13px; font-weight: 600; letter-spacing: -0.02em; color: var(--fo
 @media (prefers-reduced-motion: reduce) { .botao.microfone.ouvindo { animation: none; } }
 .entendi { border: 1px solid var(--graphite); border-radius: 10px; padding: 10px 14px; margin: -6px 0 16px; font-size: 14px; color: var(--bone); }
 .entendi strong { font-weight: 600; }
+
+/* Experiência do microfone (Falar): estados sempre com texto, nunca só cor */
+.falar .campo textarea { scroll-margin-bottom: 140px; }
+.falar-estado { display: flex; align-items: center; gap: 10px; min-height: 48px; margin-top: 8px; font-size: 14px; color: var(--bone); }
+.falar-estado.com-erro { color: var(--alerta); border-left: 2px solid var(--alerta); padding-left: 10px; }
+.falar-acoes { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.falar-acoes .botao { flex: 1 1 auto; min-height: 48px; }
+.falar-privacidade { font-size: 12px; margin-bottom: 0; }
+.nivel { display: inline-flex; align-items: flex-end; gap: 3px; height: 18px; flex: none; }
+.nivel i { width: 4px; height: 100%; border-radius: 2px; background: var(--alerta); transform-origin: bottom; animation: nivel 0.9s ease-in-out infinite; }
+.nivel i:nth-child(2) { animation-delay: 0.15s; }
+.nivel i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes nivel { 0%, 100% { transform: scaleY(0.3); } 50% { transform: scaleY(1); } }
+@media (prefers-reduced-motion: reduce) { .nivel i { animation: none; transform: scaleY(0.7); } }
