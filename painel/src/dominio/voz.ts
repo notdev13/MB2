@@ -149,7 +149,10 @@ function lerNumero(ps: string[], i: number): Numero | null {
     if (algo) {
       const g = lerGrupo(ps, ps[j] === 'e' ? j + 1 : j, true);
       const ini = ps[j] === 'e' ? j + 1 : j;
-      if (g && !(/^\d+$/.test(ps[ini] ?? '') && UNIDADES.has(ps[g.fim] ?? ''))) { total += g.valor; j = g.fim; escala = 0; }
+      if (g && !(/^\d+$/.test(ps[ini] ?? '') && UNIDADES.has(ps[g.fim] ?? ''))) {
+        if (escala === 1_000_000) ambiguo = true; // "um milhão e quinhentos": 1,5 milhão ou 1.000.500?
+        total += g.valor; j = g.fim; escala = 0;
+      }
     } else {
       const g = lerGrupo(ps, j, true);
       if (!g) return null;
@@ -207,7 +210,7 @@ const UNIDADES = new Set([
   'pessoa', 'cabeca', 'folha', 'chapa', 'vara', 'par', 'pares', 'comodo', 'comodos', 'ponto', 'tomada', 'lampada', 'pacote', 'pacotes', 'saca', 'sacas', 'balde', 'baldes', 'tambor', 'tambores', 'carrada', 'carradas', 'carga',
   'cargas', 'carreta', 'carretas', 'fardo', 'fardos', 'm²', 'm³', 'parcela', 'etapa', 'fase', 'viagem', 'viagens', 'pessoas', 'homens', 'funcionarios', 'operarios', 'pedreiros', 'serventes',
   'ajudantes', 'quartos', 'andares', 'casas', 'lotes', 'pontos', 'tomadas', 'lampadas', 'milimetro', 'milimetros', 'mm', 'centimetro', 'centimetros', 'cm', 'polegada', 'polegadas', 'banheiros', 'andar', 'volt', 'volts', 'v', 'ampere', 'amperes', 'watts', 'w', 'hz', 'demao', 'demaos',
-  'diaria', 'diarias', 'sc', 'un', 'pc', 'pcs', 'cx', 'mt', 'mts', 'ton', 'tn', 'lt', 'lts', 'gl', 'pav', 'pavimento', 'pavimentos',
+  'diaria', 'diarias', 'km', 'sc', 'un', 'pc', 'pcs', 'cx', 'mt', 'mts', 'ton', 'tn', 'lt', 'lts', 'gl', 'pav', 'pavimento', 'pavimentos',
 ]);
 const MOEDA = new Set(['reais', 'real', 'conto', 'contos', 'pila', 'pilas', 'pratas', 'mangos']);
 // "lote 39", "casa 12": o número é da obra, não é valor.
@@ -217,6 +220,8 @@ const OBRA_NUM = new Set([...NUMERADORES, 'obra', 'numero', 'n']);
 const DOCUMENTOS = new Set(['nota', 'nf', 'pedido', 'orcamento', 'ordem', 'cheque', 'protocolo', 'contrato', 'processo',
   'matricula', 'cpf', 'cnpj', 'telefone', 'fone', 'cep', 'fiscal', 'apto', 'apartamento',
   'sala', 'andar', 'ano', 'parcela', 'agencia', 'conta', 'numero', 'nfe', 'nº', 'n°', 'n', 'codigo', 'cod', 'ref', 'referencia', 'item', 'modelo', 'serie']);
+// Estes só são documento quando o número tem 4 dígitos ou mais ("RRT 130" ainda pode ser o valor).
+const DOCUMENTOS_LONGOS = new Set(['art', 'rrt', 'crea', 'apolice', 'inscricao']);
 // Só para "X reais a dúzia": preço por unidade; "duas dúzias" sozinho continua valendo como número solto.
 const PRECO_POR = new Set(['duzia', 'duzias', 'metro', 'dia', 'degrau', 'lance', 'trecho', 'pe', 'centimetro']);
 const TEMPO = new Set(['dias', 'hora', 'horas', 'diaria', 'diarias', 'semana', 'semanas', 'meses']);
@@ -258,7 +263,7 @@ const NOME_LUGAR = new Set(['rua', 'avenida', 'av', 'travessa', 'alameda', 'rodo
 const RUAS = new Set(['rua', 'avenida', 'av', 'travessa', 'alameda', 'rodovia', 'estrada']);
 const TELEFONE = new Set(['telefone', 'fone', 'tel', 'celular', 'whats', 'whatsapp', 'zap', 'contato']);
 // Número que descreve o lugar ou o material, não é valor: "banheiro 2", "cômodo 25", "cp 2", "brita 1".
-const SPEC_PREFIX = new Set(['etapa', 'fase', 'parte', 'medicao', 'boletim', 'pav', 'pavimento', 'cp', 'classe', 'banheiro', 'quarto', 'suite', 'cozinha', 'comodo', 'bloco', 'galpao', 'torre', 'andar']);
+const SPEC_PREFIX = new Set(['km', 'etapa', 'fase', 'parte', 'medicao', 'boletim', 'pav', 'pavimento', 'cp', 'classe', 'banheiro', 'quarto', 'suite', 'cozinha', 'comodo', 'bloco', 'galpao', 'torre', 'andar']);
 // Medida técnica logo depois do número ("8 milímetros", "220 volts"): o número descreve o material, não é valor nem quantidade.
 const MEDIDA_TECNICA = new Set(['milimetro', 'milimetros', 'mm', 'centimetro', 'centimetros', 'cm', 'polegada', 'polegadas', 'volt', 'volts', 'v',
   'ampere', 'amperes', 'watts', 'w', 'hz', 'demao', 'demaos', 'metros', 'm2', 'm3', 'm²', 'm³']);
@@ -568,7 +573,15 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
   const ruido = new Set<number>();
   let diasAbsurdos = false;
   ps.forEach((p, i) => {
-    if (RUAS.has(p)) for (let k = i + 1; k <= i + 4 && k < ps.length; k++) if (começaNumero(ps[k])) { ruido.add(k); break; }
+    if (RUAS.has(p)) {
+      // "rua 15 de novembro, 340": o nome da rua e o número da casa; mas "340 de areia" (com "de") já é valor
+      let achados = 0;
+      for (let k = i + 1; k <= i + 4 && k < ps.length && achados < 2; k++) {
+        const n = ehDigitos(ps[k]) || achados === 0 ? começaNumero(ps[k]) : false;
+        const marcado = ps[k - 1] === 'r$' || MOEDA.has(ps[k + 1] ?? '') || (ps[k + 1] === 'r$' && !começaNumero(ps[k + 2]));
+        if (n && !marcado && (achados === 0 || !/^(de|reais|por|pro|pra|para)$/.test(ps[k + 1] ?? ''))) { ruido.add(k); achados++; }
+      }
+    }
     if (NOME_LUGAR.has(p) && !RUAS.has(p) && começaNumero(ps[i + 1])) ruido.add(i + 1); // "residencial dez de abril"
     // "pedreiro 450 faz 450 dias": ninguém sabe de que dia
     if ((p === 'faz' || p === 'ha') && (inteiro(ps[i + 1]) ?? 0) > 365 && TEMPO.has(ps[i + 2] ?? '')) diasAbsurdos = true;
@@ -603,7 +616,7 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
       (n >= 1 && n <= 9 && daCategoria(prev) === 'Materiais (M)' && !PERTO_DE_OUTRO_VALOR.test(depois)))) return 'ruido';
     // "2º andar 480": o andar vem antes do número, então o 480 continua sendo dinheiro
     const documento = DOCUMENTOS.has(prev) && !(prev === 'andar' && numeroEscrito(ps[g.inicio - 2] ?? '') !== null);
-    if (documento && /^\d{4,}$/.test(ps[g.inicio])) return 'ruido'; // "nota fiscal 4521": número de documento
+    if ((documento || DOCUMENTOS_LONGOS.has(prev)) && /^\d{4,}$/.test(ps[g.inicio])) return 'ruido'; // "nota fiscal 4521": número de documento
     const rotuloDeLugar = SPEC_PREFIX.has(depois) && inteiro(ps[g.fim + 1]) !== null && (g.valor ?? 0) > 99; // "1200 andar 8", "480 cômodo 2": o 8 e o 2 são o lugar
     if ((UNIDADES.has(depois) && !rotuloDeLugar) || contagemPlural(ps, g) || documento || /^\d{4,5}-?\d{4}$/.test(depois) || contagemDeMaterial(ps, g)) return 'descartado';
     return 'candidato';
@@ -745,6 +758,9 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
       (ps[g.inicio - 1] === 'de' && (daCategoria(ps[g.inicio - 2] ?? '') === 'Materiais (M)' || daCategoria((ps[g.inicio - 2] ?? '').replace(/s$/, '')) === 'Materiais (M)')) || // "tubos de 100"
       (g.fim === e.inicio && g.centavos !== null && g.centavos % 100 !== 0 && g.centavos < 1000) ||
       // inteiro de 1 a 9 solto ("Ferragens 3 Marias"), a não ser que some outro valor ("e 5", "mais 5") ou seja "5 de ..."
+      // "brita 12 R$ 480": inteiro até 20 logo depois de material ou de lugar descreve o material
+      (g.centavos !== null && g.centavos % 100 === 0 && g.centavos <= 2000 && g.fim === g.inicio + 1 && inteiro(ps[g.inicio]) !== null &&
+        (daCategoria(ps[g.inicio - 1] ?? '') === 'Materiais (M)' || SPEC_PREFIX.has(ps[g.inicio - 1] ?? '')) && !PERTO_DE_OUTRO_VALOR.test(ps[g.fim] ?? '')) ||
       (g.centavos !== null && g.centavos % 100 === 0 && g.centavos <= 900 && g.fim === g.inicio + 1 && inteiro(ps[g.inicio]) !== null &&
         !PERTO_DE_OUTRO_VALOR.test(ps[g.fim] ?? '') && !/^(e|mais|menos|ou|ate|a)$/.test(ps[g.inicio - 1] ?? '')) || // "fio 2,5 150 reais"
       (palavraNum(ps[g.inicio]) !== undefined && g.centavos !== null && g.centavos < 2000);
