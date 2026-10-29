@@ -276,7 +276,7 @@ const NOME_LUGAR = new Set(['rua', 'avenida', 'av', 'travessa', 'alameda', 'rodo
 const RUAS = new Set(['rua', 'avenida', 'av', 'travessa', 'alameda', 'rodovia', 'estrada']);
 const TELEFONE = new Set(['telefone', 'fone', 'tel', 'celular', 'whats', 'whatsapp', 'zap', 'contato']);
 // Número que descreve o lugar ou o material, não é valor: "banheiro 2", "cômodo 25", "cp 2", "brita 1".
-const SPEC_PREFIX = new Set(['dn', 'km', 'etapa', 'fase', 'parte', 'medicao', 'boletim', 'pav', 'pavimento', 'cp', 'classe', 'banheiro', 'quarto', 'suite', 'cozinha', 'comodo', 'bloco', 'galpao', 'torre', 'andar']);
+const SPEC_PREFIX = new Set(['tamanho', 'tam', 'bota', 'botina', 'calca', 'camisa', 'camiseta', 'sapato', 'tenis', 'luva', 'dn', 'km', 'etapa', 'fase', 'parte', 'medicao', 'boletim', 'pav', 'pavimento', 'cp', 'classe', 'banheiro', 'quarto', 'suite', 'cozinha', 'comodo', 'bloco', 'galpao', 'torre', 'andar']);
 // Medida técnica logo depois do número ("8 milímetros", "220 volts"): o número descreve o material, não é valor nem quantidade.
 const MEDIDA_TECNICA = new Set(['milimetro', 'milimetros', 'mm', 'centimetro', 'centimetros', 'cm', 'polegada', 'polegadas', 'volt', 'volts', 'v',
   'ampere', 'amperes', 'watts', 'w', 'hz', 'btu', 'btus', 'kva', 'kw', 'kwh', 'kwp', 'cv', 'hp', 'graus', 'rpm', 'bar', 'psi', 'ohms', 'mpa', 'kgf',
@@ -284,6 +284,7 @@ const MEDIDA_TECNICA = new Set(['milimetro', 'milimetros', 'mm', 'centimetro', '
   'centilitros', 'ml', 'cl', 'demao', 'demaos', 'metros', 'm2', 'm3', 'm²', 'm³']);
 // "paguei dez de frete": depois de verbo de gasto, até número falado pequeno é dinheiro.
 const VERBO_GASTO = /^(paguei|gastei|gastamos|pagamos|custou|saiu|dei|mandei|passei|comprei|foi|deu)$/;
+
 const PERTO_DE_OUTRO_VALOR = /^(de|pro|pra|para|na|no|ou|ate)$/;
 const PISTAS = new Set(['por', 'total', 'tot', 'valor', 'vlr', 'custou', 'ficou', 'igual']);
 
@@ -639,11 +640,17 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
     if ((documento || DOCUMENTOS_LONGOS.has(prev)) && /^\d{4,}$/.test(ps[g.inicio])) return 'ruido'; // "nota fiscal 4521": número de documento
     if (/^(metros?|m|m2|m3|m²|m³|kg|quilos?|litros?|toneladas?)$/.test(depois)) return 'ruido'; // "25 kg", "6 metros": medida, não quantidade a conferir
     const rotuloDeLugar = SPEC_PREFIX.has(depois) && inteiro(ps[g.fim + 1]) !== null && (g.valor ?? 0) > 99; // "1200 andar 8", "480 cômodo 2": o 8 e o 2 são o lugar
-    if ((UNIDADES.has(depois) && !rotuloDeLugar) || contagemPlural(ps, g) || documento || /^\d{4,5}-?\d{4}$/.test(depois) || contagemDeMaterial(ps, g)) return 'descartado';
+    // "4 1/2" (disco de 4 1/2), "caixa com 100": o número descreve o material, não é valor nem quantidade
+    if (/^\d\/\d$/.test(depois) || (prev === 'com' && UNIDADES.has(ps[g.inicio - 2] ?? ''))) return 'ruido';
+    // Quantidade de peças, sacos, unidades, lugar ou documento: sai do caminho, mas guarda o tamanho para conferir depois
+    // (se o número descartado era maior que o que sobrou, o que sobrou provavelmente não é o valor: "480 sacos 2").
+    if ((UNIDADES.has(depois) && !rotuloDeLugar) || documento || /^\d{4,5}-?\d{4}$/.test(depois)) return 'descartado';
+    if (contagemPlural(ps, g) || contagemDeMaterial(ps, g)) return 'ruido';
     return 'candidato';
   };
   const papeis = livres.map(papelDe);
   const descartados = papeis.filter((p) => p === 'descartado').length;
+  const maiorDescartado = Math.max(0, ...livres.filter((_, k) => papeis[k] === 'descartado').map((g) => g.valor ?? 0));
   const aberto = livres.filter((_, k) => papeis[k] === 'candidato');
 
   // Dois números escritos colados ("1 200", "R$ 1 250,00") podem ser um valor só ou dois: dúvida nos dois.
@@ -793,7 +800,7 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
     // Número falado menor que 20 sem "reais"/"por" ("dez de frete") é nome ou quantidade.
     if (!fechado && !e.moeda && !pista(e) && !VERBO_GASTO.test(ps[e.inicio - 1] ?? '') && palavraNum(ps[e.inicio]) !== undefined && e.centavos !== null && e.centavos < 2000) anula();
     // Um filtro jogou fora algum número ("2º andar", "480 cômodo") e sobrou só um inteiro pequeno: provavelmente não é o valor.
-    if (!fechado && descartados > 0 && !e.moeda && !pista(e) && e.centavos !== null && e.centavos < 5000 && e.centavos % 100 === 0) anula();
+    if (!fechado && descartados > 0 && !e.moeda && !pista(e) && e.centavos !== null && e.centavos < 5000 && e.centavos % 100 === 0 && maiorDescartado > e.centavos / 100) anula();
     // "lote 39 cimento 12": o 12 pode ser o número de outra obra (casa 12)
     if (!e.moeda && !pista(e) && e.centavos !== null && e.centavos % 100 === 0 && outrasObras.has(e.centavos / 100)) anula();
     // Parcelado sem "reais"/"R$": o número pode ser a parcela ou o total.
