@@ -169,9 +169,9 @@ function Casca() {
           {erro && <div className="aviso" role="alert">{erro}</div>}
           {!carregando && !erro && (
             <main className="d-pagina">
-              {rota.tela === 'visao' && <VisaoD aoNovaObra={novaObra} aoAbrirCusto={abrirCusto} />}
+              {rota.tela === 'visao' && <VisaoD aoNovaObra={novaObra} aoLancar={lancar} aoAbrirCusto={abrirCusto} />}
               {rota.tela === 'obras' && <ObrasD aoNovaObra={novaObra} />}
-              {rota.tela === 'obra' && <ObraD id={rota.id} aoAbrirCusto={abrirCusto} />}
+              {rota.tela === 'obra' && <ObraD id={rota.id} aoLancar={lancar} aoAbrirCusto={abrirCusto} />}
               {rota.tela === 'lancamentos' && <LancamentosD aoAbrirCusto={abrirCusto} />}
               {rota.tela === 'ajustes' && (
                 <div className="d-coluna-estreita">

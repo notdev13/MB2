@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useDados } from '../../dados/contexto';
 import { porCategoria, porMes, resumirObra } from '../../dominio/calculos';
 import { porFornecedor } from '../../dominio/consultas';
+import { EstadoVazio } from '../../componentes/EstadoVazio';
 import { dataBR, hoje, porcentagem, reais, reaisCurto } from '../../dominio/formato';
 import type { Custo, Obra } from '../../dominio/tipos';
 import { IconeD, Kpi, Painel, Vazio } from '../componentes/Base';
@@ -9,7 +10,9 @@ import { BarrasCategoria, ColunasMes } from '../componentes/Graficos';
 import { TabelaLancamentos } from '../componentes/TabelaLancamentos';
 import { linkD } from '../rotas';
 
-export function ObraD({ id, aoAbrirCusto }: { id: string; aoAbrirCusto: (c: Custo) => void }) {
+export function ObraD({ id, aoLancar, aoAbrirCusto }: {
+  id: string; aoLancar: () => void; aoAbrirCusto: (c: Custo) => void;
+}) {
   const { obras, custos } = useDados();
   const obra = obras.find((o) => o.id === id);
   const meus = useMemo(() => custos.filter((c) => c.obraId === id), [custos, id]);
@@ -67,7 +70,12 @@ export function ObraD({ id, aoAbrirCusto }: { id: string; aoAbrirCusto: (c: Cust
       </Painel>
 
       <Painel className="span-12" titulo="Lançamentos da obra" semPadding>
-        <TabelaLancamentos custos={meus} aoAbrir={aoAbrirCusto} />
+        {meus.length === 0 ? (
+          <EstadoVazio icone="recibo" titulo="Nenhum custo lançado"
+            texto="Registre o primeiro gasto desta obra para acompanhar o saldo. Atalho: tecle N.">
+            <button className="d-botao primario" onClick={aoLancar}>Lançar primeiro custo</button>
+          </EstadoVazio>
+        ) : <TabelaLancamentos custos={meus} aoAbrir={aoAbrirCusto} />}
       </Painel>
     </div>
   );

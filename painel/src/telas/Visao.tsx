@@ -1,4 +1,5 @@
 import { BarraOrcamento, GastoPorMes, PorCategoria } from '../componentes/Graficos';
+import { EstadoVazio } from '../componentes/EstadoVazio';
 import { Lancamentos } from '../componentes/Lancamentos';
 import { useDados } from '../dados/contexto';
 import { porCategoria, porMes, resumirObra, resumoGeral } from '../dominio/calculos';
@@ -6,17 +7,18 @@ import { hoje, porcentagem, reais, reaisCurto } from '../dominio/formato';
 import type { Custo } from '../dominio/tipos';
 import { ir } from '../navegacao';
 
-export function Visao({ aoNovaObra, aoAbrirCusto }: { aoNovaObra: () => void; aoAbrirCusto: (c: Custo) => void }) {
+export function Visao({ aoNovaObra, aoLancar, aoAbrirCusto }: {
+  aoNovaObra: () => void; aoLancar: () => void; aoAbrirCusto: (c: Custo) => void;
+}) {
   const { obras, custos } = useDados();
   const ref = hoje();
 
   if (obras.length === 0) {
     return (
-      <div className="vazio cartao">
-        <h3>Bem-vindo ao Painel MB²</h3>
-        <p>Comece cadastrando a primeira obra. Depois é só lançar os custos pelo botão + lá embaixo.</p>
+      <EstadoVazio icone="obras" titulo="Bem-vindo ao Painel MB²"
+        texto="Comece cadastrando a primeira obra. Depois é só lançar os custos pelo botão + lá embaixo.">
         <button className="botao" onClick={aoNovaObra}>Cadastrar obra</button>
-      </div>
+      </EstadoVazio>
     );
   }
 
@@ -56,7 +58,13 @@ export function Visao({ aoNovaObra, aoAbrirCusto }: { aoNovaObra: () => void; ao
 
       <h2>Obras em aberto</h2>
       <div className="lista">
-        {ativas.length === 0 && <p className="sub">Nenhuma obra em aberto.</p>}
+        {ativas.length === 0 && (
+          <EstadoVazio icone="obras" titulo="Nenhuma obra em aberto"
+            texto="Todas as obras estão concluídas. Cadastre uma nova para voltar a acompanhar os gastos.">
+            <button className="botao" onClick={aoNovaObra}>Cadastrar obra</button>
+            <a className="botao secundario" href="#/obras">Ver obras concluídas</a>
+          </EstadoVazio>
+        )}
         {ativas.map((r) => (
           <button key={r.obra.id} className="cartao clicavel" onClick={() => ir({ tela: 'obra', id: r.obra.id })}>
             <div className="linha">
@@ -77,7 +85,14 @@ export function Visao({ aoNovaObra, aoAbrirCusto }: { aoNovaObra: () => void; ao
       </div>
 
       <h2>Gasto por mês</h2>
-      <div className="cartao"><GastoPorMes meses={porMes(custos, ref)} /></div>
+      {custos.length === 0 ? (
+        <EstadoVazio icone="grafico" titulo="Ainda sem gastos"
+          texto="Lance o primeiro custo e o gráfico mês a mês aparece aqui.">
+          <button className="botao" onClick={aoLancar}>Lançar primeiro custo</button>
+        </EstadoVazio>
+      ) : (
+        <div className="cartao"><GastoPorMes meses={porMes(custos, ref)} /></div>
+      )}
 
       {custos.length > 0 && (
         <>

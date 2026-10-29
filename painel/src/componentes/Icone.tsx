@@ -6,15 +6,18 @@ const caminhos = {
   mais: 'M12 5v14M5 12h14',
   voltar: 'M15 18l-6-6 6-6',
   fechar: 'M18 6L6 18M6 6l12 12',
+  recibo: 'M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6',
+  grafico: 'M4 20h16M7 20v-6M12 20V8M17 20v-9',
+  filtro: 'M4 6h16M7 12h10M10 18h4',
   microfone: 'M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3',
 } as const;
 
 export type NomeIcone = keyof typeof caminhos;
 
-export function Icone({ nome, tamanho = 24 }: { nome: NomeIcone; tamanho?: number }) {
+export function Icone({ nome, tamanho = 24, espessura = 2 }: { nome: NomeIcone; tamanho?: number; espessura?: number }) {
   return (
     <svg width={tamanho} height={tamanho} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      strokeWidth={espessura} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d={caminhos[nome]} />
     </svg>
   );
