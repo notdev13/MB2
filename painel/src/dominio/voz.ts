@@ -166,6 +166,13 @@ function precoPorUnidade(w: string | undefined, nomeProprio = false): boolean {
   return !nomeProprio && (daCategoria(w) === 'Materiais (M)' || daCategoria(w.replace(/s$/, '')) === 'Materiais (M)');
 }
 
+// "5 tomadas", "6 marmitas", "3 orçamentos": número pequeno seguido de substantivo no plural é quantidade.
+const NAO_E_PLURAL = /^(pelos|pelas|nos|nas|dos|das|aos|uns|umas|mais|menos|depois|antes|reais|todos|todas|sempre|apenas|ainda|talvez|pratas|mangos|contos|centavos|paus|pilas|mensais|anos|meses)$/;
+function contagemPlural(ps: string[], g: Numero): boolean {
+  const w = ps[g.fim];
+  return g.valor !== null && Number.isInteger(g.valor) && g.valor >= 2 && g.valor <= 99 && w !== undefined && /^[a-z]{4,}s$/.test(w) && !NAO_E_PLURAL.test(w);
+}
+
 function numerosDe(ps: string[]): Numero[] {
   const lista: Numero[] = [];
   for (let i = 0; i < ps.length;) {
@@ -557,7 +564,7 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
 
   // Tokens já lidos como data ou obra viram "|" para não se juntarem ao número seguinte ("casa 12: mil e duzentos").
   const livres = numerosDe(ps.map((p, i) => (usadas.has(i) ? '|' : p))).filter((g) => ![...Array(g.fim - g.inicio).keys()].some((k) => usadas.has(g.inicio + k)));
-  const temQuantidade = livres.some((n) => UNIDADES.has(ps[n.fim] ?? ''));
+  const temQuantidade = livres.some((n) => UNIDADES.has(ps[n.fim] ?? '') || contagemPlural(ps, n));
 
   // Cada número vira: candidato, ruído (descreve outra coisa) ou descartado (parece quantidade/documento).
   type Papel = 'candidato' | 'ruido' | 'descartado';
@@ -579,7 +586,7 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
     // "2º andar 480": o andar vem antes do número, então o 480 continua sendo dinheiro
     const documento = DOCUMENTOS.has(prev) && !(prev === 'andar' && numeroEscrito(ps[g.inicio - 2] ?? '') !== null);
     if (documento && /^\d{4,}$/.test(ps[g.inicio])) return 'ruido'; // "nota fiscal 4521": número de documento
-    if (UNIDADES.has(depois) || documento || /^\d{4,5}-?\d{4}$/.test(depois) || contagemDeMaterial(ps, g)) return 'descartado';
+    if (UNIDADES.has(depois) || contagemPlural(ps, g) || documento || /^\d{4,5}-?\d{4}$/.test(depois) || contagemDeMaterial(ps, g)) return 'descartado';
     return 'candidato';
   };
   const papeis = livres.map(papelDe);
@@ -716,6 +723,7 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
     // Passa se o valor veio depois de "por"/"total", ou se a sobra é prazo, ano, número falado pequeno ou descrição.
     const sobraSemValor = (g: { inicio: number; fim: number; centavos: number | null }) =>
       /^(ano|anos|mes|meses)$/.test(ps[g.fim] ?? '') || /^(19|20)\d\d$/.test(ps[g.inicio]) || descritor(g) ||
+      (ps[g.inicio - 1] === 'de' && (daCategoria(ps[g.inicio - 2] ?? '') === 'Materiais (M)' || daCategoria((ps[g.inicio - 2] ?? '').replace(/s$/, '')) === 'Materiais (M)')) || // "tubos de 100"
       (g.fim === e.inicio && g.centavos !== null && g.centavos % 100 !== 0 && g.centavos < 1000) ||
       // inteiro de 1 a 9 solto ("Ferragens 3 Marias"), a não ser que some outro valor ("e 5", "mais 5") ou seja "5 de ..."
       (g.centavos !== null && g.centavos % 100 === 0 && g.centavos <= 900 && g.fim === g.inicio + 1 && inteiro(ps[g.inicio]) !== null &&
