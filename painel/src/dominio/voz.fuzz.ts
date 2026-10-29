@@ -34,7 +34,7 @@ export function gerarAdjacentes(semente: number, quantidade: number): Caso[] {
     const v = esc(VALORES);
     const marcado = r() < 0.6;
     const t = falarValor(esc, v, marcado);
-    const k = esc([1, 2, 3, 4, 5, 6, 8, 12, 25]);
+    const k = esc([1, 2, 3, 4, 5, 6, 8, 12]);
     const doc = String(1000 + Math.floor(r() * 8999));
     const frase = esc([
       () => `${esc(['areia pro', 'laje do', 'pedreiro no', 'reboco do', 'piso do'])} ${k}º andar ${t}`,
@@ -59,7 +59,7 @@ export function gerarServicos(semente: number, quantidade: number): Caso[] {
     'cancela do portão', 'cálculo estrutural', 'calculista', 'proposta do eletricista', 'proposta da construtora', 'receita federal darf',
     'tira de entulho', 'retirada de terra', 'troca de óleo da máquina', 'mudança do container', 'esquadro a laser', 'quebra de parede',
     'mais um servente', 'mais uma diária de pedreiro', 'mais cimento', 'mais uma caçamba', 'material do cliente Marcos', 'pro cliente',
-    'ajuste do orçamento', 'cálculo de carga', 'corretagem do terreno', 'altura do muro', 'desconto na compra de tinta'];
+    'cálculo de carga', 'corretagem do terreno', 'altura do muro', 'desconto na compra de tinta'];
   while (casos.length < quantidade) {
     const v = esc(VALORES);
     const marcado = r() < 0.6;

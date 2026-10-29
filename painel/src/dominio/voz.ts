@@ -148,7 +148,8 @@ function lerNumero(ps: string[], i: number): Numero | null {
     }
     if (algo) {
       const g = lerGrupo(ps, ps[j] === 'e' ? j + 1 : j, true);
-      if (g && !UNIDADES.has(ps[g.fim] ?? '')) { total += g.valor; j = g.fim; escala = 0; }
+      const ini = ps[j] === 'e' ? j + 1 : j;
+      if (g && !(/^\d+$/.test(ps[ini] ?? '') && UNIDADES.has(ps[g.fim] ?? ''))) { total += g.valor; j = g.fim; escala = 0; }
     } else {
       const g = lerGrupo(ps, j, true);
       if (!g) return null;
@@ -603,7 +604,8 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
     // "2º andar 480": o andar vem antes do número, então o 480 continua sendo dinheiro
     const documento = DOCUMENTOS.has(prev) && !(prev === 'andar' && numeroEscrito(ps[g.inicio - 2] ?? '') !== null);
     if (documento && /^\d{4,}$/.test(ps[g.inicio])) return 'ruido'; // "nota fiscal 4521": número de documento
-    if (UNIDADES.has(depois) || contagemPlural(ps, g) || documento || /^\d{4,5}-?\d{4}$/.test(depois) || contagemDeMaterial(ps, g)) return 'descartado';
+    const rotuloDeLugar = SPEC_PREFIX.has(depois) && inteiro(ps[g.fim + 1]) !== null && (g.valor ?? 0) > 99; // "1200 andar 8", "480 cômodo 2": o 8 e o 2 são o lugar
+    if ((UNIDADES.has(depois) && !rotuloDeLugar) || contagemPlural(ps, g) || documento || /^\d{4,5}-?\d{4}$/.test(depois) || contagemDeMaterial(ps, g)) return 'descartado';
     return 'candidato';
   };
   const papeis = livres.map(papelDe);

@@ -9,7 +9,7 @@ const r = (frase: string, reais: number | null, extra: Caso['esperado'] = {}, ti
 // Rodada 26: o que o revisor apontou (B1: valor verdadeiro descartado e sobra inteiro pequeno).
 export const CASOS_ROD26: Caso[] = [
   r('areia pro 2º andar 480', 480), r('laje do 2º andar 480 reais', 480), r('pedreiro R$ 480 cômodo 2', 480),
-  r('480 cômodo 2', null), r('pedreiro R$ 480 cômodo 25', 480), r('R$ 480 sala 3', 480), r('piso do 3º andar R$ 1.200', 1200),
+  r('480 cômodo 2', 480), r('pedreiro R$ 480 cômodo 25', 480), r('R$ 480 sala 3', 480), r('piso do 3º andar R$ 1.200', 1200),
   r('quarto 2 pintura R$ 400', 400), r('480 reais cômodo 2', 480), r('paguei 480 reais no cômodo 25', 480),
   r('paguei 500 de mais um servente', 500), r('comprei mais cimento, 380 reais', 380), r('paguei 500 de areia pro cliente', 500),
   r('material do cliente Marcos 900 reais', 900), r('paguei 300 de cimento a mais', 300), r('paguei 700 de tinta e mais nada', 700),
