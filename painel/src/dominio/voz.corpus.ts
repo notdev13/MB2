@@ -181,7 +181,7 @@ export const CASOS_ROD4: Caso[] = [
   { tipo: 'percentual', frase: 'paguei dez por cento de entrada de 3 mil', esperado: { valor: null } },
   { tipo: 'duvida', frase: '3 x 500', esperado: { valor: null } },
   { tipo: 'duvida', frase: '500 mais 200 de areia', esperado: { valor: null } },
-  { tipo: 'hora', frase: '14:30 paguei 200 de areia', esperado: { valor: null } },
+  { tipo: 'hora', frase: '14:30 paguei 200 de areia', esperado: { valor: 200_00 } },
   { tipo: 'hora', frase: 'às 14h paguei 200 de areia', esperado: { valor: 200_00 } },
   { tipo: 'repetido', frase: 'paguei 200 de areia (duzentos reais)', esperado: { valor: 200_00 } },
   { tipo: 'repetido', frase: 'R$ 360 (trezentos e sessenta)', esperado: { valor: 360_00 } },

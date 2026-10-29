@@ -29,6 +29,7 @@ const simplificar = (s: string) => semAcento(s.toLowerCase()).replace(/[^a-z0-9]
 function palavrasOriginais(texto: string): string[] {
   return texto
     .replace(/\bbom dia\b/gi, ' ') // saudação, não é "dia 12"
+    .replace(/(\d{1,2}):(\d{2})/g, '$1h$2') // "14:30" é hora, não dois números
     .replace(/\brs\s*(?=\d)/gi, 'R$ ') // "rs 500"
     .replace(/(\d)\s*rs\b/gi, '$1 reais') // "500rs"
     .replace(/\s*r\$\s*/gi, ' R$ ')
@@ -648,6 +649,8 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
     const rotuloDeLugar = SPEC_PREFIX.has(depois) && inteiro(ps[g.fim + 1]) !== null && (g.valor ?? 0) > 99; // "1200 andar 8", "480 cômodo 2": o 8 e o 2 são o lugar
     // "4 1/2" (disco de 4 1/2), "caixa com 100": o número descreve o material, não é valor nem quantidade
     if (/^\d\/\d$/.test(depois) || (prev === 'com' && UNIDADES.has(ps[g.inicio - 2] ?? ''))) return 'ruido';
+    // "1 pedreiro 450", "1 diária 180": o 1 é a quantidade
+    if (ps[g.inicio] === '1' && g.fim === g.inicio + 1 && depois !== '' && !PERTO_DE_OUTRO_VALOR.test(depois) && !/^(real|reais|por|vez|conto|r\$)$/.test(depois)) return 'ruido';
     // Quantidade de peças, sacos, unidades, lugar ou documento: sai do caminho, mas guarda o tamanho para conferir depois
     // (se o número descartado era maior que o que sobrou, o que sobrou provavelmente não é o valor: "480 sacos 2").
     if ((UNIDADES.has(depois) && !rotuloDeLugar) || documento || /^\d{4,5}-?\d{4}$/.test(depois)) return 'descartado';
