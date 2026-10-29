@@ -185,7 +185,8 @@ function precoPorUnidade(w: string | undefined, nomeProprio = false): boolean {
   if (!w) return false;
   if (UNIDADES.has(w) || TEMPO.has(w) || PRECO_POR.has(w)) return true;
   // "R$ 650 à Tintas Colorado": com maiúscula é fornecedor, não material
-  return !nomeProprio && (daCategoria(w) === 'Materiais (M)' || daCategoria(w.replace(/s$/, '')) === 'Materiais (M)');
+  // só o singular: "a janela", "o saco"; "Tintas Colorado" (plural) é nome de loja
+  return !nomeProprio && daCategoria(w) === 'Materiais (M)';
 }
 
 // "5 tomadas", "6 marmitas", "3 orçamentos": número pequeno seguido de substantivo no plural é quantidade.
@@ -218,7 +219,7 @@ const MOEDA = new Set(['reais', 'real', 'conto', 'contos', 'pila', 'pilas', 'pra
 const NUMERADORES = new Set(['lote', 'casa', 'lt', 'quadra', 'qd']);
 const OBRA_NUM = new Set([...NUMERADORES, 'obra', 'numero', 'n']);
 // Número que identifica documento ("nota fiscal 1234", "pedido 4521"), não dinheiro.
-const DOCUMENTOS = new Set(['nota', 'nf', 'pedido', 'orcamento', 'ordem', 'cheque', 'protocolo', 'contrato', 'processo',
+const DOCUMENTOS = new Set(['recibo', 'fatura', 'duplicata', 'comprovante', 'cupom', 'romaneio', 'nota', 'nf', 'pedido', 'orcamento', 'ordem', 'cheque', 'protocolo', 'contrato', 'processo',
   'matricula', 'cpf', 'cnpj', 'telefone', 'fone', 'cep', 'fiscal', 'apto', 'apartamento',
   'sala', 'andar', 'ano', 'parcela', 'agencia', 'conta', 'numero', 'nfe', 'nº', 'n°', 'n', 'codigo', 'cod', 'ref', 'referencia', 'item', 'modelo', 'serie']);
 // Estes só são documento quando o número tem 4 dígitos ou mais ("RRT 130" ainda pode ser o valor).
@@ -570,6 +571,7 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
   const junto = ' ' + ps.join(' ') + ' ';
   const ehDigitos = (p: string | undefined) => /^\d+$/.test(p ?? '');
   const escritoEmCaixaAlta = !originais.some((w) => /[a-zà-ÿ]/.test(w)); // "300 A JANELA": tudo maiúsculo não diz nada sobre nome próprio
+  const crase = (i: number) => (originais[i] ?? '').toLowerCase() === 'à'; // "480 à Tintas Colorado": ao fornecedor, não "a tantos por unidade"
   const maiuscula = (i: number) => !escritoEmCaixaAlta && /^[A-ZÀ-Ý]/.test(originais[i] ?? '');
   const inteiro = (p: string | undefined) => { const n = p === undefined ? null : numeroEscrito(p); return n !== null && Number.isInteger(n) ? n : null; };
 
@@ -656,7 +658,7 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
       const MEDIDAS = /^(metros?|m2|m3|m²|m³|kg|quilos?|litros?|toneladas?)$/;
       // "40 metros por 45 reais" é preço do metro; acima de R$ 1.000 já é o total ("12 metros por 1.400")
       if (ps[g.inicio - 1] === 'por' && MEDIDAS.test(ps[g.inicio - 2] ?? '') && começaNumero(ps[g.inicio - 3]) && (g.valor ?? 0) < 1000) remover = true;
-      if (depois === 'cada' || (/^(por|ao|a|o)$/.test(depois ?? '') && precoPorUnidade(ps[g.fim + 1], maiuscula(g.fim + 1)))) { remover = true; if (depois === 'cada') cadaConsumido = true; } // "150 por dia", "40 o saco"
+      if (depois === 'cada' || (/^(por|ao|a|o)$/.test(depois ?? '') && !crase(g.fim) && precoPorUnidade(ps[g.fim + 1], maiuscula(g.fim + 1)))) { remover = true; if (depois === 'cada') cadaConsumido = true; } // "150 por dia", "40 o saco"
       if (depois === 'por' && ps[g.fim + 1] === 'ai') centavos = null; // "trezentos por aí"
       if (depois === 'por' && ps[g.fim + 1] === 'mes' && ps.includes('meses')) remover = true; // "3 mil por mês durante seis meses"
       if (depois === 'pau' || depois === 'paus') centavos = null; // gíria que pode ser outra coisa
@@ -677,7 +679,7 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
           !/^(mes|ano|ai|ali|aqui|isso|tudo|conta|fora|dentro|todo|total|favor|gentileza|exemplo|enquanto|volta|baixo|cima|ele|ela|eles|elas|mim|nada|fim|sinal|causa|ultimo|primeiro)$/.test(unid)) remover = true;
         if (ps[fim] === 'por' && unid === 'ai') centavos = null; // "trezentos reais por aí"
         if (ps[fim] === 'cada') cadaConsumido = true;
-        if (ps[fim] === 'cada' || (/^(por|ao|a|o)$/.test(ps[fim] ?? '') && precoPorUnidade(unid, maiuscula(fim + 1)))) remover = true;
+        if (ps[fim] === 'cada' || (/^(por|ao|a|o)$/.test(ps[fim] ?? '') && !crase(fim) && precoPorUnidade(unid, maiuscula(fim + 1)))) remover = true;
         else if (ps[fim] === 'e' && começaNumero(ps[fim + 1])) {
           // "360 reais e 50 centavos" (só vale com a palavra "centavos"; "reais e 50" é dúvida)
           const resto = lerNumero(ps, fim + 1);

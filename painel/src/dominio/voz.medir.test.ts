@@ -11,6 +11,7 @@ import { CASOS_ROD41 } from './voz.rodadas7';
 import { CASOS_ROD42 } from './voz.rodadas8';
 import { CASOS_ROD43 } from './voz.rodadas9';
 import { gerarAdjacentes, gerarCego, gerarServicos } from './voz.fuzz';
+import { gerarCegoB } from './voz.fuzzB';
 
 // Mede o interpretador de voz contra o corpus (fixo + gerado). `npm run voz:medir` imprime a taxa
 // de acerto por campo e a lista de falhas; no `npm run check` só confere as garantias abaixo.
@@ -51,7 +52,7 @@ const gerados = NIVEIS.flatMap((nivel) => [1, 2, 3].flatMap((k) => gerarCasos(BA
 const caosPerigoso = [1, 2, 3, 4, 5].flatMap((k) => gerarCaos(BASE + 1000 + k, 600, true));
 const duplos = [1, 2, 3].flatMap((k) => gerarDuplos(BASE + 3000 + k, 800));
 const familias = [1, 2, 3].flatMap((k) => gerarFamilias(BASE + 4000 + k, 800));
-const fuzz = [1, 2, 3].flatMap((k) => [...gerarAdjacentes(BASE + 5000 + k, 700), ...gerarServicos(BASE + 6000 + k, 700), ...gerarCego(BASE + 7000 + k, 700)]);
+const fuzz = [1, 2, 3].flatMap((k) => [...gerarAdjacentes(BASE + 5000 + k, 700), ...gerarServicos(BASE + 6000 + k, 700), ...gerarCego(BASE + 7000 + k, 700), ...gerarCegoB(BASE + 8000 + k, 700)]);
 const caos = [1, 2, 3, 4, 5].flatMap((k) => gerarCaos(BASE + 2000 + k, 600));
 
 describe('corpus da voz', () => {
