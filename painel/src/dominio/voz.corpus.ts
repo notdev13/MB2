@@ -234,7 +234,7 @@ export const CASOS_ROD5: Caso[] = [
   { tipo: 'conversa', frase: 'gastei hoje dois mil e trezentos reais com tijolo no lote trinta e nove', esperado: { valor: 2300_00, obraId: 'l39', data: HOJE } },
   { tipo: 'conversa', frase: 'adiantamento de 500 pro Adriano', esperado: { valor: 500_00, categoria: MO } },
   { tipo: 'conversa', frase: 'foram 90 reais de frete', esperado: { valor: 90_00 } },
-  { tipo: 'conversa', frase: 'deu 1.200 o cimento', esperado: { valor: 1200_00 } },
+  { tipo: 'conversa', frase: 'deu 1.200 o cimento', esperado: { valor: null } },
   { tipo: 'conversa', frase: 'o total ficou em 4.350,75', esperado: { valor: 4350_75 } },
   { tipo: 'conversa', frase: 'ficou em quatro mil e trezentos e cinquenta reais', esperado: { valor: 4350_00 } },
   { tipo: 'conversa', frase: 'pix de mil reais pro Adriano', esperado: { valor: 1000_00, pagamento: 'pix', categoria: MO } },
@@ -669,15 +669,15 @@ export function gerarFamilias(semente: number, quantidade: number): Caso[] {
     return esc([`R$ ${milhar(v)}`, `${milhar(v)} reais`, `${porExtenso(v)} reais`, `${v}`, porExtenso(v)]);
   };
   const item = () => esc(['cimento', 'areia', 'brita', 'frete', 'tinta', 'prego', 'telha', 'eletricista', 'piso']);
-  const unidade = () => esc(['saco', 'metro', 'quilo', 'litro', 'lata', 'rolo', 'peça', 'caixa', 'unidade', 'dia', 'hora', 'm2', 'saca', 'milheiro', 'pessoa', 'folha', 'chapa', 'vara', 'par', 'dúzia', 'tonelada', 'barra', 'ponto', 'viagem', 'cômodo']);
+  const unidade = () => esc(['saco', 'metro', 'quilo', 'litro', 'lata', 'rolo', 'peça', 'caixa', 'unidade', 'dia', 'hora', 'm2', 'saca', 'milheiro', 'pessoa', 'folha', 'chapa', 'vara', 'par', 'dúzia', 'tonelada', 'barra', 'ponto', 'viagem', 'cômodo', 'degrau', 'janela', 'porta', 'tijolo', 'bloco', 'galão', 'balde']);
   const familias: (() => string)[] = [
     () => `${valor()} ${esc(['cada', 'cada um', 'cada ' + unidade()])} de ${item()}`,
     () => `${item()} ${valor()} ${esc(['por', 'a', 'o', 'ao'])} ${unidade()}`,
     () => `${valor()} ${esc(['por', 'a', 'o', 'ao'])} ${unidade()} de ${item()}`,
     () => `${esc(['uns', 'cerca de', 'quase', 'mais ou menos', 'aproximadamente', 'em torno de', 'por volta de', 'na faixa de', 'em média', 'até', 'mais de', 'menos de', 'acima de', 'abaixo de', 'no máximo', 'no mínimo', 'a partir de', 'na casa dos'])} ${valor()} de ${item()}`,
-    () => `${esc(['acho que foi', 'talvez', 'creio que foi', 'se não me engano foi', 'não lembro, foi', 'provavelmente', 'chutando foi', 'sei lá, foi', 'imagino que foi', 'suponho que foi', 'deve ter sido', 'parece que foi', 'aposto que foi', 'aparentemente foi'])} ${valor()} de ${item()}`,
-    () => `${esc(['estorno de', 'reembolso de', 'devolveram', 'o cliente pagou', 'recebi', 'recebemos', 'vendi por', 'vendemos por', 'empréstimo de', 'ressarcimento de', 'lucro de', 'faturamento de', 'receita de', 'vou comprar', 'preciso comprar', 'quanto custa', 'qual foi', 'não foi', 'não era', 'tenho que comprar', 'queria gastar', 'custa', 'o orçamento seria', 'quanto foi o de'])} ${valor()} de ${item()}`,
-    () => `${esc(['apaga', 'exclui', 'remove', 'cancela', 'desfaz', 'corrige', 'altera', 'muda', 'edita', 'atualiza', 'troca', 'substitui', 'apague', 'corrija', 'cancele'])} ${esc(['o de', 'o lançamento de', 'aquele de', 'o último de'])} ${valor()}`,
+    () => `${esc(['acho que foi', 'talvez', 'creio que foi', 'se não me engano foi', 'não lembro, foi', 'provavelmente', 'chutando foi', 'sei lá, foi', 'imagino que foi', 'suponho que foi', 'deve ter sido', 'parece que foi', 'aposto que foi', 'aparentemente foi', 'penso que foi', 'recordo que foi', 'estimo que foi', 'calculo que foi', 'por alto foi', 'a olho foi'])} ${valor()} de ${item()}`,
+    () => `${esc(['estorno de', 'reembolso de', 'devolveram', 'o cliente pagou', 'recebi', 'recebemos', 'vendi por', 'vendemos por', 'empréstimo de', 'ressarcimento de', 'lucro de', 'faturamento de', 'receita de', 'vou comprar', 'preciso comprar', 'vou precisar de', 'comprarei', 'iremos gastar', 'pagaram', 'depositaram', 'transferiram', 'recebimento de', 'repasse de', 'caução de', 'quanto custa', 'qual foi', 'não foi', 'não era', 'tenho que comprar', 'queria gastar', 'custa', 'o orçamento seria', 'quanto foi o de'])} ${valor()} de ${item()}`,
+    () => `${esc(['apaga', 'exclui', 'remove', 'cancela', 'desfaz', 'corrige', 'altera', 'muda', 'edita', 'atualiza', 'troca', 'substitui', 'apague', 'corrija', 'cancele', 'esquece', 'ignora', 'anula', 'retira', 'tira', 'edite', 'troque'])} ${esc(['o de', 'o lançamento de', 'aquele de', 'o último de'])} ${valor()}`,
     () => `${esc(['metade de', 'o dobro de', 'um terço de', 'desconto de', 'troco de', 'sobrou', 'restou', 'diferença de', 'aumento de', 'reajuste de'])} ${valor()} de ${item()}`,
     () => `${esc([String(esc([120, 360, 4800])), porExtenso(esc([120, 360, 4800]))])} ${esc(['dólares', 'euros', 'dólar'])} de ${item()}`,
   ];
@@ -712,6 +712,42 @@ export const CASOS_ROD20: Caso[] = [
   { tipo: 'data', frase: 'segunda quinzena 300 de areia', esperado: { valor: 300_00, data: null } },
   { tipo: 'data', frase: 'mês que vem pagar 300 de areia', esperado: { valor: 300_00, data: null, pago: false } },
   { tipo: 'data', frase: 'sábado e domingo 300 de areia', esperado: { valor: 300_00, data: null } },
+];
+
+// Rodada 23: fala corriqueira de dono de obra, sem armadilha (a taxa de acerto aqui é o que importa no dia a dia).
+export const CASOS_ROD23: Caso[] = [
+  { tipo: 'corriqueira', frase: 'paguei 1.850 reais de ferro na Cassol hoje no pix', esperado: { valor: 1850_00, data: HOJE, pagamento: 'pix', pago: true, categoria: MAT } },
+  { tipo: 'corriqueira', frase: 'comprei 15 sacos de cimento por 640 reais', esperado: { valor: 640_00, categoria: MAT } },
+  { tipo: 'corriqueira', frase: 'mandei 2 mil e 500 pro Adriano ontem', esperado: { valor: 2500_00, data: '2026-10-27', categoria: MO, fornecedor: 'Adriano' } },
+  { tipo: 'corriqueira', frase: 'o Ulisses recebeu mil e duzentos reais na sexta', esperado: { valor: 1200_00, data: '2026-10-23', categoria: MO } },
+  { tipo: 'corriqueira', frase: 'gastei 380 de tinta na casa 12', esperado: { valor: 380_00, obraId: 'l12', categoria: MAT } },
+  { tipo: 'corriqueira', frase: 'frete de 250 reais da areia no lote 39', esperado: { valor: 250_00, obraId: 'l39' } },
+  { tipo: 'corriqueira', frase: 'paguei o eletricista, 900 reais, no dinheiro', esperado: { valor: 900_00, categoria: SERV, pagamento: 'dinheiro', pago: true } },
+  { tipo: 'corriqueira', frase: 'boleto de 4.200 do piso, vence dia 10 de novembro', esperado: { valor: 4200_00, pagamento: 'boleto', pago: false, data: null } },
+  { tipo: 'corriqueira', frase: 'aluguel da betoneira 180 reais por semana', esperado: { valor: null } },
+  { tipo: 'corriqueira', frase: 'aluguel do andaime 1.100 reais', esperado: { valor: 1100_00, categoria: 'Locação e consumo' } },
+  { tipo: 'corriqueira', frase: 'conta de luz da obra 312,40', esperado: { valor: 312_40, categoria: 'Locação e consumo' } },
+  { tipo: 'corriqueira', frase: 'conta de água 87 reais e 50 centavos', esperado: { valor: 87_50, categoria: 'Locação e consumo' } },
+  { tipo: 'corriqueira', frase: 'ISS de 1.350 pago no boleto', esperado: { valor: 1350_00, categoria: 'Impostos e taxas', pagamento: 'boleto', pago: true } },
+  { tipo: 'corriqueira', frase: 'taxa da prefeitura 460 reais', esperado: { valor: 460_00, categoria: 'Impostos e taxas' } },
+  { tipo: 'corriqueira', frase: 'RRT do projeto 120 reais', esperado: { valor: 120_00 } },
+  { tipo: 'corriqueira', frase: 'cartório 2 mil e 300 na Olindina', esperado: { valor: 2300_00, obraId: 'oli', categoria: 'Projetos e documentação' } },
+  { tipo: 'corriqueira', frase: 'comprei porta e janela por 3.800 no cartão', esperado: { valor: 3800_00, pagamento: 'cartao', categoria: MAT } },
+  { tipo: 'corriqueira', frase: 'pedreiro 6 mil e 400 no Laureano dia 15', esperado: { valor: 6400_00, obraId: 'lau', categoria: MO } },
+  { tipo: 'corriqueira', frase: 'Laureano: 780 reais de brita e frete', esperado: { valor: 780_00, obraId: 'lau' } },
+  { tipo: 'corriqueira', frase: 'dois mil de armador na Ecovilas, a pagar', esperado: { valor: 2000_00, obraId: 'eco', pago: false } },
+  { tipo: 'corriqueira', frase: 'sessenta reais de gasolina da máquina', esperado: { valor: 60_00, categoria: 'Locação e consumo' } },
+  { tipo: 'corriqueira', frase: 'seiscentos reais de eletricista ontem no pix', esperado: { valor: 600_00, data: '2026-10-27', pagamento: 'pix', categoria: SERV } },
+  { tipo: 'corriqueira', frase: 'R$ 45.000 de laje no lote 39 em 3 vezes no boleto', esperado: { valor: 45000_00, obraId: 'l39', pagamento: 'boleto', pago: false } },
+  { tipo: 'corriqueira', frase: 'dezoito mil de terraplenagem na Ecovilas', esperado: { valor: 18000_00, obraId: 'eco', categoria: SERV } },
+  { tipo: 'corriqueira', frase: 'comprei material elétrico 940', esperado: { valor: 940_00 } },
+  { tipo: 'corriqueira', frase: 'pintor 1.800 reais terça passada', esperado: { valor: 1800_00, data: '2026-10-27', categoria: MO } },
+  { tipo: 'corriqueira', frase: 'paguei a diária do servente 150', esperado: { valor: 150_00, categoria: MO, pago: true } },
+  { tipo: 'corriqueira', frase: '3 diárias do servente 450', esperado: { valor: 450_00 } },
+  { tipo: 'corriqueira', frase: 'cimento 22 sacos 880 reais', esperado: { valor: 880_00 } },
+  { tipo: 'corriqueira', frase: 'seguro da obra 1.250 hoje', esperado: { valor: 1250_00, data: HOJE } },
+  { tipo: 'corriqueira', frase: 'fiz um pix de 3 mil pro Ulisses', esperado: { valor: 3000_00, pagamento: 'pix', categoria: MO } },
+  { tipo: 'corriqueira', frase: 'transferência de 7.500 pra madeireira', esperado: { valor: 7500_00, pagamento: 'transferencia' } },
 ];
 
 // ---- gerador de frases ----
