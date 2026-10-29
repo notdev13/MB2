@@ -158,6 +158,11 @@ const MOEDA = new Set(['reais', 'real', 'conto', 'contos', 'pila', 'pilas']);
 // "lote 39", "casa 12": o número é da obra, não é valor.
 const NUMERADORES = new Set(['lote', 'casa', 'lt', 'quadra', 'qd']);
 const OBRA_NUM = new Set([...NUMERADORES, 'obra', 'numero', 'n']);
+// Número que identifica documento ("nota fiscal 1234", "pedido 4521"), não dinheiro.
+const DOCUMENTOS = new Set(['nota', 'nf', 'pedido', 'orcamento', 'ordem', 'cheque', 'protocolo', 'contrato', 'processo',
+  'matricula', 'cpf', 'cnpj', 'telefone', 'fone', 'cep', 'fiscal']);
+// Quantidade de tempo: o número solto que sobra costuma ser preço por dia/hora, não o total.
+const TEMPO = new Set(['dias', 'hora', 'horas', 'diaria', 'diarias', 'semana', 'semanas', 'meses']);
 const PISTAS = new Set(['por', 'total', 'valor', 'custou', 'ficou']);
 
 // ---- datas ----
@@ -185,6 +190,8 @@ function montarData(dia: number, mes: number | null, ano: number | null, hoje: s
   if (d.getDate() !== dia) return null; // 31/02
   // Sem mês ou sem ano, a data falada é a última que já passou.
   if (d > h && ano === null) {
+    // Mês falado que ainda vai chegar logo ("vence dia 5 de novembro") é vencimento, não custo passado: fica em branco.
+    if (mes !== null && (d.getTime() - h.getTime()) / 86_400_000 <= 62) return null;
     if (mes === null) { m -= 1; if (m === 0) { m = 12; a -= 1; } } else a -= 1;
     d = new Date(a, m - 1, dia);
     if (d.getDate() !== dia) return null;
@@ -250,7 +257,8 @@ function acharData(ps: string[], usadas: Set<number>, hoje: string): string | nu
     // Data no futuro ("amanhã", "segunda que vem", "próxima sexta") não vira data de custo: fica em branco.
     if (p === 'amanha' || (p === 'que' && ps[i + 1] === 'vem') || p === 'proxima' || p === 'proximo') { usadas.add(i); return null; }
     const semana = SEMANA[p.replace(/-?feira$/, '')];
-    if (semana !== undefined) {
+    // "segunda parcela", "quarta etapa" não são dias da semana
+    if (semana !== undefined && !/^(parcela|parcelas|via|etapa|medicao|fase|vez|parte|rodada|opcao)$/.test(ps[i + 1] ?? '')) {
       usadas.add(i);
       if (ps[i + 1] === 'feira') usadas.add(i + 1);
       for (const k of [i + 1, i + 2]) if (ps[k] === 'passada' || ps[k] === 'passado') usadas.add(k);
@@ -428,7 +436,8 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
   // data, número da obra e preço por unidade não contam. Na dúvida fica null (a pessoa digita).
   const candidatos = numerosDe(ps)
     .filter((g) => ![...Array(g.fim - g.inicio).keys()].some((k) => usadas.has(g.inicio + k)))
-    .filter((g) => !UNIDADES.has(ps[g.fim] ?? '') && !NUMERADORES.has(ps[g.inicio - 1] ?? ''))
+    .filter((g) => !UNIDADES.has(ps[g.fim] ?? '') && !NUMERADORES.has(ps[g.inicio - 1] ?? '') &&
+      !DOCUMENTOS.has(ps[g.inicio - 1] ?? ''))
     .map((g) => {
       let centavos = g.valor === null ? null : Math.round(g.valor * 100);
       let fim = g.fim;
@@ -441,7 +450,9 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
         moeda = true; fim++;
       } else if (depois && MOEDA.has(depois)) {
         moeda = true; fim++;
-        if (ps[fim] === 'cada') centavos = null; // preço por unidade, não o total
+        // preço por unidade ("200 reais por dia", "40 reais o saco", "10 reais cada"), não o total
+        const unid = ps[fim + 1] ?? '';
+        if (ps[fim] === 'cada' || (/^(por|ao|a|o)$/.test(ps[fim] ?? '') && (UNIDADES.has(unid) || TEMPO.has(unid) || unid === 'dia'))) centavos = null;
         else if (ps[fim] === 'e' && começaNumero(ps[fim + 1])) {
           // "360 reais e 50 centavos" (só vale com a palavra "centavos"; "reais e 50" é dúvida)
           const resto = lerNumero(ps, fim + 1);
@@ -462,14 +473,22 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
     .filter((g, k, todos) => !todos.slice(0, k).some((o) => g.inicio < o.fim))
     // "um" sozinho é artigo ("um frete de 300"), a não ser que venha com "real"/"conto".
     .filter((g) => !(g.fim - g.inicio === 1 && (ps[g.inicio] === 'um' || ps[g.inicio] === 'uma')) && (g.centavos === null || g.centavos > 0));
-  const comMoeda = candidatos.filter((g) => g.moeda);
+  // O mesmo valor repetido ("200 de areia (duzentos reais)") conta uma vez.
+  const unicos = candidatos.filter((g, k) => g.centavos === null || !candidatos.slice(0, k).some((o) => o.centavos === g.centavos));
+  for (const g of unicos) if (candidatos.some((o) => o.centavos === g.centavos && o.moeda)) g.moeda = true;
+  const comMoeda = unicos.filter((g) => g.moeda);
   // "200 telhas por 780": o número depois de "por"/"total" é o valor, o outro é quantidade.
-  const comPista = candidatos.filter((g) => g.moeda || PISTAS.has(ps[g.inicio - 1] ?? ''));
-  let escolhido = candidatos.length === 1 ? candidatos[0] : comMoeda.length === 1 ? comMoeda[0] : comPista.length === 1 ? comPista[0] : null;
-  // "200 reais de areia e 100 de brita": outro valor solto ("100 de", "100 pro") = dois lançamentos, na dúvida não escolhe.
-  if (escolhido && candidatos.some((g) => g !== escolhido && !g.moeda && /^(de|pro|pra|para|na|no)$/.test(ps[g.fim] ?? ''))) {
-    escolhido = { ...escolhido, centavos: null };
-  }
+  const comPista = unicos.filter((g) => g.moeda || PISTAS.has(ps[g.inicio - 1] ?? ''));
+  let escolhido = unicos.length === 1 ? unicos[0] : comMoeda.length === 1 ? comMoeda[0] : comPista.length === 1 ? comPista[0] : null;
+  // "200 reais de areia e 100 de brita", "entrada de 1.200 e 3 parcelas de 500": dois valores, na dúvida não escolhe.
+  const outroValor = (g: { inicio: number; fim: number; moeda: boolean }) =>
+    !g.moeda && (/^(de|pro|pra|para|na|no)$/.test(ps[g.fim] ?? '') || (/^(parcelas?|vezes|x)$/.test(ps[g.inicio - 2] ?? '') && ps[g.inicio - 1] === 'de'));
+  if (escolhido && unicos.some((g) => g !== escolhido && outroValor(g))) escolhido = { ...escolhido, centavos: null };
+  // "3 dias de servente 150": sem "reais" nem "por", o 150 pode ser a diária, não o total.
+  const tempoSolto = numerosDe(ps).some((n) => TEMPO.has(ps[n.fim] ?? '') && !usadas.has(n.inicio));
+  if (escolhido && tempoSolto && !escolhido.moeda && !PISTAS.has(ps[escolhido.inicio - 1] ?? '')) escolhido = { ...escolhido, centavos: null };
+  // Porcentagem ("50% de 2.000", "dez por cento de entrada"): o valor depende de conta que a pessoa não disse.
+  if (escolhido && (/\d%/.test(junto) || / por cento /.test(junto))) escolhido = { ...escolhido, centavos: null };
   if (escolhido) {
     for (let k = escolhido.inicio; k < escolhido.fim; k++) usadas.add(k);
     if (ps[escolhido.inicio - 1] === 'r$') usadas.add(escolhido.inicio - 1);
