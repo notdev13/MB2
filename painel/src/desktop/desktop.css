@@ -83,7 +83,7 @@
 .d-kpi .d-rotulo { font-weight: 500; font-size: 13px; }
 .d-kpi-valor { font-family: var(--serif); font-weight: 600; font-size: var(--d-kpi); line-height: 1.05; color: var(--white);
   font-variant-numeric: lining-nums tabular-nums; letter-spacing: 0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.d-kpi-detalhe { font-size: var(--d-apoio); color: var(--fog); }
+.d-kpi-detalhe { font-size: var(--d-apoio); color: var(--fog); display: flex; flex-direction: column; gap: 8px; }
 .d-kpi.alerta { border-color: var(--alerta-borda); }
 .d-kpi.alerta .d-kpi-detalhe { color: var(--alerta); }
 .d-variacao { display: inline-flex; align-items: center; gap: 4px; }
@@ -149,10 +149,21 @@
 /* Uso do orçamento */
 .d-uso { display: inline-flex; align-items: center; gap: 10px; width: 100%; }
 .d-uso .d-trilho { flex: 1; }
-.d-uso .d-num { font-size: 12.5px; color: var(--mist); min-width: 34px; text-align: right; }
+.d-faixa { font-size: 12.5px; font-weight: 600; white-space: nowrap; color: var(--mist); min-width: 92px; text-align: right; }
+.d-faixa.folga { color: var(--ok); }
+.d-faixa.atencao, .d-faixa.limite, .d-faixa.estourou { color: var(--alerta); }
+.d-uso .d-trilho { position: relative; }
+.d-uso .d-trilho::after { content: ''; position: absolute; top: 0; bottom: 0; left: 80%; width: 1px; background: var(--bone); opacity: 0.55; }
+.d-uso .d-trilho > i { transform-origin: left center; animation: d-encher 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+@keyframes d-encher { from { transform: scaleX(0); } }
+@media (prefers-reduced-motion: reduce) { .d-uso .d-trilho > i { animation: none; } }
 .d-trilho { display: block; height: 4px; border-radius: 9999px; background: var(--graphite); overflow: hidden; }
 .d-trilho > i { display: block; height: 100%; border-radius: 9999px; background: var(--gilded); background-size: 280px 100%; }
-.d-uso.estourou .d-trilho > i { background: var(--alerta); }
+.d-uso.limite .d-trilho > i, .d-uso.estourou .d-trilho > i { background: var(--alerta); }
+
+/* Linhas de obra com atenção/limite/estouro ganham um traço à esquerda (além do texto da faixa) */
+.d-tabela tr.clicavel:has(.d-uso.atencao) td:first-child { border-left: 2px solid var(--slate); }
+.d-tabela tr.clicavel:has(.d-uso.limite) td:first-child, .d-tabela tr.clicavel:has(.d-uso.estourou) td:first-child { border-left: 2px solid var(--alerta); }
 
 /* Gráfico de colunas */
 .d-colunas { display: grid; grid-template-columns: 52px 1fr; gap: 8px; padding-bottom: 24px; }

@@ -2,10 +2,10 @@ import { useMemo } from 'react';
 import { useDados } from '../../dados/contexto';
 import { porCategoria, porMes, resumirObra } from '../../dominio/calculos';
 import { porFornecedor } from '../../dominio/consultas';
-import { dataBR, hoje, porcentagem, reais, reaisCurto } from '../../dominio/formato';
+import { dataBR, hoje, reais, reaisCurto } from '../../dominio/formato';
 import type { Custo, Obra } from '../../dominio/tipos';
 import { IconeD, Kpi, Painel, Vazio } from '../componentes/Base';
-import { BarrasCategoria, ColunasMes } from '../componentes/Graficos';
+import { BarrasCategoria, ColunasMes, UsoOrcamento } from '../componentes/Graficos';
 import { TabelaLancamentos } from '../componentes/TabelaLancamentos';
 import { linkD } from '../rotas';
 
@@ -33,7 +33,9 @@ export function ObraD({ id, aoAbrirCusto }: { id: string; aoAbrirCusto: (c: Cust
         <Kpi rotulo="Gasto até agora" valor={reaisCurto(r.gasto)}
           detalhe={`${reais(r.gasto)} · ${meus.length} lançamento${meus.length === 1 ? '' : 's'}`} />
         <Kpi rotulo="Orçamento" valor={obra.orcamento > 0 ? reaisCurto(obra.orcamento) : '—'}
-          detalhe={obra.orcamento > 0 ? `${porcentagem(r.gasto, obra.orcamento)}% usado` : 'cadastre em “Editar obra”'} />
+          detalhe={obra.orcamento > 0
+            ? <><UsoOrcamento gasto={r.gasto} orcamento={obra.orcamento} /></>
+            : 'cadastre em “Editar obra”'} />
         <Kpi rotulo={estourou ? 'Acima do orçamento' : 'Saldo'} tom={estourou ? 'alerta' : undefined}
           valor={obra.orcamento > 0 ? reaisCurto(Math.abs(r.saldo)) : '—'}
           detalhe={obra.orcamento > 0 ? (estourou ? 'gasto passou do orçado' : 'ainda disponível') : 'sem orçamento'} />

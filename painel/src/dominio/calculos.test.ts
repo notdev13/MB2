@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { porCategoria, porMes, resumirObra, resumoGeral } from './calculos';
+import { porCategoria, porMes, resumirObra, resumoGeral, situacaoOrcamento } from './calculos';
 import type { Custo, Obra } from './tipos';
 
 const obra = (id: string, orcamento: number, extra: Partial<Obra> = {}): Obra => ({
@@ -69,5 +69,35 @@ it('resumoGeral ignora obras concluídas no orçamento e conta as estouradas', (
     aPagar: 200,
     gastoNoMes: 700,
     estouradas: 1,
+  });
+});
+
+describe('situacaoOrcamento', () => {
+  const orc = 100_000_00; // R$ 100.000,00 em centavos
+  it('sem orçamento (0 ou negativo) não compara', () => {
+    expect(situacaoOrcamento(0, 0)).toBe('sem-orcamento');
+    expect(situacaoOrcamento(5_000_00, 0)).toBe('sem-orcamento');
+    expect(situacaoOrcamento(5_000_00, -1)).toBe('sem-orcamento');
+  });
+  it('gasto zero é folga', () => {
+    expect(situacaoOrcamento(0, orc)).toBe('folga');
+  });
+  it('80% exato vira atenção; 1 centavo antes ainda é folga', () => {
+    expect(situacaoOrcamento(80_000_00 - 1, orc)).toBe('folga');
+    expect(situacaoOrcamento(80_000_00, orc)).toBe('atencao');
+  });
+  it('95% exato vira limite; 1 centavo antes ainda é atenção', () => {
+    expect(situacaoOrcamento(95_000_00 - 1, orc)).toBe('atencao');
+    expect(situacaoOrcamento(95_000_00, orc)).toBe('limite');
+  });
+  it('100% exato ainda não estourou; 1 centavo a mais estourou', () => {
+    expect(situacaoOrcamento(orc, orc)).toBe('limite');
+    expect(situacaoOrcamento(orc + 1, orc)).toBe('estourou');
+  });
+  it('funciona com valores pequenos em centavos', () => {
+    expect(situacaoOrcamento(79, 100)).toBe('folga');
+    expect(situacaoOrcamento(80, 100)).toBe('atencao');
+    expect(situacaoOrcamento(1, 1)).toBe('limite');
+    expect(situacaoOrcamento(2, 1)).toBe('estourou');
   });
 });

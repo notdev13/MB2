@@ -1,7 +1,7 @@
 import { BarraOrcamento, GastoPorMes, PorCategoria } from '../componentes/Graficos';
 import { Lancamentos } from '../componentes/Lancamentos';
 import { useDados } from '../dados/contexto';
-import { porCategoria, porMes, resumirObra, resumoGeral } from '../dominio/calculos';
+import { porCategoria, porMes, resumirObra, resumoGeral, situacaoOrcamento } from '../dominio/calculos';
 import { hoje, porcentagem, reais, reaisCurto } from '../dominio/formato';
 import type { Custo } from '../dominio/tipos';
 import { ir } from '../navegacao';
@@ -23,6 +23,10 @@ export function Visao({ aoNovaObra, aoAbrirCusto }: { aoNovaObra: () => void; ao
   const geral = resumoGeral(obras, custos, ref);
   const ativas = obras.filter((o) => o.status !== 'concluida').map((o) => resumirObra(o, custos))
     .sort((a, b) => b.usoOrcamento - a.usoOrcamento);
+  const perto = ativas.filter((r) => {
+    const f = situacaoOrcamento(r.gasto, r.obra.orcamento);
+    return f === 'atencao' || f === 'limite';
+  }).length;
   const nomeObra = (id: string) => obras.find((o) => o.id === id)?.nome ?? '—';
 
   return (
@@ -53,22 +57,27 @@ export function Visao({ aoNovaObra, aoAbrirCusto }: { aoNovaObra: () => void; ao
           ⚠ {geral.estouradas} obra{geral.estouradas === 1 ? ' passou' : 's passaram'} do orçamento.
         </div>
       )}
+      {perto > 0 && (
+        <div className="aviso atencao" role="status">
+          Atenção: {perto} obra{perto === 1 ? ' está' : 's estão'} perto do limite do orçamento.
+        </div>
+      )}
 
       <h2>Obras em aberto</h2>
       <div className="lista">
         {ativas.length === 0 && <p className="sub">Nenhuma obra em aberto.</p>}
         {ativas.map((r) => (
-          <button key={r.obra.id} className="cartao clicavel" onClick={() => ir({ tela: 'obra', id: r.obra.id })}>
+          <button key={r.obra.id} className={'cartao clicavel situacao-' + situacaoOrcamento(r.gasto, r.obra.orcamento)} onClick={() => ir({ tela: 'obra', id: r.obra.id })}>
             <div className="linha">
               <strong>{r.obra.nome}</strong>
-              {r.obra.orcamento > 0 && r.saldo < 0
-                ? <span className="selo alerta">Estourou {reaisCurto(-r.saldo)}</span>
-                : <span className="valor">{reais(r.gasto)}</span>}
+              <span className="valor">{reais(r.gasto)}</span>
             </div>
             <BarraOrcamento gasto={r.gasto} orcamento={r.obra.orcamento} />
             <div className="nota">
               {r.obra.orcamento > 0
-                ? `${porcentagem(r.gasto, r.obra.orcamento)}% de ${reaisCurto(r.obra.orcamento)}`
+                ? r.saldo < 0
+                  ? `${reaisCurto(-r.saldo)} acima de ${reaisCurto(r.obra.orcamento)}`
+                  : `${porcentagem(r.gasto, r.obra.orcamento)}% de ${reaisCurto(r.obra.orcamento)}`
                 : 'Sem orçamento cadastrado'}
               {r.aPagar > 0 && ` · ${reaisCurto(r.aPagar)} a pagar`}
             </div>
