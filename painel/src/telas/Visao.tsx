@@ -62,7 +62,7 @@ export function Visao({ aoNovaObra, aoLancar, aoAbrirCusto }: {
           <EstadoVazio icone="obras" titulo="Nenhuma obra em aberto"
             texto="Todas as obras estão concluídas. Cadastre uma nova para voltar a acompanhar os gastos.">
             <button className="botao" onClick={aoNovaObra}>Cadastrar obra</button>
-            <a className="botao secundario" href="#/obras">Ver obras concluídas</a>
+            <a className="botao secundario" href="#/obras">Ver todas as obras</a>
           </EstadoVazio>
         )}
         {ativas.map((r) => (

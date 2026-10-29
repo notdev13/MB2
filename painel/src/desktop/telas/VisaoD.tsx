@@ -71,7 +71,7 @@ export function VisaoD({ aoNovaObra, aoLancar, aoAbrirCusto }: {
           <EstadoVazio icone="obras" titulo="Nenhuma obra em aberto"
             texto="Todas as obras estão concluídas. Cadastre uma nova para voltar a acompanhar os gastos.">
             <button className="d-botao primario" onClick={aoNovaObra}>Cadastrar obra</button>
-            <a className="d-botao secundario" href={linkD({ tela: 'obras' })}>Ver obras concluídas</a>
+            <a className="d-botao secundario" href={linkD({ tela: 'obras' })}>Ver todas as obras</a>
           </EstadoVazio>
         ) : <Tabela<ResumoObra> rotulo="Obras em aberto" linhas={resumos} chaveLinha={(r) => r.obra.id}
           aoClicar={(r) => irD({ tela: 'obra', id: r.obra.id })}
