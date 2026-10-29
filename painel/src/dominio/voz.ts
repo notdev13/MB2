@@ -33,7 +33,10 @@ function palavrasOriginais(texto: string): string[] {
     .replace(/(\d)[ºª°]/g, '$1') // "dia 1º"
     .replace(/[–—]/g, ' ')
     .replace(/([a-zA-ZÀ-ÿ])\/([a-zA-ZÀ-ÿ])/g, '$1 $2') // "pix/boleto"; datas como 17/09 ficam
-    .split(/[\s!?;:()"]+/)
+    .replace(/(\d)\/([a-zA-ZÀ-ÿ])/g, '$1 por $2') // "38/saco" = 38 por saco
+    .replace(/(^|\s)-(\d)/g, '$1menos $2') // "-300": desconto ou estorno
+    .replace(/=/g, ' igual ')
+    .split(/[\s!?;:()"\[\]{}<>#*]+/)
     .map((p) => p.replace(/^[.,…'“”‘’«»*_–—-]+|[.,…'“”‘’«»*_–—-]+$/g, ''))
     .filter(Boolean);
 }
@@ -179,7 +182,7 @@ const UNIDADES = new Set([
   'pessoa', 'cabeca', 'folha', 'chapa', 'vara', 'par', 'pares', 'comodo', 'comodos', 'ponto', 'tomada', 'lampada', 'pacote', 'pacotes', 'saca', 'sacas', 'balde', 'baldes', 'tambor', 'tambores', 'carrada', 'carradas', 'carga',
   'cargas', 'carreta', 'carretas', 'fardo', 'fardos', 'm²', 'm³', 'parcela', 'etapa', 'fase', 'viagem', 'viagens', 'pessoas', 'homens', 'funcionarios', 'operarios', 'pedreiros', 'serventes',
   'ajudantes', 'quartos', 'andares', 'casas', 'lotes', 'pontos', 'tomadas', 'lampadas', 'milimetro', 'milimetros', 'mm', 'centimetro', 'centimetros', 'cm', 'polegada', 'polegadas', 'banheiros', 'andar', 'volt', 'volts', 'v', 'ampere', 'amperes', 'watts', 'w', 'hz', 'demao', 'demaos',
-  'diaria', 'diarias',
+  'diaria', 'diarias', 'sc', 'un', 'pc', 'pcs', 'cx', 'mt', 'mts', 'ton', 'tn', 'lt', 'lts', 'gl', 'pav', 'pavimento', 'pavimentos',
 ]);
 const MOEDA = new Set(['reais', 'real', 'conto', 'contos', 'pila', 'pilas', 'pratas', 'mangos']);
 // "lote 39", "casa 12": o número é da obra, não é valor.
@@ -237,7 +240,7 @@ const MEDIDA_TECNICA = new Set(['milimetro', 'milimetros', 'mm', 'centimetro', '
 // "paguei dez de frete": depois de verbo de gasto, até número falado pequeno é dinheiro.
 const VERBO_GASTO = /^(paguei|gastei|gastamos|pagamos|custou|saiu|dei|mandei|passei|comprei|foi|deu)$/;
 const PERTO_DE_OUTRO_VALOR = /^(de|pro|pra|para|na|no|ou|ate)$/;
-const PISTAS = new Set(['por', 'total', 'valor', 'custou', 'ficou']);
+const PISTAS = new Set(['por', 'total', 'tot', 'valor', 'vlr', 'custou', 'ficou', 'igual']);
 
 // ---- datas ----
 
@@ -533,6 +536,7 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
     // "pedreiro 450 faz 450 dias": ninguém sabe de que dia
     if ((p === 'faz' || p === 'ha') && (inteiro(ps[i + 1]) ?? 0) > 365 && TEMPO.has(ps[i + 2] ?? '')) diasAbsurdos = true;
     if (TELEFONE.has(p)) for (let k = i + 1; k <= i + 4 && ehDigitos(ps[k]); k++) ruido.add(k);
+    if (p === 'x') for (const k of [i - 1, i + 1]) if (começaNumero(ps[k])) ruido.add(k); // "38 x 20 = 760"
     const a = inteiro(p);
     const c = inteiro(ps[i + 2]);
     if (a !== null && a <= 99 && ps[i + 1] === 'por' && c !== null && c <= 99 && !MOEDA.has(ps[i + 3] ?? '') && ps[i + 3] !== 'r$' &&
@@ -637,7 +641,7 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
       // "20 sacos a 30 reais": o 30 é o preço de cada saco, não o total
       if (ps[ant] === 'a' && temQuantidade) remover = true;
       // "dia 200", "dia onze mil reais": não é data; pode ser valor ou dia seguido de valor
-      if (ps[ant] === 'dia' && !moeda) centavos = null;
+      if (ps[ant] === 'dia' && !moeda && !/^(do|da|de)$/.test(ps[ant - 1] ?? '')) centavos = null; // "total do dia 540" passa
       const dia = ps[g.inicio - 1] === 'dia' ? (inteiro(ps[g.inicio]) ?? lerGrupo(ps, g.inicio)?.valor ?? null) : null;
       if (dia !== null && dia <= 31 && g.valor !== null && g.valor > 31) centavos = null;
       // "1 de 3", "20-10": traços e barras de data
@@ -667,7 +671,17 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
   // "200 telhas por 780": o número depois de "por"/"total" é o valor, o outro é quantidade.
   const pista = (g: { inicio: number }) => PISTAS.has(ps[g.inicio - 1] ?? '');
   const comPista = unicos.filter((g) => g.moeda || pista(g));
-  let escolhido = unicos.length === 1 ? unicos[0] : comMoeda.length === 1 ? comMoeda[0] : comPista.length === 1 ? comPista[0] : null;
+  // "total do dia: 540", "= 760": o resultado da conta é o valor, os outros números são parcelas.
+  const FILLER = /^(do|da|de|dia|geral|final|foi|e|ficou|fica|deu|ser|ta)$/;
+  const pistaForte = (g: { inicio: number }) => {
+    for (let k = g.inicio - 1; k >= Math.max(0, g.inicio - 3); k--) {
+      if (/^(total|tot|igual|soma)$/.test(ps[k] ?? '')) return true;
+      if (!FILLER.test(ps[k] ?? '') && ps[k] !== 'r$') return false;
+    }
+    return false;
+  };
+  const fortes = unicos.filter(pistaForte);
+  let escolhido = unicos.length === 1 ? unicos[0] : fortes.length === 1 ? fortes[0] : comMoeda.length === 1 ? comMoeda[0] : comPista.length === 1 ? comPista[0] : null;
   const anula = () => { if (escolhido) escolhido = { ...escolhido, centavos: null }; };
 
   if (escolhido) {
@@ -699,7 +713,7 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
     // "lote 39 cimento 12": o 12 pode ser o número de outra obra (casa 12)
     if (!e.moeda && !pista(e) && e.centavos !== null && e.centavos % 100 === 0 && outrasObras.has(e.centavos / 100)) anula();
     // Parcelado sem "reais"/"R$": o número pode ser a parcela ou o total.
-    if (!e.moeda && / (\d+ ?x|\d+ vezes|[a-z]+ vezes|parcelas) /.test(junto)) anula();
+    if (!e.moeda && / (\d+x|em \d+ x|\d+ vezes|[a-z]+ vezes|parcelas) /.test(junto)) anula();
     // Frases de dúvida, estimativa, receita ou comando; palavras de conta; datas com traço ("20-10").
     const negou = ps.some((p, k) => p === 'nao' && /^(foi|era|e|sao|eram|ficou|fica|vai|sera)$/.test(ps[k + 1] ?? '') &&
       !/^(pago|paga|pagos|pagas)$/.test(ps[k + 2] ?? ''));
@@ -753,7 +767,7 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
   // Parcelado ("em 3 vezes", "3x", "10 parcelas") também fica a pagar, mas se a pessoa disse
   // "paguei" junto fica em dúvida (null): pode ser o cartão já pago ou só a primeira parcela.
   const junto = ' ' + ps.join(' ') + ' ';
-  const parcelado = / (parcelad[oa]s?|parcelei|financiad[oa]|\d+ ?x|\d+ (vezes|parcelas)|[a-z]+ (vezes|parcelas)) /.test(junto);
+  const parcelado = / (parcelad[oa]s?|parcelei|financiad[oa]|\d+x|em \d+ x|\d+ (vezes|parcelas)|[a-z]+ (vezes|parcelas)) /.test(junto);
   const disseuPago = / (paguei|pagou|pagamos|pago|paga|mandei|transferi|depositei|quitei|quitamos|quitado|quitada) /.test(junto);
   let pago: boolean | null = null;
   if (/ (a pagar|falta pagar|vou pagar|vamos pagar|vai pagar|para pagar|pra pagar|em aberto|fiado|a prazo|ainda nao paguei|nao paguei|nao foi pago|nao foi paga|nao pagou|ainda nao pagou|nao pago|pagar|pendente|pendurado|pendurei|devo|devendo|vence|vencimento|a vencer|vencido|vencida|vencendo|em atraso|atrasado|atrasada|preciso pagar|tenho que pagar|tenho de pagar|pagar depois|mais tarde pago|mais tarde pagar) /.test(junto)) pago = false;

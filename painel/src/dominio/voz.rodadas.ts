@@ -42,3 +42,18 @@ export const CASOS_ROD27: Caso[] = [
   r('Altera o projeto 1.200 reais', 1200), r('Apaga o último de 450', null), r('Exclui o de 300 reais', null),
   r('Proposta de reforma 4.500', 4500), r('Proposta de 12 mil do pedreiro', null), r('Orçamento aprovado 7.000', 7000),
 ];
+
+// Rodada 28: texto digitado estilo WhatsApp/planilha (abreviações, "=", "->", colchetes, sinais).
+export const CASOS_ROD28: Caso[] = [
+  r('cimento - 20 sc - R$ 800', 800), r('vlr 350 tijolo', 350), r('rs 120 prego', 120), r('1.200,00 (laje)', 1200),
+  r('areia: 500 pix', 500, { pagamento: 'pix' }), r('ferro 8mm x 12m 540', 540), r('obs: pago ontem 300 de areia', 300, { pago: true, data: '2026-10-27' }),
+  r('sinal -> 2000', 2000), r('pedreiro = 450', 450), r('frete=90', 90), r('ted 5.000 p/ ulisses', 5000, { pagamento: 'transferencia' }),
+  r('pix 300 p/ cassol ref nf 4455', 300, { pagamento: 'pix' }), r('paguei 2x de 500', null), r('R$ 85,00/m² piso', null),
+  r('cimento 38/saco x 20', null), r('cimento 20 sc 38 cada = 760', 760), r('total: 760', 760), r('tot 760 (20 sc)', 760),
+  r('pagamento ulisses 15/10 -> 1.500,00', 1500, { data: '2026-10-15' }), r('#obra12 cimento 300', 300), r('laje 3º pav 12.000', 12000),
+  r('reboco 120 m² a 25 = 3.000', 3000), r('piso 60m2 x R$ 45 = R$ 2.700', 2700), r('cimento 38 x 20 = 760', 760),
+  r('frete 90 / pedreiro 450', null), r('frete: 90; pedreiro: 450', null), r('total do dia: 540 (frete 90 + pedreiro 450)', 540),
+  r('+ 300 areia', 300), r('-300 areia', null), r('areia 500,00', 500), r('AREIA R$500', 500), r('areia R$500.', 500), r('areia (500)', 500),
+  r('areia [500]', 500), r('areia 500,-', 500), r('mil e quinhentos reais = 1500', 1500),
+  r('orçamento 3 fornecedores: 500, 520, 480 -> fechou em 480', null), r('sinal 30% = 900', null),
+];
