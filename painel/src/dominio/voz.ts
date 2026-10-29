@@ -221,14 +221,14 @@ const UNIDADES = new Set([
   'pessoa', 'cabeca', 'folha', 'chapa', 'vara', 'par', 'pares', 'comodo', 'comodos', 'ponto', 'tomada', 'lampada', 'pacote', 'pacotes', 'saca', 'sacas', 'balde', 'baldes', 'tambor', 'tambores', 'carrada', 'carradas', 'carga',
   'cargas', 'carreta', 'carretas', 'fardo', 'fardos', 'm²', 'm³', 'parcela', 'etapa', 'fase', 'viagem', 'viagens', 'pessoas', 'homens', 'funcionarios', 'operarios', 'pedreiros', 'serventes',
   'ajudantes', 'quartos', 'andares', 'casas', 'lotes', 'pontos', 'tomadas', 'lampadas', 'milimetro', 'milimetros', 'mm', 'centimetro', 'centimetros', 'cm', 'polegada', 'polegadas', 'banheiros', 'andar', 'volt', 'volts', 'v', 'ampere', 'amperes', 'watts', 'w', 'hz', 'btu', 'btus', 'kva', 'kw', 'kwh', 'demao', 'demaos',
-  'diaria', 'diarias', 'km', 'sc', 'un', 'pc', 'pcs', 'cx', 'mt', 'mts', 'ton', 'tn', 'lt', 'lts', 'gl', 'pav', 'pavimento', 'pavimentos',
+  'diaria', 'diarias', 'meses', 'anos', 'semestre', 'semestres', 'trimestre', 'trimestres', 'quinzena', 'quinzenas', 'vias', 'paginas', 'copias', 'assinaturas', 'km', 'sc', 'un', 'pc', 'pcs', 'cx', 'mt', 'mts', 'ton', 'tn', 'lt', 'lts', 'gl', 'pav', 'pavimento', 'pavimentos',
 ]);
 const MOEDA = new Set(['reais', 'real', 'conto', 'contos', 'pila', 'pilas', 'pratas', 'mangos']);
 // "lote 39", "casa 12": o número é da obra, não é valor.
 const NUMERADORES = new Set(['lote', 'casa', 'lt', 'quadra', 'qd']);
 const OBRA_NUM = new Set([...NUMERADORES, 'obra', 'numero', 'n']);
 // Número que identifica documento ("nota fiscal 1234", "pedido 4521"), não dinheiro.
-const DOCUMENTOS = new Set(['recibo', 'fatura', 'duplicata', 'comprovante', 'cupom', 'romaneio', 'nota', 'nf', 'pedido', 'orcamento', 'ordem', 'cheque', 'protocolo', 'contrato', 'processo',
+const DOCUMENTOS = new Set(['cei', 'cno', 'recibo', 'fatura', 'duplicata', 'comprovante', 'cupom', 'romaneio', 'nota', 'nf', 'pedido', 'orcamento', 'ordem', 'cheque', 'protocolo', 'contrato', 'processo',
   'matricula', 'cpf', 'cnpj', 'telefone', 'fone', 'cep', 'fiscal', 'apto', 'apartamento',
   'sala', 'andar', 'ano', 'parcela', 'agencia', 'conta', 'numero', 'nfe', 'nº', 'n°', 'n', 'codigo', 'cod', 'ref', 'referencia', 'item', 'modelo', 'serie']);
 // Estes só são documento quando o número tem 4 dígitos ou mais ("RRT 130" ainda pode ser o valor).
@@ -604,6 +604,7 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
     // "pedreiro 450 faz 450 dias": ninguém sabe de que dia
     if ((p === 'faz' || p === 'ha') && (inteiro(ps[i + 1]) ?? 0) > 365 && TEMPO.has(ps[i + 2] ?? '')) diasAbsurdos = true;
     if (TELEFONE.has(p)) for (let k = i + 1; k <= i + 4 && ehDigitos(ps[k]); k++) ruido.add(k);
+    if (p === 'parcela' && inteiro(ps[i + 1]) !== null && ps[i + 2] === 'de' && inteiro(ps[i + 3]) !== null) { ruido.add(i + 1); ruido.add(i + 3); } // "parcela 3 de 10"
     if (p === 'x') for (const k of [i - 1, i + 1]) if (começaNumero(ps[k])) ruido.add(k); // "38 x 20 = 760"
     const a = numeroEscrito(p);
     const c = numeroEscrito(ps[i + 2] ?? '');
@@ -658,7 +659,7 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
   aberto.forEach((n, k) => {
     const antes = aberto[k - 1];
     if (antes && antes.fim === n.inicio && inteiro(ps[n.inicio]) !== null && inteiro(ps[antes.fim - 1]) !== null &&
-      antes.valor !== n.valor) { // gagueira ("300 300") não é número colado
+      antes.valor !== n.valor && !/^(19|20)\d\d$/.test(ps[antes.inicio])) { // gagueira ("300 300") e ano ("IPTU 2026 1.340") não são número colado
       colados.add(n); colados.add(antes);
     }
   });
@@ -811,7 +812,7 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
     // "casa 12 mil reais", "dia 5 mil reais": o 12 era da obra ou o valor era 12 mil?
     const usadoColadoAMil = ps.some((p, i) => usadas.has(i) && !usadas.has(i + 1) && (ehMilhar(ps[i + 1]) || ehMilhao(ps[i + 1])) && numeroEscrito(p) !== null);
     const dataComTraco = ps.some((p) => /^\d{1,2}-\d{1,2}$/.test(p));
-    if (negou || usadoColadoAMil || dataComTraco || diasAbsurdos || FRASES_SEM_VALOR.test(junto) ||
+    if (negou || usadoColadoAMil || dataComTraco || diasAbsurdos || (ps.includes('financiamento') && ps.some((p) => p === 'meses' || p === 'anos')) || FRASES_SEM_VALOR.test(junto) ||
       ps.some((p) => (CALCULO.has(p) && !(p === 'cada' && (cadaConsumido || pista(e)))) || RAIZ_CALCULO.test(p))) anula();
     // "meio dia de servente 150", "meia hora": metade de alguma coisa que não é "dois e meio"/"meio milhão"
     const lidos = numerosDe(ps);

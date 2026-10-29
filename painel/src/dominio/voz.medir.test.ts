@@ -13,6 +13,7 @@ import { CASOS_ROD43 } from './voz.rodadas9';
 import { CASOS_ROD46 } from './voz.rodadas10';
 import { CASOS_ROD47 } from './voz.rodadas11';
 import { CASOS_ROD48 } from './voz.rodadas12';
+import { CASOS_ROD49 } from './voz.rodadas13';
 import { gerarAdjacentes, gerarCego, gerarServicos } from './voz.fuzz';
 import { gerarCegoB } from './voz.fuzzB';
 
@@ -59,7 +60,7 @@ const fuzz = [1, 2, 3].flatMap((k) => [...gerarAdjacentes(BASE + 5000 + k, 700),
 const caos = [1, 2, 3, 4, 5].flatMap((k) => gerarCaos(BASE + 2000 + k, 600));
 
 describe('corpus da voz', () => {
-  const TODOS_FIXOS = [...CASOS_FIXOS, ...CASOS_ROD3, ...CASOS_ROD4, ...CASOS_ROD5, ...CASOS_ROD7, ...CASOS_ROD8, ...CASOS_ROD9, ...CASOS_ROD10, ...CASOS_ROD12, ...CASOS_ROD13, ...CASOS_ROD14, ...CASOS_ROD15, ...CASOS_ROD16, ...CASOS_ROD17, ...CASOS_ROD20, ...CASOS_ROD23, ...CASOS_ROD24, ...CASOS_ROD25, ...CASOS_ROD26, ...CASOS_ROD27, ...CASOS_ROD28, ...CASOS_ROD29, ...CASOS_ROD30, ...CASOS_ROD31, ...CASOS_ROD32, ...CASOS_ROD35, ...CASOS_ROD36, ...CASOS_ROD37, ...CASOS_ROD40, ...CASOS_ROD41, ...CASOS_ROD42, ...CASOS_ROD43, ...CASOS_ROD46, ...CASOS_ROD47, ...CASOS_ROD48];
+  const TODOS_FIXOS = [...CASOS_FIXOS, ...CASOS_ROD3, ...CASOS_ROD4, ...CASOS_ROD5, ...CASOS_ROD7, ...CASOS_ROD8, ...CASOS_ROD9, ...CASOS_ROD10, ...CASOS_ROD12, ...CASOS_ROD13, ...CASOS_ROD14, ...CASOS_ROD15, ...CASOS_ROD16, ...CASOS_ROD17, ...CASOS_ROD20, ...CASOS_ROD23, ...CASOS_ROD24, ...CASOS_ROD25, ...CASOS_ROD26, ...CASOS_ROD27, ...CASOS_ROD28, ...CASOS_ROD29, ...CASOS_ROD30, ...CASOS_ROD31, ...CASOS_ROD32, ...CASOS_ROD35, ...CASOS_ROD36, ...CASOS_ROD37, ...CASOS_ROD40, ...CASOS_ROD41, ...CASOS_ROD42, ...CASOS_ROD43, ...CASOS_ROD46, ...CASOS_ROD47, ...CASOS_ROD48, ...CASOS_ROD49];
   const fixos = medir(TODOS_FIXOS.filter((c) => !c.pendente));
   const ger = medir(gerados);
   const cao = medir(caos);
