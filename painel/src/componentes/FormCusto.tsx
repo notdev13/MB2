@@ -37,7 +37,7 @@ export function FormCusto({ custo, obraId, aoFechar }: { custo?: Custo; obraId?:
   const [tentou, setTentou] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [salvou, setSalvou] = useState(false);
-  const [tremer, setTremer] = useState(0);
+  const [tremer, setTremer] = useState(false);
   const [entendido, setEntendido] = useState<{ preenchidos: string[]; faltou: string[] } | null>(null);
 
   // Preenche o formulário com o que foi falado; o que não foi entendido fica como estava.
@@ -68,7 +68,7 @@ export function FormCusto({ custo, obraId, aoFechar }: { custo?: Custo; obraId?:
   async function salvar(outro: boolean) {
     setTentou(true);
     if (erroValor || erroObra || !data || salvando) {
-      if (!salvando) setTremer((n) => n + 1);
+      if (!salvando && erroValor) setTremer(true);
       return;
     }
     setSalvando(true);
@@ -129,7 +129,7 @@ export function FormCusto({ custo, obraId, aoFechar }: { custo?: Custo; obraId?:
         )}
         <label className="campo valor">
           <span>Valor (R$)</span>
-          <input key={tremer} className={tremer > 0 && erroValor ? 'tremer' : undefined} inputMode="decimal" placeholder="0,00"
+          <input className={tremer ? 'tremer' : undefined} onAnimationEnd={() => setTremer(false)} inputMode="decimal" placeholder="0,00"
             value={valor} onChange={(e) => setValor(e.target.value)} autoFocus={!custo} aria-invalid={tentou && !!erroValor} />
           {tentou && erroValor && <span className="erro">{erroValor}</span>}
         </label>

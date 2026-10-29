@@ -107,4 +107,19 @@ describe('impactoNoOrcamento', () => {
     expect(Number.isInteger(r.excedente)).toBe(true);
     expect(impactoNoOrcamento(o, [custo('a', 95_000_00, '2026-10-01')], 5_000_00)!.estoura).toBe(false);
   });
+
+  it('troca de obra na edição não conta o lançamento editado na obra nova', () => {
+    const editado = custo('b', 10_000_00, '2026-10-01', { id: 'x' });
+    const r = impactoNoOrcamento(o, [editado, custo('a', 20_000_00, '2026-10-02')], 5_000_00, 'x')!;
+    expect(r.gastoAntes).toBe(20_000_00);
+  });
+
+  it('arredonda só a porcentagem mostrada e passa de 100% sem perder precisão', () => {
+    const r = impactoNoOrcamento(o, [custo('a', 99_000_00, '2026-10-01')], 600_00)!;
+    expect(r.percDepois).toBe(100);
+    expect(r.estoura).toBe(false);
+    const e = impactoNoOrcamento(o, [custo('a', 99_000_00, '2026-10-01')], 51_000_00)!;
+    expect(e.usoDepois).toBe(1.5);
+    expect(e.estoura).toBe(true);
+  });
 });
