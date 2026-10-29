@@ -279,28 +279,42 @@ export function juntarTexto(base: string, falado: string): string {
 
 const normalizar = (p: string) => p.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
+// Palavras que só dizem valor ou unidade ("360", "dois", "mil", "e", "reais", "R$"). Uma repetição feita
+// só delas nunca é descartada: dois valores iguais ("360 de cimento, 360 de areia") são fala legítima.
+const PALAVRAS_DE_VALOR = new Set([
+  'um', 'uma', 'dois', 'duas', 'tres', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove', 'dez', 'onze', 'doze',
+  'treze', 'catorze', 'quatorze', 'quinze', 'dezesseis', 'dezessete', 'dezoito', 'dezenove', 'vinte', 'trinta',
+  'quarenta', 'cinquenta', 'sessenta', 'setenta', 'oitenta', 'noventa', 'cem', 'cento', 'duzentos', 'trezentos',
+  'quatrocentos', 'quinhentos', 'seiscentos', 'setecentos', 'oitocentos', 'novecentos', 'mil', 'milhao', 'milhoes',
+  'meio', 'meia', 'e', 'real', 'reais', 'centavo', 'centavos', 'r', 'rs', 'k',
+]);
+const soValor = (tokens: string[]) => tokens.every((t) => /^\d+$/.test(t) || PALAVRAS_DE_VALOR.has(t));
+
+/** Menor repetição que ainda é tratada como repetição do Safari (menos que isso, mantém as duas). */
+export const MIN_PALAVRAS_REPETIDAS = 3;
+
 /**
  * Junta o que já foi entendido com o trecho de uma nova instância do reconhecedor. O Safari às vezes
- * repete o final do trecho anterior ao reiniciar: o começo do trecho novo que repete o final do
- * anterior (ignorando maiúsculas, acentos e pontuação) é descartado. Vale também para números: na
- * dúvida, não duplica. Repetições dentro de uma mesma instância não passam por aqui.
+ * repete o final do trecho anterior ao reiniciar. Como apagar fala real pode mudar um valor em dinheiro,
+ * a regra é conservadora: na dúvida, prefere duplicar (a pessoa vê o texto e confere).
+ *  - só descarta repetição de 3 ou mais palavras (ignorando maiúsculas, acentos e pontuação);
+ *  - nunca descarta repetição feita só de número/valor/unidade;
+ *  - repetição de 1 ou 2 palavras fica como veio.
+ * Repetições dentro de uma mesma instância não passam por aqui.
  */
 export function unirSemRepetir(anterior: string, novo: string): string {
   const a = anterior.trim().split(/\s+/).filter(Boolean);
   const n = novo.trim().split(/\s+/).filter(Boolean);
   const na = a.map(normalizar);
   const nn = n.map(normalizar);
+  const repete = (x: string[], y: string[]) => x.length >= MIN_PALAVRAS_REPETIDAS && x.every((p, j) => p !== '' && p === y[j]) && !soValor(x);
   // O trecho novo já contém tudo o que havia (o Safari reescreveu com mais contexto): vale o novo.
-  // Uma palavra sozinha só conta se for número; "de" ou "a" soltos poderiam ser fala nova.
-  if (na.length > 0 && na.length <= nn.length && (na.length >= 2 || /\d/.test(na[0]))) {
-    for (let i = 0; i + na.length <= nn.length; i++) {
-      if (na.every((p, j) => p !== '' && p === nn[i + j])) return [...n.slice(0, i), ...a, ...n.slice(i + na.length)].join(' ');
-    }
+  for (let i = 0; i + na.length <= nn.length; i++) {
+    if (repete(na, nn.slice(i))) return [...n.slice(0, i), ...a, ...n.slice(i + na.length)].join(' ');
   }
-  for (let k = Math.min(na.length, nn.length); k > 0; k--) {
-    let igual = true;
-    for (let i = 0; i < k && igual; i++) igual = na[na.length - k + i] === nn[i] && nn[i] !== '';
-    if (igual) return [...a, ...n.slice(k)].join(' ');
+  // O começo do trecho novo repete o final do anterior.
+  for (let k = Math.min(na.length, nn.length); k >= MIN_PALAVRAS_REPETIDAS; k--) {
+    if (repete(nn.slice(0, k), na.slice(na.length - k))) return [...a, ...n.slice(k)].join(' ');
   }
   return [...a, ...n].join(' ');
 }

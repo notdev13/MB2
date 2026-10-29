@@ -15,6 +15,7 @@ export interface EstadoTexto {
   base: string;                 // texto que existia quando a escuta começou (ou o último digitado)
   ultimo: string | null;        // último valor escrito por este código; null = a pessoa editou
   entenderNoFim: boolean;       // ao terminar a escuta normalmente, preenche o formulário
+  entendido: boolean;           // o texto atual já foi passado ao formulário
 }
 
 export type Acao =
@@ -25,17 +26,18 @@ export type Acao =
   | { t: 'focar'; ativa: boolean }
   | { t: 'enter'; ativa: boolean }
   | { t: 'preencher' }
-  | { t: 'limpar' };
+  | { t: 'limpar'; ativa: boolean }
+  | { t: 'novo'; ativa: boolean };   // o formulário começou outro lançamento ("Salvar e lançar outro")
 
 export interface Transicao { estado: EstadoTexto; parar: boolean; entender: string | null }
 
-export const textoInicial = (): EstadoTexto => ({ texto: '', base: '', ultimo: '', entenderNoFim: true });
+export const textoInicial = (): EstadoTexto => ({ texto: '', base: '', ultimo: '', entenderNoFim: true, entendido: false });
 
 export function transicao(e: EstadoTexto, a: Acao): Transicao {
   const igual = (estado: EstadoTexto, parar = false, entender: string | null = null): Transicao => ({ estado, parar, entender });
   switch (a.t) {
     case 'ouvir':
-      return igual({ texto: e.texto, base: e.texto.trim(), ultimo: e.texto, entenderNoFim: true });
+      return igual({ texto: e.texto, base: e.texto.trim(), ultimo: e.texto, entenderNoFim: true, entendido: e.entendido });
     case 'vivo': {
       if (e.ultimo === null || e.texto !== e.ultimo) return igual(e);
       const texto = juntarTexto(e.base, a.falado);
@@ -44,22 +46,25 @@ export function transicao(e: EstadoTexto, a: Acao): Transicao {
     case 'fim': {
       if (e.ultimo === null || e.texto !== e.ultimo || !a.falado.trim()) return igual(e);
       const texto = juntarTexto(e.base, a.falado);
-      return igual({ ...e, texto, ultimo: texto }, false, e.entenderNoFim ? texto : null);
+      return igual({ ...e, texto, ultimo: texto, entendido: e.entendido || e.entenderNoFim }, false, e.entenderNoFim ? texto : null);
     }
     case 'digitar':
-      return igual({ texto: a.valor, base: a.valor.trim(), ultimo: null, entenderNoFim: false }, a.ativa);
+      return igual({ texto: a.valor, base: a.valor.trim(), ultimo: null, entenderNoFim: false, entendido: e.entendido }, a.ativa);
     case 'focar':
       return a.ativa ? igual({ ...e, entenderNoFim: false }, true) : igual(e);
     case 'enter': {
       const t = e.texto.trim();
       if (!t) return igual(e);
       // Durante a escuta: pára e entende o que está na tela; o que chegar depois não muda mais nada.
-      return a.ativa ? igual({ ...e, ultimo: null, entenderNoFim: false }, true, t) : igual(e, false, t);
+      return a.ativa ? igual({ ...e, ultimo: null, entenderNoFim: false, entendido: true }, true, t) : igual({ ...e, entendido: true }, false, t);
     }
     case 'preencher':
-      return igual(e, false, e.texto.trim() || null);
+      return e.texto.trim() ? igual({ ...e, entendido: true }, false, e.texto.trim()) : igual(e);
     case 'limpar':
-      return igual({ texto: '', base: '', ultimo: null, entenderNoFim: false });
+      return igual({ texto: '', base: '', ultimo: null, entenderNoFim: false, entendido: false }, a.ativa);
+    case 'novo':
+      // Só some o texto que já virou lançamento; um rascunho que a pessoa ainda não usou fica.
+      return e.entendido ? igual({ texto: '', base: '', ultimo: null, entenderNoFim: false, entendido: false }, a.ativa) : igual(e);
   }
 }
 
@@ -73,6 +78,8 @@ export interface ControleFalar {
   enter(): void;
   preencher(): void;
   limpar(): void;
+  /** O formulário começou outro lançamento: esquece o texto que já foi usado. */
+  novoLancamento(): void;
   destruir(): void;
 }
 
@@ -142,7 +149,14 @@ export function criarControleFalar(o: OpcoesControle): ControleFalar {
       if (!vivo) return;
       erro = null;
       if (!ativa()) estado = 'pronto';
-      aplicar({ t: 'limpar' });
+      aplicar({ t: 'limpar', ativa: ativa() });
+    },
+    novoLancamento() {
+      if (!vivo) return;
+      // O aviso de erro de antes não vale para o próximo lançamento; o texto só some se já foi usado.
+      erro = null;
+      if (estado === 'erro') estado = 'pronto';
+      aplicar({ t: 'novo', ativa: ativa() && e.entendido });
     },
     destruir() {
       vivo = false;

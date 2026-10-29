@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useDados } from '../dados/contexto';
 import { Icone } from './Icone';
 import { construtorDoNavegador, criarControleFalar, type ControleFalar, type Visao } from './Falar.logica';
 import type { EstadoVoz } from './sessaoVoz';
@@ -23,6 +24,16 @@ export function Falar({ aoEntender }: { aoEntender: (texto: string) => void }) {
   const aoEntenderRef = useRef(aoEntender);
   aoEntenderRef.current = aoEntender;
   const temVoz = construtorDoNavegador() !== null;
+
+  // "Salvar e lançar outro" mantém este campo na tela: quando entra um custo novo, o texto que já
+  // virou lançamento é esquecido, para o próximo não herdar (nem acrescentar a) a fala antiga.
+  // (Sem mexer no FormCusto: o campo observa a lista de custos.)
+  const { custos } = useDados();
+  const totalCustos = useRef(custos.length);
+  useEffect(() => {
+    if (custos.length > totalCustos.current) ctl.current?.novoLancamento();
+    totalCustos.current = custos.length;
+  }, [custos.length]);
 
   useEffect(() => {
     const c = criarControleFalar({
