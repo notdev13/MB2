@@ -187,6 +187,9 @@ const CALCULO = new Set(['cada', 'metade', 'dobro', 'triplo', 'terco', 'desconto
   // quem fala não tem certeza, ou é receita/empréstimo
   'acho', 'talvez', 'creio', 'engano', 'lembro', 'provavelmente', 'possivelmente', 'venda', 'vendas', 'vendi', 'vendemos',
   'lucro', 'faturamento', 'receita', 'cliente', 'clientes',
+  // ainda não aconteceu, ou é pergunta/preço de tabela
+  'comprar', 'gastar', 'orcar', 'contratar', 'quanto', 'quantos', 'qual', 'quais', 'quando', 'queria', 'quero', 'pretendo',
+  'pretendemos', 'planejo', 'custa', 'custam', 'custaria', 'custara', 'seria', 'sera', 'deve',
   // comandos de edição: o interpretador só entende lançamento novo
   'apaga', 'apagar', 'exclui', 'excluir', 'remove', 'remover', 'cancela', 'cancelar', 'desfaz', 'desfazer', 'deleta',
   'deletar', 'corrige', 'corrigir', 'altera', 'alterar', 'muda', 'mudar']); // recebido = receita, não custo
@@ -302,10 +305,10 @@ function acharData(ps: string[], usadas: Set<number>, hoje: string, info: { semM
     // "segunda parcela", "quarta etapa" não são dias da semana
     // "de segunda a sexta": mais de um dia da semana, sem como saber qual é a data
     const outroDia = ps.some((q, k) => k !== i && SEMANA[q.replace(/-?feira$/, '')] !== undefined);
-    if (semana !== undefined && outroDia && !/^(parcela|parcelas|etapa|medicao|fase|vez|parte|rodada|opcao)$/.test(ps[i + 1] ?? '') || (ps[i + 1] === 'via' && /^(do|da|de)$/.test(ps[i + 2] ?? ''))) {
+    if (semana !== undefined && outroDia && !/^(parcela|parcelas|etapa|medicao|fase|vez|parte|rodada|opcao|quinzena)$/.test(ps[i + 1] ?? '') || (ps[i + 1] === 'via' && /^(do|da|de)$/.test(ps[i + 2] ?? ''))) {
       usadas.add(i); return null;
     }
-    if (semana !== undefined && !/^(parcela|parcelas|etapa|medicao|fase|vez|parte|rodada|opcao)$/.test(ps[i + 1] ?? '') || (ps[i + 1] === 'via' && /^(do|da|de)$/.test(ps[i + 2] ?? ''))) {
+    if (semana !== undefined && !/^(parcela|parcelas|etapa|medicao|fase|vez|parte|rodada|opcao|quinzena)$/.test(ps[i + 1] ?? '') || (ps[i + 1] === 'via' && /^(do|da|de)$/.test(ps[i + 2] ?? ''))) {
       usadas.add(i);
       if (ps[i + 1] === 'feira') usadas.add(i + 1);
       for (const k of [i + 1, i + 2]) if (ps[k] === 'passada' || ps[k] === 'passado') usadas.add(k);
@@ -609,7 +612,12 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
   // "3 dias de servente 150": sem "reais" nem "por", o 150 pode ser a diária, não o total.
   const tempoSolto = numerosDe(ps).some((n) => TEMPO.has(ps[n.fim] ?? '') && !usadas.has(n.inicio) && !(n.valor === 1 && ps[n.fim] === 'diaria'));
   if (escolhido && tempoSolto && !escolhido.moeda && !PISTAS.has(ps[escolhido.inicio - 1] ?? '')) escolhido = { ...escolhido, centavos: null };
-  if (escolhido && ps.some((p) => CALCULO.has(p) || RAIZ_CALCULO.test(p))) escolhido = { ...escolhido, centavos: null };
+  // "não foi 300", "não era 300": a pessoa está dizendo que esse NÃO é o valor
+  const negou = ps.some((p, k) => p === 'nao' && /^(foi|era|e|sao|eram|ficou|fica|vai|sera)$/.test(ps[k + 1] ?? '') &&
+    !/^(pago|paga|pagos|pagas)$/.test(ps[k + 2] ?? ''));
+  // "preciso comprar" é intenção; "preciso pagar" é conta a pagar (vale como lançamento)
+  const precisa = ps.some((p, k) => /^(preciso|precisamos|precisa)$/.test(p) && ps[k + 1] !== 'pagar');
+  if (escolhido && (negou || precisa || ps.some((p) => CALCULO.has(p) || RAIZ_CALCULO.test(p)))) escolhido = { ...escolhido, centavos: null };
   // "meio dia de servente 150", "meia hora": metade de alguma coisa que não é "dois e meio"/"meio milhão"
   const lidos = numerosDe(ps);
   if (escolhido && ps.some((p, i) => ehMeio(p) && !lidos.some((n) => i >= n.inicio && i < n.fim))) escolhido = { ...escolhido, centavos: null };

@@ -688,6 +688,32 @@ export function gerarFamilias(semente: number, quantidade: number): Caso[] {
   return casos;
 }
 
+// Rodada 20: intenção (ainda não é custo), pergunta, negação, aproximação coloquial e quinzena.
+export const CASOS_ROD20: Caso[] = [
+  { tipo: 'intencao', frase: 'vou comprar 300 de cimento', esperado: { valor: null } },
+  { tipo: 'intencao', frase: 'preciso comprar 300 de cimento', esperado: { valor: null } },
+  { tipo: 'intencao', frase: 'pretendo gastar 3 mil de tinta', esperado: { valor: null } },
+  { tipo: 'intencao', frase: 'tenho que comprar 300 de cimento', esperado: { valor: null } },
+  { tipo: 'intencao', frase: 'queria orçar 300 de cimento', esperado: { valor: null } },
+  { tipo: 'pergunta', frase: 'quanto custa 300 de cimento', esperado: { valor: null } },
+  { tipo: 'pergunta', frase: 'qual foi o de 300 reais', esperado: { valor: null } },
+  { tipo: 'negacao', frase: 'não foi 300 de cimento', esperado: { valor: null } },
+  { tipo: 'negacao', frase: 'não era 300 reais', esperado: { valor: null } },
+  { tipo: 'negacao', frase: 'não paguei 300 de cimento', esperado: { valor: 300_00, pago: false } },
+  { tipo: 'coloquial', frase: 'cento e poucos reais de cimento', esperado: { valor: null } },
+  { tipo: 'coloquial', frase: 'vinte e poucos reais de cimento', esperado: { valor: null } },
+  { tipo: 'coloquial', frase: 'quase mil reais de cimento', esperado: { valor: null } },
+  { tipo: 'coloquial', frase: 'uns mil reais de cimento', esperado: { valor: null } },
+  { tipo: 'coloquial', frase: 'dois milhares de cimento', esperado: { valor: null } },
+  { tipo: 'coloquial', frase: 'meia dúzia de torneiras 300', esperado: { valor: null } },
+  { tipo: 'coloquial', frase: 'duas dúzias de tijolo 300', esperado: { valor: null } },
+  { tipo: 'medida', frase: 'R$ 90/m² de piso', esperado: { valor: null } },
+  { tipo: 'medida', frase: 'piso a R$ 90 o metro quadrado', esperado: { valor: null } },
+  { tipo: 'data', frase: 'segunda quinzena 300 de areia', esperado: { valor: 300_00, data: null } },
+  { tipo: 'data', frase: 'mês que vem pagar 300 de areia', esperado: { valor: 300_00, data: null, pago: false } },
+  { tipo: 'data', frase: 'sábado e domingo 300 de areia', esperado: { valor: 300_00, data: null } },
+];
+
 // ---- gerador de frases ----
 
 function aleatorio(semente: number) {
