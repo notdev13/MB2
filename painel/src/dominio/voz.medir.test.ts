@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { CASOS_FIXOS, CASOS_ROD3, CASOS_ROD4, CASOS_ROD5, CASOS_ROD7, CASOS_ROD8, CASOS_ROD9, CASOS_ROD10, CASOS_ROD12, CASOS_ROD13, CASOS_ROD14, CASOS_ROD15, CASOS_ROD16, CASOS_ROD17, CASOS_ROD20, CASOS_ROD23, CASOS_ROD24, CASOS_ROD25, CONTEXTO, gerarCaos, gerarCasos, gerarDuplos, gerarFamilias, type Caso } from './voz.corpus';
 import { interpretarFala } from './voz';
-import { CASOS_ROD26, CASOS_ROD27 } from './voz.rodadas';
+import { CASOS_ROD26, CASOS_ROD27, CASOS_ROD28 } from './voz.rodadas';
+import { CASOS_ROD29 } from './voz.rodadas2';
 import { gerarAdjacentes, gerarCego, gerarServicos } from './voz.fuzz';
 
 // Mede o interpretador de voz contra o corpus (fixo + gerado). `npm run voz:medir` imprime a taxa
@@ -47,7 +48,7 @@ const fuzz = [1, 2, 3].flatMap((k) => [...gerarAdjacentes(BASE + 5000 + k, 700),
 const caos = [1, 2, 3, 4, 5].flatMap((k) => gerarCaos(BASE + 2000 + k, 600));
 
 describe('corpus da voz', () => {
-  const TODOS_FIXOS = [...CASOS_FIXOS, ...CASOS_ROD3, ...CASOS_ROD4, ...CASOS_ROD5, ...CASOS_ROD7, ...CASOS_ROD8, ...CASOS_ROD9, ...CASOS_ROD10, ...CASOS_ROD12, ...CASOS_ROD13, ...CASOS_ROD14, ...CASOS_ROD15, ...CASOS_ROD16, ...CASOS_ROD17, ...CASOS_ROD20, ...CASOS_ROD23, ...CASOS_ROD24, ...CASOS_ROD25, ...CASOS_ROD26, ...CASOS_ROD27];
+  const TODOS_FIXOS = [...CASOS_FIXOS, ...CASOS_ROD3, ...CASOS_ROD4, ...CASOS_ROD5, ...CASOS_ROD7, ...CASOS_ROD8, ...CASOS_ROD9, ...CASOS_ROD10, ...CASOS_ROD12, ...CASOS_ROD13, ...CASOS_ROD14, ...CASOS_ROD15, ...CASOS_ROD16, ...CASOS_ROD17, ...CASOS_ROD20, ...CASOS_ROD23, ...CASOS_ROD24, ...CASOS_ROD25, ...CASOS_ROD26, ...CASOS_ROD27, ...CASOS_ROD28, ...CASOS_ROD29];
   const fixos = medir(TODOS_FIXOS.filter((c) => !c.pendente));
   const ger = medir(gerados);
   const cao = medir(caos);

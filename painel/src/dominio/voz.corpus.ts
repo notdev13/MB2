@@ -513,8 +513,8 @@ export const CASOS_ROD13: Caso[] = [
 export const CASOS_ROD14: Caso[] = [
   { tipo: 'dois-valores', frase: 'paguei o Ulisses, 1.500, e o Adriano, 1.200', esperado: { valor: null } },
   { tipo: 'dois-valores', frase: 'ulisses 1500 adriano 1200', esperado: { valor: null } },
-  { tipo: 'dois-valores', frase: 'total de 2.700 sendo 1.500 pro Ulisses', esperado: { valor: null } },
-  { tipo: 'dois-valores', frase: 'foi 300 de cimento e 200 de areia, total 500', esperado: { valor: null } },
+  { tipo: 'dois-valores', frase: 'total de 2.700 sendo 1.500 pro Ulisses', esperado: { valor: 2700_00 } },
+  { tipo: 'dois-valores', frase: 'foi 300 de cimento e 200 de areia, total 500', esperado: { valor: 500_00 } },
   { tipo: 'dois-valores', frase: 'paguei 1.000 de entrada e o restante 2.000 em 4 vezes', esperado: { valor: null } },
   { tipo: 'total', frase: 'dois mil e setecentos no total', esperado: { valor: 2700_00 } },
   { tipo: 'variacao', frase: 'o cimento aumentou 200 reais', esperado: { valor: null } },
@@ -966,7 +966,8 @@ export function gerarCasos(semente: number, quantidade: number, nivel: number): 
         dataTxt = m === null ? 'dia primeiro' : `primeiro de ${MESES[m]}`; if (m === null) dataRelativa = true;
         esperado.data = `2026-${m === null ? '10' : doisDig(m + 1)}-01`;
       } else if (forma === 'barra') {
-        const dia = 1 + Math.floor(r() * 27); const m = 1 + Math.floor(r() * 9);
+        let dia = 1 + Math.floor(r() * 27); const m = 1 + Math.floor(r() * 9);
+        if ([2, 4, 8].includes(m) && dia < m) dia = 10 + dia; // 3/4 e 1/2 parecem fração, não data
         dataTxt = `${dia}/${doisDig(m)}${r() < 0.3 ? '/2026' : ''}`; esperado.data = `2026-${doisDig(m)}-${doisDig(dia)}`;
       } else {
         const dia = 1 + Math.floor(r() * 27); const m = Math.floor(r() * 9);
