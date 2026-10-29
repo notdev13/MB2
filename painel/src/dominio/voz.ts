@@ -290,6 +290,8 @@ const FRASES_SEM_VALOR = new RegExp(' (' + [
   'vou (conferir|confirmar|ver|checar|pensar)', 'a (conferir|confirmar|combinar|definir)', 'se (der|puder|conseguir|fechar|rolar|precisar|tiver|a gente)',
   'pode (ser|custar|ficar|sair)', 'vai (custar|sair|ficar)', 'deve (custar|ficar|sair)', 'custe',
   ENTRE_VERBOS + ' ((o|a) )?(valor|preco|total)', ENTRE_VERBOS + '( [a-z]+){1,3} (para|pra) ' + COMECO_DE_NUMERO,
+  // recado para ligar para alguém: "ligar pro fornecedor 48 99912 3456 areia 500"
+  '(ligar|ligue|liga) (pro|pra|para|no|na|ao|a) [a-z]+',
   // pedido de dinheiro, oferta, salário e valor que falta: nada disso é um pagamento já feito
   '(me |nos )?(manda|mande|envia|envie|passa|passe|deposita|deposite|transfere|transfira|adianta|adiante|empresta|empreste|libera|libere) (me |nos |uns |de |mais )?' + COMECO_DE_NUMERO,
   '(pode|podia|poderia|consegue|conseguia) (me |nos )?(adiantar|mandar|enviar|depositar|transferir|emprestar|passar|liberar)',
@@ -312,7 +314,7 @@ const RUAS = new Set(['rua', 'avenida', 'av', 'travessa', 'alameda', 'rodovia', 
 const TELEFONE = new Set(['telefone', 'fone', 'tel', 'celular', 'whats', 'whatsapp', 'zap', 'contato']);
 // Número que descreve o lugar ou o material, não é valor: "banheiro 2", "cômodo 25", "cp 2", "brita 1".
 const TAMANHOS = new Set(['tamanho', 'tam', 'bota', 'botina', 'calca', 'camisa', 'camiseta', 'sapato', 'tenis', 'luva']); // numeração de roupa/calçado vai até 99
-const SPEC_PREFIX =new Set(['tamanho', 'tam', 'bota', 'botina', 'calca', 'camisa', 'camiseta', 'sapato', 'tenis', 'luva', 'dn', 'km', 'etapa', 'fase', 'parte', 'medicao', 'boletim', 'pav', 'pavimento', 'cp', 'classe', 'banheiro', 'quarto', 'suite', 'cozinha', 'comodo', 'bloco', 'galpao', 'torre', 'andar', 'fck']);
+const SPEC_PREFIX =new Set(['tamanho', 'tam', 'bota', 'botina', 'calca', 'camisa', 'camiseta', 'sapato', 'tenis', 'luva', 'dn', 'km', 'etapa', 'fase', 'parte', 'medicao', 'boletim', 'pav', 'pavimento', 'cp', 'classe', 'banheiro', 'quarto', 'suite', 'cozinha', 'comodo', 'bloco', 'galpao', 'torre', 'andar', 'fck', 'semana', 'mes', 'versao', 'revisao', 'folha', 'prancha', 'trimestre', 'semestre', 'quinzena', 'voltagem', 'tensao', 'cota', 'nivel']);
 // Medida técnica logo depois do número ("8 milímetros", "220 volts"): o número descreve o material, não é valor nem quantidade.
 const MEDIDA_TECNICA = new Set(['km', 'gb', 'mb', 'tb', 'mega', 'gbps', 'mbps', 'va', 'dbi', 'milimetro', 'milimetros', 'mm', 'centimetro', 'centimetros', 'cm', 'polegada', 'polegadas', 'volt', 'volts', 'v',
   'ampere', 'amperes', 'watts', 'w', 'hz', 'btu', 'btus', 'kva', 'kw', 'kwh', 'kwp', 'cv', 'hp', 'graus', 'rpm', 'bar', 'psi', 'ohms', 'mpa', 'kgf',
@@ -664,6 +666,11 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
     const serieB = /^\d{1,2}$/.test(ps[i + 2] ?? '') ? Number(ps[i + 2]) : null;
     if (serieA !== null && serieB !== null && ps[i + 1] === 'de' && serieA <= serieB && serieB <= 30 && !MOEDA.has(ps[i + 3] ?? '') && ps[i + 3] !== 'r$') { ruido.add(i); ruido.add(i + 2); }
     if (p === 'x') for (const k of [i - 1, i + 1]) if (começaNumero(ps[k])) ruido.add(k); // "38 x 20 = 760"
+    if (p === 'em' && /^20\d\d$/.test(ps[i + 1] ?? '') && !MOEDA.has(ps[i + 2] ?? '')) ruido.add(i + 1); // "em 2026": ano
+    // "escala 1 para 50", "talude 1 para 1": razão entre dois números
+    if (/^\d{1,4}$/.test(p) && ps[i + 1] === 'para' && /^\d{1,4}$/.test(ps[i + 2] ?? '') && !MOEDA.has(ps[i + 3] ?? '') && ps[i + 3] !== 'r$' && !VERBO_GASTO.test(ps[i - 1] ?? '')) { ruido.add(i); ruido.add(i + 2); }
+    // três grupos de dígitos juntos (48 99988 7766): telefone ou chave pix
+    if (/^\d{2}$/.test(p) && /^\d{4,5}$/.test(ps[i + 1] ?? '') && /^\d{4}$/.test(ps[i + 2] ?? '')) { ruido.add(i); ruido.add(i + 1); ruido.add(i + 2); }
     // Período de dias: "dias 5 e 6", "semana de 5 a 9", "de 5 a 7 pedreiro": os dois números são dias, não dinheiro.
     const periodo = (k: number) => /^\d{1,2}$/.test(ps[k] ?? '') && /^(e|a|as)$/.test(ps[k + 1] ?? '') && /^\d{1,2}$/.test(ps[k + 2] ?? '') &&
       Number(ps[k]) < Number(ps[k + 2]) && Number(ps[k + 2]) <= 31 && !MOEDA.has(ps[k + 3] ?? '') && !UNIDADES.has(ps[k + 3] ?? '') && ps[k + 3] !== 'r$' && !ehMilhar(ps[k + 3]);
@@ -736,7 +743,7 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
     if (prev === 'de' && daCategoria(ps[g.inicio - 2] ?? '') === 'Materiais (M)' && g.fim === g.inicio + 1 && começaNumero(ps[g.fim]) && !marcadoDe(g)) return 'ruido';
     // "lixa 220 8 reais": a numeração da lixa (grão) não é valor quando há outro valor com "reais"
     if (prev === 'lixa' && g.fim === g.inicio + 1 && (g.valor ?? 0) >= 40 && livres.some((o) => o.inicio > g.inicio && marcadoDe(o))) return 'ruido'; // grão de lixa começa em 40
-    if (n !== null && ((SPEC_PREFIX.has(prev) && !andarAntes && n <= (prev === 'dn' ? 999 : TAMANHOS.has(prev) ? 99 : 30)) ||
+    if (n !== null && ((SPEC_PREFIX.has(prev) && !andarAntes && n <= (/^(dn|voltagem|tensao)$/.test(prev) ? 999 : prev === 'semana' ? 53 : TAMANHOS.has(prev) ? 99 : 30)) ||
       (n >= 1 && n <= 9 && daCategoria(prev) === 'Materiais (M)' && !PERTO_DE_OUTRO_VALOR.test(depois) && !segundoItem &&
         // "areia 1 200 reais": 1 e 200 colados, sem saber se é mil e duzentos; só a brita tem número de graduação ("brita 1 400")
         !(prev !== 'brita' && /^\d{3}$/.test(ps[g.fim] ?? ''))))) return 'ruido';
@@ -1013,7 +1020,8 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
     const lidos = numerosDe(ps);
     if (ps.some((p, i) => ehMeio(p) && !lidos.some((n) => i >= n.inicio && i < n.fim) && !PECA_COM_MEIO.test(ps[i + 1] ?? ''))) anula();
     // Porcentagem ("50% de 2.000", "dez por cento de entrada"): o valor depende de conta que a pessoa não disse.
-    if (/\d%/.test(junto) || / por cento /.test(junto)) anula();
+    // (porcentagem solta, longe do valor — "inclinação 2% calha 380" — é medida do material)
+    if (/\d%\s*(de|sobre|do|da|em|igual|mais|menos|e|a|ao|[0-9])/.test(junto.replace(/\d%/g, (m) => m + ' ')) || /\d%\s*$/.test(junto.trim()) || / por cento /.test(junto)) anula();
     for (let k = e.inicio; k < e.fim; k++) usadas.add(k);
     if (ps[e.inicio - 1] === 'r$') usadas.add(e.inicio - 1);
   }

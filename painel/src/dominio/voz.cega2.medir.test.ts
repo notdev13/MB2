@@ -7,6 +7,7 @@ import { VALIDACAO4 } from './voz.validacao4';
 import { VALIDACAO5 } from './voz.validacao5';
 import { VALIDACAO6 } from './voz.validacao6';
 import { VALIDACAO7 } from './voz.validacao7';
+import { VALIDACAO8 } from './voz.validacao8';
 
 // Conjunto "cega2": 1.020 frases escritas por um revisor independente (sintéticas). Entra como conjunto fixo de treino.
 // Desacordos conhecidos e aceitos (o revisor espera outra coisa; anotados no relatório):
@@ -100,6 +101,17 @@ describe('validação 7 (agora treino)', () => {
   const m = medirLinhas(VALIDACAO7);
   it('só os limites conhecidos ficam errados; nenhuma regressão de campos', () => {
     expect(m.errados.map((e) => e.split(' => ')[0]).sort()).toEqual(['avaliação do imóvel 520 mil', 'contrato com o pintor 6 mil']);
+    expect(m.secundarios).toEqual([]);
+  });
+});
+
+// Validação 8 (rodada 66): números que não são dinheiro (código, placa, versão, semana, escala) junto de gastos comuns.
+// Medida ANTES dos ajustes: 6 valores errados em 109 (rótulos soltos como "semana 43") e 20% de brancos nos gastos com rótulo
+// ("versão 2 do projeto arquiteto 1.500"); depois virou treino.
+describe('validação 8 (agora treino)', () => {
+  const m = medirLinhas(VALIDACAO8);
+  it('nenhum valor errado, nenhuma regressão de campos', () => {
+    expect(m.errados).toEqual([]);
     expect(m.secundarios).toEqual([]);
   });
 });
