@@ -165,7 +165,7 @@ const UNIDADES = new Set([
   'saco', 'sacos', 'metro', 'metros', 'm', 'm2', 'm3', 'unidade', 'unidades', 'peca', 'pecas', 'lata', 'latas',
   'kg', 'quilo', 'quilos', 'tonelada', 'toneladas', 'caminhao', 'caminhoes', 'barra', 'barras', 'milheiro',
   'rolo', 'rolos', 'caixa', 'caixas', 'galao', 'galoes', 'litro', 'litros', 'dias', 'horas', 'vezes', 'parcelas',
-  'pessoa', 'cabeca', 'pacote', 'pacotes', 'saca', 'sacas', 'balde', 'baldes', 'tambor', 'tambores', 'carrada', 'carradas', 'carga',
+  'pessoa', 'cabeca', 'folha', 'chapa', 'vara', 'par', 'pares', 'comodo', 'comodos', 'ponto', 'tomada', 'lampada', 'pacote', 'pacotes', 'saca', 'sacas', 'balde', 'baldes', 'tambor', 'tambores', 'carrada', 'carradas', 'carga',
   'cargas', 'carreta', 'carretas', 'fardo', 'fardos', 'm²', 'm³', 'parcela', 'etapa', 'fase', 'viagem', 'viagens', 'pessoas', 'homens', 'funcionarios', 'operarios', 'pedreiros', 'serventes',
   'ajudantes', 'quartos', 'andares', 'casas', 'lotes', 'pontos', 'tomadas', 'lampadas', 'milimetro', 'milimetros', 'mm', 'centimetro', 'centimetros', 'cm', 'polegada', 'polegadas', 'semanas', 'semana',
 ]);
@@ -178,6 +178,8 @@ const DOCUMENTOS = new Set(['nota', 'nf', 'pedido', 'orcamento', 'ordem', 'chequ
   'matricula', 'cpf', 'cnpj', 'telefone', 'fone', 'cep', 'fiscal', 'rua', 'avenida', 'av', 'travessa', 'apto', 'apartamento',
   'sala', 'andar', 'ano', 'numero', 'nfe', 'nº', 'n°', 'n', 'codigo', 'cod', 'ref', 'referencia', 'item', 'modelo', 'serie']);
 // Quantidade de tempo: o número solto que sobra costuma ser preço por dia/hora, não o total.
+// Só para "X reais a dúzia": preço por unidade; "duas dúzias" sozinho continua valendo como número solto.
+const PRECO_POR = new Set(['duzia', 'duzias', 'metro', 'dia']);
 const TEMPO = new Set(['dias', 'hora', 'horas', 'diaria', 'diarias', 'semana', 'semanas', 'meses']);
 // Palavras de conta ("metade de", "desconto de", "300 cada"): o valor falado não é o do lançamento.
 const CALCULO = new Set(['cada', 'metade', 'dobro', 'triplo', 'terco', 'desconto', 'abatimento', 'troco', 'sobrou', 'restou', 'restante',
@@ -185,7 +187,9 @@ const CALCULO = new Set(['cada', 'metade', 'dobro', 'triplo', 'terco', 'desconto
   'proposta', 'simulacao', 'estimativa', 'previsao', 'recebi', 'recebemos', 'recebido', 'aumentou', 'aumento', 'aumentaram', 'reajuste', 'reajustou', 'subiu',
   'caiu', 'acrescimo', 'caro', 'barato', 'mais', 'menos',
   // quem fala não tem certeza, ou é receita/empréstimo
-  'acho', 'talvez', 'creio', 'engano', 'lembro', 'provavelmente', 'possivelmente', 'venda', 'vendas', 'vendi', 'vendemos',
+  'acho', 'talvez', 'creio', 'engano', 'lembro', 'provavelmente', 'possivelmente', 'chutando', 'chutei', 'chute', 'sei',
+  'imagino', 'suponho', 'parece', 'aposto', 'aparentemente', 'edita', 'editar', 'atualiza', 'atualizar', 'troca', 'trocar',
+  'substitui', 'substituir', 'venda', 'vendas', 'vendi', 'vendemos',
   'lucro', 'faturamento', 'receita', 'cliente', 'clientes',
   // ainda não aconteceu, ou é pergunta/preço de tabela
   'comprar', 'gastar', 'orcar', 'contratar', 'quanto', 'quantos', 'qual', 'quais', 'quando', 'queria', 'quero', 'pretendo',
@@ -196,7 +200,7 @@ const CALCULO = new Set(['cada', 'metade', 'dobro', 'triplo', 'terco', 'desconto
 const ESTRANGEIRA = new Set(['dolar', 'dolares', 'euro', 'euros', 'libra', 'libras']);
 const SIMBOLO_ESTRANGEIRO = new Set(['us$', 'usd', 'u$s', 'eur', 'dolar', 'dolares', 'euro', 'euros']);
 // Flexões dos mesmos verbos ('estornaram', 'devolveu', 'cancelei'...)
-const RAIZ_CALCULO = /^(estorn|reembols|devolv|cancel|apag|exclu|desfa|delet|corrig|aument|reajust|emprest|ressarc)/;
+const RAIZ_CALCULO = /^(estorn|reembols|devolv|cancel|apag|exclu|desfa|delet|corrig|aument|reajust|emprest|ressarc|apague|corrija|cancele|edite|atualize|substitua|troque)/;
 const PISTAS = new Set(['por', 'total', 'valor', 'custou', 'ficou']);
 
 // ---- datas ----
@@ -537,7 +541,7 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
       const depois = ps[g.fim];
       if (SIMBOLO_ESTRANGEIRO.has(ps[g.inicio - 1] ?? '')) centavos = null; // "US$ 300", "dólares 300"
       // "150 por dia", "120 ao dia", "40 o saco": preço de cada, não o total
-      if (/^(por|ao|a|o)$/.test(depois ?? '') && (UNIDADES.has(ps[g.fim + 1] ?? '') || TEMPO.has(ps[g.fim + 1] ?? '') || ps[g.fim + 1] === 'dia')) centavos = null;
+      if (/^(por|ao|a|o)$/.test(depois ?? '') && (UNIDADES.has(ps[g.fim + 1] ?? '') || TEMPO.has(ps[g.fim + 1] ?? '') || PRECO_POR.has(ps[g.fim + 1] ?? ''))) centavos = null;
       if (depois === 'por' && ps[g.fim + 1] === 'ai') centavos = null; // "trezentos por aí"
       if (ps[g.fim] === 'reais' && ps[g.fim + 1] === 'por' && ps[g.fim + 2] === 'ai') centavos = null;
       if (depois === 'centavo' || depois === 'centavos') { // "noventa centavos"
@@ -553,7 +557,8 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
         moeda = true; fim++;
         // preço por unidade ("200 reais por dia", "40 reais o saco", "10 reais cada"), não o total
         const unid = ps[fim + 1] ?? '';
-        if (ps[fim] === 'cada' || (/^(por|ao|a|o)$/.test(ps[fim] ?? '') && (UNIDADES.has(unid) || TEMPO.has(unid) || unid === 'dia'))) centavos = null;
+        if (ps[fim] === 'por' && unid && !começaNumero(unid) && !PAGAMENTOS.some(([re]) => re.test(unid)) && !/^(mes|ano|ai|isso|tudo|conta|fora|dentro|todo|total)$/.test(unid)) centavos = null;
+        if (ps[fim] === 'cada' || (/^(por|ao|a|o)$/.test(ps[fim] ?? '') && (UNIDADES.has(unid) || TEMPO.has(unid) || PRECO_POR.has(unid)))) centavos = null;
         else if (ps[fim] === 'e' && começaNumero(ps[fim + 1])) {
           // "360 reais e 50 centavos" (só vale com a palavra "centavos"; "reais e 50" é dúvida)
           const resto = lerNumero(ps, fim + 1);
