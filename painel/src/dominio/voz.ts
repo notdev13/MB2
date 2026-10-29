@@ -180,7 +180,8 @@ const TEMPO = new Set(['dias', 'hora', 'horas', 'diaria', 'diarias', 'semana', '
 // Palavras de conta ("metade de", "desconto de", "300 cada"): o valor falado não é o do lançamento.
 const CALCULO = new Set(['cada', 'metade', 'dobro', 'triplo', 'desconto', 'abatimento', 'troco', 'sobrou', 'restou', 'restante',
   'diferenca', 'estorno', 'estornei', 'reembolso', 'reembolsei', 'devolveram', 'devolvi', 'devolucao', 'cotacao', 'cotei',
-  'proposta', 'simulacao', 'estimativa', 'previsao', 'recebi', 'recebemos', 'recebido']); // recebido = receita, não custo
+  'proposta', 'simulacao', 'estimativa', 'previsao', 'recebi', 'recebemos', 'recebido', 'aumentou', 'aumento', 'aumentaram', 'reajuste', 'reajustou', 'subiu',
+  'caiu', 'acrescimo', 'caro', 'barato', 'mais', 'menos']); // recebido = receita, não custo
 const ESTRANGEIRA = new Set(['dolar', 'dolares', 'euro', 'euros', 'libra', 'libras']);
 const PISTAS = new Set(['por', 'total', 'valor', 'custou', 'ficou']);
 
@@ -251,7 +252,7 @@ function acharData(ps: string[], usadas: Set<number>, hoje: string, info: { semM
   for (let i = 0; i < ps.length; i++) {
     if (usadas.has(i)) continue; // já foi lido como outra data
     const p = ps[i];
-    if (p === 'hoje') { usadas.add(i); return hoje; }
+    if (p === 'hoje' || p === 'agora' || p === 'agorinha') { usadas.add(i); return hoje; }
     if (p === 'ontem') { usadas.add(i); return diasAntes(hoje, 1); }
     if (p === 'anteontem') { usadas.add(i); return diasAntes(hoje, 2); }
     const atras = haQuantosDias(ps, i);
@@ -393,7 +394,7 @@ const VAZIAS = new Set([
   'compra', 'compramos', 'lancar', 'lanca', 'lancamento', 'custo', 'foi', 'de', 'do', 'da', 'dos', 'das', 'no',
   'na', 'nos', 'nas', 'em', 'com', 'o', 'a', 'os', 'as', 'ao', 'aos', 'um', 'uma', 'pro', 'pra', 'para', 'por',
   'r$', 'valor', 'total', 'e', 'que', 'via', 'pelo', 'pela', 'feito', 'feita', 'hoje', 'ontem', 'obra', 'reais',
-  'real', 'ainda', 'falta', 'vou', 'vai', 'fica', 'ficou', 'aberto', 'fiado', 'prazo', 'passada', 'passado', 'feira', 'mais', 'vem', 'noite', 'manha', 'tarde', 'cedo', 'amanha', 'proxima', 'proximo',
+  'real', 'ainda', 'falta', 'vou', 'vai', 'fica', 'ficou', 'aberto', 'fiado', 'prazo', 'passada', 'passado', 'feira', 'mais', 'agora', 'agorinha', 'vem', 'noite', 'manha', 'tarde', 'cedo', 'amanha', 'proxima', 'proximo',
   // ruído de fala e verbos que não dizem o que foi comprado
   'entao', 'ta', 'hum', 'hm', 'ah', 'eh', 'ne', 'olha', 'certo', 'pronto', 'bom', 'tipo', 'assim', 'ok', 'deu', 'dei',
   'mandei', 'transferi', 'depositei', 'acertei', 'cada', 'meio', 'meia', 'parcelado', 'parcelada', 'parcelas', 'vezes',

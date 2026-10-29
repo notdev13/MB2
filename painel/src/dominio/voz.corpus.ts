@@ -509,6 +509,32 @@ export const CASOS_ROD13: Caso[] = [
   { tipo: 'faixa', frase: 'de 300 a 400 reais', esperado: { valor: null } },
 ];
 
+// Rodada 14: dois pagamentos na mesma fala, variação ("aumentou", "mais caro"), medidas e "agora".
+export const CASOS_ROD14: Caso[] = [
+  { tipo: 'dois-valores', frase: 'paguei o Ulisses, 1.500, e o Adriano, 1.200', esperado: { valor: null } },
+  { tipo: 'dois-valores', frase: 'ulisses 1500 adriano 1200', esperado: { valor: null } },
+  { tipo: 'dois-valores', frase: 'total de 2.700 sendo 1.500 pro Ulisses', esperado: { valor: null } },
+  { tipo: 'dois-valores', frase: 'foi 300 de cimento e 200 de areia, total 500', esperado: { valor: null } },
+  { tipo: 'dois-valores', frase: 'paguei 1.000 de entrada e o restante 2.000 em 4 vezes', esperado: { valor: null } },
+  { tipo: 'total', frase: 'dois mil e setecentos no total', esperado: { valor: 2700_00 } },
+  { tipo: 'variacao', frase: 'o cimento aumentou 200 reais', esperado: { valor: null } },
+  { tipo: 'variacao', frase: 'ficou 200 reais mais caro', esperado: { valor: null } },
+  { tipo: 'variacao', frase: 'reajuste de 5 mil no pedreiro', esperado: { valor: null } },
+  { tipo: 'variacao', frase: 'pagamos mais 200 de areia', esperado: { valor: null } },
+  { tipo: 'medida', frase: '200 l de tinta por 450', esperado: { valor: 450_00 } },
+  { tipo: 'medida', frase: '3 m de largura 900 reais de porta', esperado: { valor: 900_00 } },
+  { tipo: 'medida', frase: 'R$ 2k de ferro', esperado: { valor: 2000_00 } },
+  { tipo: 'hora', frase: 'pedreiro das 8 às 17 150 reais', esperado: { valor: null } },
+  { tipo: 'hora', frase: 'pedreiro das 8 às 17, 150 reais', esperado: { valor: null } },
+  { tipo: 'data', frase: 'paguei 300 de areia agora', esperado: { valor: 300_00, data: HOJE } },
+  { tipo: 'data', frase: 'dia 01 paguei 300 de areia', esperado: { valor: 300_00, data: '2026-10-01' } },
+  { tipo: 'data', frase: 'dia 31 de outubro 300 de areia', esperado: { valor: 300_00, data: null } },
+  { tipo: 'data', frase: '28 de outubro 300 de areia', esperado: { valor: 300_00, data: HOJE } },
+  { tipo: 'data', frase: 'em dois mil e vinte e seis paguei 300 de areia', esperado: { valor: null } },
+  { tipo: 'pago', frase: 'vou pagar 300 de areia no pix', esperado: { valor: 300_00, pago: false, pagamento: 'pix' } },
+  { tipo: 'obra', frase: 'Olindina e Laureano 300 de areia', esperado: { valor: 300_00, obraId: null } },
+];
+
 // ---- gerador de frases ----
 
 function aleatorio(semente: number) {
