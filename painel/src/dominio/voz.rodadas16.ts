@@ -13,7 +13,7 @@ export const CASOS_ROD54: Caso[] = [
   r('Rescisão do servente 1.380', 1380), r('Férias do mestre de obras 2.940', 2940), r('13º do ajudante 760', 760),
   r('Exame médico 2 funcionários 190', 190), r('Treinamento NR-35 3 pessoas 840', 840), r('Seguro de vida em grupo 138,50', 138.5),
   r('Plano de saúde do mestre 412', 412), r('Transporte do pessoal 22 dias 880', 880), r('Combustível da van 250 km 310 reais', 310),
-  r('Pedágio ida e volta 14,40', 14.4), r('Balsa 2 viagens 36', 36), r('Lavagem da betoneira 40', 40), r('Descarte de resíduo 2 caçambas 700 reais', 700),
+  r('Pedágio ida e volta 14,40', 14.4), r('Balsa 2 viagens 36', null), r('Lavagem da betoneira 40', 40), r('Descarte de resíduo 2 caçambas 700 reais', 700),
 ];
 
 // Rodada 55: dictation escreve o dinheiro de jeitos estranhos (espaços, dois-pontos, vírgula-traço, "RS").

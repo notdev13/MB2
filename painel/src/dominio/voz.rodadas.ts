@@ -55,5 +55,5 @@ export const CASOS_ROD28: Caso[] = [
   r('frete 90 / pedreiro 450', null), r('frete: 90; pedreiro: 450', null), r('total do dia: 540 (frete 90 + pedreiro 450)', 540),
   r('+ 300 areia', 300), r('-300 areia', null), r('areia 500,00', 500), r('AREIA R$500', 500), r('areia R$500.', 500), r('areia (500)', 500),
   r('areia [500]', 500), r('areia 500,-', 500), r('mil e quinhentos reais = 1500', 1500),
-  r('orçamento 3 fornecedores: 500, 520, 480 -> fechou em 480', null), r('sinal 30% = 900', null),
+  r('orçamento 3 fornecedores: 500, 520, 480 -> fechou em 480', 480), r('sinal 30% = 900', null),
 ];

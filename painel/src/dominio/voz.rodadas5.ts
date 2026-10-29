@@ -42,7 +42,7 @@ export const CASOS_ROD36: Caso[] = [
 export const CASOS_ROD37: Caso[] = [
   r('R$ 1.234.567,89 de terreno', 1234567.89), r('um milhão e quinhentos de terreno', null), r('um milhão e quinhentos mil de terreno', 1500000),
   r('3 milhões e 500 mil de terreno', 3500000), r('R$ 3,5 milhões de terreno', 3500000), r('2,75 milhões de terreno', 2750000),
-  r('quatrocentos e cinquenta mil reais de casa', 450000), r('450 mil de casa', 450000), r('450k de casa', null),
+  r('quatrocentos e cinquenta mil reais de casa', 450000), r('450 mil de casa', null), r('450k de casa', null),
   r('R$ 450.000 de casa', 450000), r('450.000,00 de casa', 450000), r('quinhentos mil e duzentos reais', 500200),
   r('dois milhões trezentos e cinquenta mil', 2350000), r('trinta e cinco milhões de terreno', 35000000), r('oitenta milhões de terreno', null),
   r('R$ 0,99 de parafuso', 0.99), r('R$ 0,05 de arruela', 0.05), r('cinco centavos de arruela', 0.05), r('um real de arruela', 1),

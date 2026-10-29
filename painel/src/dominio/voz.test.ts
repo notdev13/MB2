@@ -185,7 +185,7 @@ describe('interpretador de voz: correções', () => {
     expect(valor('uns 500 reais de gesso')).toBeNull();
     expect(valor('na casa dos R$ 900 de piso')).toBeNull();
     expect(valor('mil e pouco de areia')).toBeNull();
-    expect(valor('R$ 1 200 de areia')).toBeNull(); // 1.200 ou 1 e 200?
+    expect(valor('R$ 1 200 de areia')).toBe(1200_00); // o ditado separa o milhar com espaço, e o R$ mostra que é dinheiro
   });
 
   it('não é custo ou não é afirmação: null', () => {
@@ -231,5 +231,70 @@ describe('possíveis repetidos', () => {
     ];
     expect(possiveisRepetidos(base, { obraId: 'l39', valor: 360_00, data: '2026-09-20' }).map((c) => c.id)).toEqual(['a']);
     expect(possiveisRepetidos(base, { obraId: 'l39', valor: 360_00, data: '2026-09-20' }, 'a')).toEqual([]);
+  });
+});
+
+describe('interpretador de voz: revisão cega (rodada 58)', () => {
+  const valor = (t: string) => ler(t).valor;
+
+  it('dois valores com saldo, entrada ou combinado: não escolhe', () => {
+    expect(ler('paguei 1.000 faltam 500 reais')).toMatchObject({ valor: null, duvidaValor: true });
+    for (const f of ['paguei 1.000 restam 500 reais', 'paguei 1.000 devendo 500 reais', 'ferro 1.200 entrada 600 reais', 'ferro 1.200 sinal 600 reais',
+      'ferro 1.200 sendo 600 reais no pix', 'paguei 2.000 mas o combinado era 2.500 reais']) expect(valor(f), f).toBeNull();
+    expect(valor('projetor 3000 lumens 1.200 reais')).toBe(1200_00); // unidade de verdade ao lado do número
+  });
+
+  it('segundo item pequeno depois de "e": é outro lançamento', () => {
+    for (const f of ['cimento 360 reais e prego 18', 'areia 480 reais e cal 15', 'areia 480 reais mais diária 90', 'brita 200 reais e lixa 9']) expect(valor(f), f).toBeNull();
+    expect(valor('brita 12 R$ 480')).toBe(480_00); // a descrição do material vem antes do valor
+  });
+
+  it('"depósito" é a loja; só "depositei" e "fiz um depósito" são forma de pagamento', () => {
+    expect(ler('depósito Santa Rita 480 ontem')).toMatchObject({ valor: 480_00, pagamento: null });
+    expect(ler('comprei no depósito Santa Rita 480 no pix').pagamento).toBe('pix');
+    expect(ler('depositei 500 pro pedreiro').pagamento).toBe('transferencia');
+    expect(ler('fiz um depósito de 480 pro Zé').pagamento).toBe('transferencia');
+  });
+
+  it('"paguei/quitei" vencem "atrasado/vencido"; "pagar" solto não decide', () => {
+    expect(ler('paguei o boleto atrasado de 480').pago).toBe(true);
+    expect(ler('quitei o boleto vencido do ferro 480').pago).toBe(true);
+    expect(ler('paguei a conta que estava em atraso 345').pago).toBe(true);
+    expect(ler('boleto atrasado de 480').pago).toBe(false);
+    expect(ler('fui pagar a areia 480').pago).toBeNull();
+    expect(ler('acabei de pagar 450 pro pedreiro').pago).toBe(true);
+  });
+
+  it('quantidade ou preço de cada não vira total', () => {
+    for (const f of ['cimento 50 kg 38 reais cada, comprei 10', '20 sacos de cimento, 38 reais', 'cimento 20 sacos 38', 'pedreiro 450 3 dias', 'dois pedreiros 450',
+      'servente diária de 120 reais, trabalhou 4 dias', 'hora da retro 220 por 8 horas', 'comprei 3 baldes de tinta de 180']) expect(valor(f), f).toBeNull();
+    expect(valor('10 sacos de cimento 360')).toBe(360_00);
+    expect(valor('pedreiro 3 dias total 900')).toBe(900_00);
+  });
+
+  it('"deu 480 a areia": o número é o total, o material vem depois', () => {
+    expect(valor('foi 360 o cimento')).toBe(360_00);
+    expect(valor('saiu 2.400 a porta')).toBe(2400_00);
+    expect(valor('pô eu tinha dito que ia dar 5 mil mas no final ficou 5.730 o ferro')).toBe(5730_00);
+    expect(valor('40 reais o saco')).toBeNull(); // sem verbo de total, continua sendo preço de cada
+  });
+
+  it('milhar com espaço e dígitos colados', () => {
+    expect(valor('paguei 1 250 reais de areia')).toBe(1250_00);
+    expect(valor('paguei 1mil e 200 de ferro')).toBe(1200_00);
+    expect(valor('paguei 360reais de cimento')).toBe(360_00);
+    expect(valor('ferro 12 k')).toBeNull();
+    expect(valor('areia 1 200 reais')).toBeNull(); // 1 e 200 colados depois de material: não dá para saber
+  });
+
+  it('frases comuns que não podem ficar em branco', () => {
+    expect(valor('comprei 3 de cal e 2 de cimento por 215 reais')).toBe(215_00);
+    expect(valor('cimento 360, areia 480, brita 530, tudo junto 1.370')).toBe(1370_00);
+    expect(valor('meio fio 1.800')).toBe(1800_00);
+    expect(valor('recebi o cimento hoje, paguei 360')).toBe(360_00);
+    expect(valor('troco de fechadura 280')).toBe(280_00);
+    expect(valor('dias 5 e 6 pedreiro 900')).toBe(900_00);
+    expect(valor('OS 17 pintura 2.800')).toBe(2800_00);
+    expect(valor('recebi 500 do cliente')).toBeNull();
   });
 });

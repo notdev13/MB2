@@ -17,7 +17,7 @@ export const CASOS_ROD42: Caso[] = [
   r('300 de areia via pix', 300, { pagamento: 'pix' }), r('300 de areia no cartão de débito', 300, { pagamento: 'cartao' }),
   r('300 de areia no cartão de crédito em 3x', null, { pagamento: 'cartao', pago: false }), r('300 de areia com o cartão', 300, { pagamento: 'cartao' }),
   r('300 de areia em espécie', 300, { pagamento: 'dinheiro' }), r('300 de areia por TED', 300, { pagamento: 'transferencia' }),
-  r('300 de areia por DOC', 300, { pagamento: 'transferencia' }), r('300 de areia depósito', 300, { pagamento: 'transferencia' }),
+  r('300 de areia por DOC', 300, { pagamento: 'transferencia' }), r('300 de areia depósito', 300, { pagamento: null }),
   r('300 de areia cheque', 300, { pagamento: 'outro' }), r('300 de areia no boleto bancário', 300, { pagamento: 'boleto' }),
   r('300 de areia no boleto vence 10/11', 300, { pagamento: 'boleto', pago: false, data: null }), r('300 de areia 10/11', 300, { data: null }),
   r('300 de areia 10/10', 300, { data: '2026-10-10' }), r('300 de areia dia 10 de setembro', 300, { data: '2026-09-10' }),

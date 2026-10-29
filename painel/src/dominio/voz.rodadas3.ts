@@ -40,7 +40,7 @@ export const CASOS_ROD31: Caso[] = [
   r('dois mil e quinhento de areia', 2500), r('quatro mil e trezento de tinta', 4300), r('cinquenta e sinco reais de lixa', 55),
   r('trinta e ceis reais de fita', 36), r('vinte e oto reais de cola', 28), r('sessenta e dois mil de laje', 62000),
   r('quarenta e nove mil e novecento de laje', 49900), r('Tres mil e quinhentos de piso', 3500), r('Dois mil, e quinhentos de piso', 2500),
-  r('R$ 2 mil 500 de piso', 2500), r('2 mil 500 reais de piso', 2500), r('2 500 reais de piso', null), r('2.50 de prego', 2.5),
+  r('R$ 2 mil 500 de piso', 2500), r('2 mil 500 reais de piso', 2500), r('2 500 reais de piso', 2500), r('2.50 de prego', 2.5),
   r('noventa e nove reais de prego', 99), r('cento e vinte e cinco mil de terreno', 125000), r('um mil e duzentos de piso', 1200),
   r('trezentos e cinquenta e oito reais', 358), r('mil e cento e dez reais', 1110), r('dois mil e cem reais', 2100),
   r('cem reais e vinte centavos', 100.2), r('oitocentos e dezoito reais', 818), r('dezenove mil de laje', 19000),

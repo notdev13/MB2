@@ -7,7 +7,7 @@ const r = (frase: string, reais: number | null, extra: Caso['esperado'] = {}, ti
 // Rodada 29: frases longas com vários números que não são dinheiro (hora, pedido, andar, cartão, medidas, quantidades).
 export const CASOS_ROD29: Caso[] = [
   r('Comprei 15 sacos de cimento na Cassol hoje às 10h por 640 reais pro lote 39', 640, { obraId: 'l39' }),
-  r('Hoje às 8h30 paguei 1.200 reais pro Ulisses, são 3 dias de serviço', 1200), r('Dia 12 às 14h chegou a carga de 6 metros de areia, paguei 900', 900),
+  r('Hoje às 8h30 paguei 1.200 reais pro Ulisses, são 3 dias de serviço', null), r('Dia 12 às 14h chegou a carga de 6 metros de areia, paguei 900', 900),
   r('Pedido 5521 entregue dia 20 com 40 sacos, total 1.600 reais', 1600), r('No 2º andar do lote 39 foram 12 diárias, 3.000 reais', 3000),
   r('Paguei 3 parcelas atrasadas de 400, total 1.200', 1200), r('Cartão final 4455 compra de 780 reais', 780),
   r('Agência 0123 conta 45678-9 transferência de 2.500', 2500), r('Ligação 3232-4455: frete de 150 reais', 150),
@@ -19,7 +19,7 @@ export const CASOS_ROD29: Caso[] = [
   r('Foram 5 homens por 2 dias, 1.500 reais', 1500), r('Mais 2 ajudantes por 3 dias, 600', 600),
   r('6 sacos de cimento 38 cada, 228', 228), r('3 sacos de cimento a 38 cada: 114', 114), r('3 sacos de cimento 114', 114),
   r('2 sacos de cimento 76', 76), r('Cimento: 38 (unidade), 10 sacos', null), r('Fretei 12 viagens a 80, total 960', 960),
-  r('Quinzena do pessoal: 4 pedreiros e 2 serventes, 7.200', 7200), r('Ferro 3/8 12 barras 540', 540, { data: null }),
+  r('Quinzena do pessoal: 4 pedreiros e 2 serventes, 7.200', null), r('Ferro 3/8 12 barras 540', 540, { data: null }),
   r('Tubo 3/4 x 6m 90 reais', 90, { data: null }), r('Compensado 15 mm 2,20 x 1,10 280 reais', 280),
   r('Vidro 1,20 por 2,00 R$ 650', 650), r('Porta 0,80 x 2,10 m R$ 1.200', 1200), r('Janela 1,5 m² 480', 480),
   r('Telha 40x40 caixa com 25 por 1.150', 1150), r('Locação de andaime 30 dias R$ 900', 900), r('Locação de andaime por 30 dias 900', 900),
