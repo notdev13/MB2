@@ -44,52 +44,100 @@ const NUMEROS: Record<string, number> = {
   oitenta: 80, noventa: 90, cem: 100, cento: 100, duzentos: 200, trezentos: 300, quatrocentos: 400,
   quinhentos: 500, seiscentos: 600, setecentos: 700, oitocentos: 800, novecentos: 900,
 };
-const MULTIPLICADORES: Record<string, number> = { mil: 1000, milhao: 1_000_000, milhoes: 1_000_000 };
 
-// "5.800", "5800", "360,50", "2,5", "1.234,56" -> número; "17/09" e afins não são número.
+// "5.800", "5800", "360,50", "2,5", "1.234,56", "1,200" -> número; "17/09" e afins não são número.
+// "1,200" e "1.200" são mil e duzentos (centavos nunca têm 3 casas).
 function numeroEscrito(p: string): number | null {
   if (!/^\d[\d.,]*$/.test(p)) return null;
   let s = p;
-  if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
+  if (/^[1-9]\d{0,2}(,\d{3})+(\.\d{1,2})?$/.test(s)) s = s.replace(/,/g, ''); // 1,200 ou 1,200.50
+  else if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
   else if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');
   const n = Number(s);
   return Number.isFinite(n) ? n : null;
 }
 
-const ehNumero = (p: string) => numeroEscrito(p) !== null || p in NUMEROS;
-const valorDe = (p: string) => numeroEscrito(p) ?? NUMEROS[p];
+const palavraNum = (p: string | undefined) => (p !== undefined && Object.hasOwn(NUMEROS, p) ? NUMEROS[p] : undefined);
+const ehMilhar = (p: string | undefined) => p === 'mil';
+const ehMilhao = (p: string | undefined) => p === 'milhao' || p === 'milhoes';
+const ehMeio = (p: string | undefined) => p === 'meio' || p === 'meia';
+const começaNumero = (p: string | undefined) => p !== undefined && (numeroEscrito(p) !== null || palavraNum(p) !== undefined || ehMilhar(p));
 
-interface Grupo { inicio: number; fim: number; valor: number } // fim exclusivo
-
-// Junta sequências como "cinco mil e oitocentos" ou "2,5 mil" num número só.
-function gruposNumericos(ps: string[]): Grupo[] {
-  const grupos: Grupo[] = [];
-  let i = 0;
-  while (i < ps.length) {
-    if (!ehNumero(ps[i]) && !(ps[i] in MULTIPLICADORES)) { i++; continue; }
-    const inicio = i;
-    let total = 0;
-    let atual = 0;
-    let ultimo = i;
-    while (i < ps.length) {
-      const p = ps[i];
-      if (ehNumero(p)) {
-        // "17 30" (dois números escritos seguidos) são coisas diferentes.
-        if (i > inicio && numeroEscrito(p) !== null && numeroEscrito(ps[i - 1]) !== null) break;
-        atual += valorDe(p);
-      } else if (p in MULTIPLICADORES) {
-        total += (atual || 1) * MULTIPLICADORES[p];
-        atual = 0;
-      } else if (p === 'e' && i + 1 < ps.length && (ehNumero(ps[i + 1]) || ps[i + 1] in MULTIPLICADORES)) {
-        // "mil e oitocentos"
-      } else break;
-      ultimo = i;
-      i++;
-    }
-    grupos.push({ inicio, fim: ultimo + 1, valor: total + atual });
-    i = ultimo + 1;
+// Um grupo de 1 a 999 por extenso ("cento e vinte e cinco"), a partir de i.
+function lerGrupo(ps: string[], i: number): { valor: number; fim: number } | null {
+  let j = i;
+  let v = 0;
+  const n0 = palavraNum(ps[j]);
+  if (!n0) return null;
+  if (n0 >= 100) {
+    v = n0; j++;
+    const e = ps[j] === 'e' ? palavraNum(ps[j + 1]) : undefined;
+    if (!e || e >= 100) return { valor: v, fim: j };
+    j++; // o "e" de "cento e vinte"
   }
-  return grupos;
+  const n = palavraNum(ps[j]);
+  if (!n || n >= 100) return v ? { valor: v, fim: j } : null;
+  v += n; j++;
+  if (n >= 20 && ps[j] === 'e') {
+    const u = palavraNum(ps[j + 1]);
+    if (u && u <= 9) { v += u; j += 2; }
+  }
+  return { valor: v, fim: j };
+}
+
+interface Numero { inicio: number; fim: number; valor: number | null } // fim exclusivo; null = ambíguo
+
+// Lê o número que começa em i: "cinco mil e oitocentos", "2,5 mil", "dois mil e meio", "meio milhão".
+// Se a fala tem mais de uma leitura possível ("dois e meio", "vinte e cinco e cinquenta"), valor = null.
+function lerNumero(ps: string[], i: number): Numero | null {
+  let j = i;
+  let total = 0;
+  let escala = 0; // última escala usada (mil, milhão) quando nada vem depois dela
+  let ambiguo = false;
+  if (ehMeio(ps[j]) && ehMilhao(ps[j + 1])) return { inicio: i, fim: j + 2, valor: 500_000 };
+  const escrito = numeroEscrito(ps[j]);
+  if (escrito !== null) {
+    total = escrito; j++;
+    const mult = ehMilhar(ps[j]) ? 1000 : ehMilhao(ps[j]) ? 1_000_000 : 0;
+    if (mult) { total *= mult; escala = mult; j++; }
+  } else {
+    let algo = false;
+    for (const [teste, mult] of [[ehMilhao, 1_000_000], [ehMilhar, 1000]] as const) {
+      const s = algo && ps[j] === 'e' ? j + 1 : j;
+      const g = lerGrupo(ps, s);
+      const k = g ? g.fim : s;
+      if (!teste(ps[k]) || (!g && mult === 1_000_000)) continue;
+      total += (g?.valor ?? 1) * mult; j = k + 1; escala = mult; algo = true;
+    }
+    if (algo) {
+      const g = lerGrupo(ps, ps[j] === 'e' ? j + 1 : j);
+      if (g) { total += g.valor; j = g.fim; escala = 0; }
+    } else {
+      const g = lerGrupo(ps, j);
+      if (!g) return null;
+      total = g.valor; j = g.fim;
+    }
+  }
+  // "e meio": metade da escala ("dois mil e meio" = 2.500); sem escala ("dois e meio") é dúvida.
+  if (ps[j] === 'e' && ehMeio(ps[j + 1])) {
+    if (escala) total += escala / 2; else ambiguo = true;
+    j += 2;
+  }
+  // Outro número colado por "e" ("vinte e cinco e cinquenta"): não dá para saber o que é, deixa em dúvida.
+  if (ps[j] === 'e' && começaNumero(ps[j + 1])) {
+    const resto = lerNumero(ps, j + 1);
+    if (resto) { ambiguo = true; j = resto.fim; }
+  }
+  return { inicio: i, fim: j, valor: ambiguo ? null : total };
+}
+
+function numerosDe(ps: string[]): Numero[] {
+  const lista: Numero[] = [];
+  for (let i = 0; i < ps.length;) {
+    const n = começaNumero(ps[i]) || ehMeio(ps[i]) ? lerNumero(ps, i) : null;
+    if (n) { lista.push(n); i = n.fim; } else i++;
+  }
+  return lista;
 }
 
 const UNIDADES = new Set([
@@ -97,7 +145,9 @@ const UNIDADES = new Set([
   'kg', 'quilo', 'quilos', 'tonelada', 'toneladas', 'caminhao', 'caminhoes', 'barra', 'barras', 'milheiro',
   'rolo', 'rolos', 'caixa', 'caixas', 'galao', 'galoes', 'litro', 'litros', 'dias', 'horas', 'vezes', 'parcelas',
 ]);
-const MOEDA = new Set(['reais', 'real', 'conto', 'contos', 'pila']);
+const MOEDA = new Set(['reais', 'real', 'conto', 'contos', 'pila', 'pilas']);
+// "lote 39", "casa 12": o número é da obra, não é valor.
+const NUMERADORES = new Set(['lote', 'casa', 'lt', 'quadra', 'qd', 'obra', 'numero']);
 
 // ---- datas ----
 
@@ -131,6 +181,14 @@ function montarData(dia: number, mes: number | null, ano: number | null, hoje: s
   return paraTexto(d);
 }
 
+// Dia do mês (1 a 31) em número ou por extenso, a partir de i. O número inteiro tem que caber
+// num dia: "dia dois mil e quinhentos reais" não é dia 2.
+function diaDe(ps: string[], i: number): { dia: number; fim: number } | null {
+  if (ps[i] === 'primeiro') return { dia: 1, fim: i + 1 };
+  const n = começaNumero(ps[i]) ? lerNumero(ps, i) : null;
+  return n && n.valor !== null && Number.isInteger(n.valor) && n.valor >= 1 && n.valor <= 31 ? { dia: n.valor, fim: n.fim } : null;
+}
+
 function acharData(ps: string[], usadas: Set<number>, hoje: string): string | null {
   for (let i = 0; i < ps.length; i++) {
     const p = ps[i];
@@ -142,19 +200,21 @@ function acharData(ps: string[], usadas: Set<number>, hoje: string): string | nu
       usadas.add(i);
       return montarData(Number(barra[1]), Number(barra[2]), barra[3] ? Number(barra[3]) : null, hoje);
     }
-    const dia = numeroEscrito(p) ?? NUMEROS[p];
-    // "17 de setembro", "dia 17 de setembro"
-    if (dia !== undefined && Number.isInteger(dia) && ps[i + 1] === 'de' && ps[i + 2] in MESES) {
-      [i, i + 1, i + 2].forEach((k) => usadas.add(k));
-      if (ps[i - 1] === 'dia') usadas.add(i - 1);
-      return montarData(dia, MESES[ps[i + 2]], null, hoje);
-    }
-    // "dia 17"
-    if (p === 'dia' && i + 1 < ps.length) {
-      const n = numeroEscrito(ps[i + 1]) ?? NUMEROS[ps[i + 1]];
-      if (n !== undefined && Number.isInteger(n)) {
-        usadas.add(i); usadas.add(i + 1);
-        return montarData(n, null, null, hoje);
+    // "17 de setembro", "dia 17 de setembro", "dia vinte e cinco", "dia 17"
+    const ini = p === 'dia' ? i + 1 : i;
+    const d = diaDe(ps, ini);
+    if (d) {
+      const mes = ps[d.fim] === 'de' ? MESES[ps[d.fim + 1]] : undefined;
+      if (mes !== undefined) {
+        let fim = d.fim + 2;
+        const ano = ps[fim] === 'de' && /^20\d\d$/.test(ps[fim + 1] ?? '') ? Number(ps[fim + 1]) : null;
+        if (ano) fim += 2;
+        for (let k = i; k < fim; k++) usadas.add(k);
+        return montarData(d.dia, mes, ano, hoje);
+      }
+      if (p === 'dia') {
+        for (let k = i; k < d.fim; k++) usadas.add(k);
+        return montarData(d.dia, null, null, hoje);
       }
     }
     const semana = SEMANA[p.replace(/-?feira$/, '')];
@@ -187,6 +247,8 @@ function acharObra(ps: string[], obras: Obra[], usadas: Set<number>): string | n
       const alvo = simplificar(w);
       for (let i = 0; i < simples.length; i++) {
         const junto = simples[i] + (simples[i + 1] ?? ''); // "eco vilas" = "ecovilas"
+        // número da obra só vale como "lote 39"; "39 de prego" é dinheiro
+        if (/^\d+$/.test(alvo) && !NUMERADORES.has(ps[i - 1] ?? '')) continue;
         if (simples[i] === alvo) { pontos += /^\d+$/.test(alvo) ? 2 : 1; posicoes.push(i); break; }
         if (alvo.length >= 6 && junto === alvo) { pontos += 1; posicoes.push(i, i + 1); break; }
       }
@@ -198,7 +260,7 @@ function acharObra(ps: string[], obras: Obra[], usadas: Set<number>): string | n
   if (!melhor || empate) return null;
   for (const i of melhor.posicoes) {
     usadas.add(i);
-    if (ps[i - 1] === 'lote' || ps[i - 1] === 'obra') usadas.add(i - 1);
+    if (GENERICAS.has(ps[i - 1] ?? '') && !['de', 'da', 'do', 'das', 'dos', 'e'].includes(ps[i - 1])) usadas.add(i - 1);
   }
   return melhor.id;
 }
@@ -206,11 +268,12 @@ function acharObra(ps: string[], obras: Obra[], usadas: Set<number>): string | n
 // ---- pagamento ----
 
 const PAGAMENTOS: [RegExp, FormaPagamento][] = [
-  [/^pix$/, 'pix'],
-  [/^boleto$/, 'boleto'],
+  // O reconhecimento de voz erra: "pix" vira "pique"/"piks", "boleto" vira "bolheto".
+  [/^(pix|pique|piques|piks|pics|pixe)$/, 'pix'],
+  [/^(boletos?|bolhetos?|bolletos?|boleta)$/, 'boleto'],
   [/^(cartao|credito|debito)$/, 'cartao'],
   [/^(transferencia|ted|doc)$/, 'transferencia'],
-  [/^(dinheiro|especie)$/, 'dinheiro'],
+  [/^(dinheiro|especie|cash)$/, 'dinheiro'],
 ];
 
 // ---- categoria e descrição ----
@@ -242,6 +305,10 @@ const VAZIAS = new Set([
   'na', 'nos', 'nas', 'em', 'com', 'o', 'a', 'os', 'as', 'ao', 'aos', 'um', 'uma', 'pro', 'pra', 'para', 'por',
   'r$', 'valor', 'total', 'e', 'que', 'via', 'pelo', 'pela', 'feito', 'feita', 'hoje', 'ontem', 'obra', 'reais',
   'real', 'ainda', 'falta', 'vou', 'vai', 'fica', 'ficou', 'aberto', 'fiado', 'prazo', 'passada', 'feira', 'mais',
+  // ruído de fala e verbos que não dizem o que foi comprado
+  'entao', 'ta', 'hum', 'hm', 'ah', 'eh', 'ne', 'olha', 'certo', 'pronto', 'bom', 'tipo', 'assim', 'ok', 'deu', 'dei',
+  'mandei', 'transferi', 'depositei', 'acertei', 'cada', 'meio', 'meia', 'parcelado', 'parcelada', 'parcelas', 'vezes',
+  'centavos', 'conto', 'contos',
 ]);
 const significativas = (texto: string) =>
   palavras(texto).map(simplificar).filter((w) => w.length >= 3 && !/^\d+$/.test(w) && !VAZIAS.has(w));
@@ -303,39 +370,54 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
   });
 
   // A pagar: "a pagar", "falta pagar", "vou pagar", "em aberto", "fiado", "a prazo", "pagar dia 30".
+  // Parcelado ("em 3 vezes", "3x", "10 parcelas") também fica a pagar, mas se a pessoa disse
+  // "paguei" junto fica em dúvida (null): pode ser o cartão já pago ou só a primeira parcela.
   const junto = ' ' + ps.join(' ') + ' ';
+  const parcelado = / (parcelad[oa]s?|parcelei|financiad[oa]|\d+ ?x|\d+ (vezes|parcelas)|[a-z]+ (vezes|parcelas)) /.test(junto);
+  const disseuPago = / (paguei|pagou|pagamos|pago|paga|mandei|transferi|depositei) /.test(junto);
   let pago: boolean | null = null;
   if (/ (a pagar|falta pagar|vou pagar|vamos pagar|vai pagar|para pagar|pra pagar|em aberto|fiado|a prazo|ainda nao paguei|nao paguei) /.test(junto)) pago = false;
-  else if (/ (paguei|pagou|pagamos|pago|paga) /.test(junto)) pago = true;
+  else if (parcelado) pago = disseuPago ? null : false;
+  else if (disseuPago) pago = true;
 
-  // Valor: o número com "reais"/"R$" perto; senão o maior que não é data, quantidade nem obra.
-  const candidatos = gruposNumericos(ps)
+  // Valor: o único número do lançamento, ou o único com "reais"/"R$"/"centavos" perto. Quantidade,
+  // data, número da obra e preço por unidade não contam. Na dúvida fica null (a pessoa digita).
+  const candidatos = numerosDe(ps)
     .filter((g) => ![...Array(g.fim - g.inicio).keys()].some((k) => usadas.has(g.inicio + k)))
+    .filter((g) => !UNIDADES.has(ps[g.fim] ?? '') && !NUMERADORES.has(ps[g.inicio - 1] ?? ''))
     .map((g) => {
-      const antes = ps[g.inicio - 1];
-      const depois = ps[g.fim];
-      let centavos = Math.round(g.valor * 100);
+      let centavos = g.valor === null ? null : Math.round(g.valor * 100);
       let fim = g.fim;
-      // "360 reais e 50 centavos"
-      if (depois && MOEDA.has(depois) && ps[g.fim + 1] === 'e') {
-        const resto = gruposNumericos(ps.slice(g.fim + 2)).find((r) => r.inicio === 0);
-        if (resto && ps[g.fim + 2 + resto.fim] === 'centavos') {
-          centavos += Math.round(resto.valor);
-          fim = g.fim + 3 + resto.fim;
+      let moeda = ps[g.inicio - 1] === 'r$';
+      const depois = ps[g.fim];
+      if (depois === 'centavo' || depois === 'centavos') { // "noventa centavos"
+        centavos = g.valor !== null && Number.isInteger(g.valor) && g.valor < 100 ? g.valor : null;
+        fim++; moeda = true;
+      } else if (depois && MOEDA.has(depois)) {
+        moeda = true; fim++;
+        if (ps[fim] === 'cada') centavos = null; // preço por unidade, não o total
+        else if (ps[fim] === 'e' && começaNumero(ps[fim + 1])) {
+          // "360 reais e 50 centavos" (só vale com a palavra "centavos"; "reais e 50" é dúvida)
+          const resto = lerNumero(ps, fim + 1);
+          const centavo = resto && (ps[resto.fim] === 'centavos' || ps[resto.fim] === 'centavo');
+          if (resto && centavo && centavos !== null && resto.valor !== null && Number.isInteger(resto.valor) && resto.valor < 100 && (depois === 'reais' || depois === 'real')) {
+            centavos += resto.valor; fim = resto.fim + 1;
+          } else { centavos = null; if (resto) fim = resto.fim; }
         }
       }
-      const moeda = antes === 'r$' || (depois !== undefined && MOEDA.has(depois));
-      const quantidade = depois !== undefined && UNIDADES.has(depois);
-      return { ...g, fim, centavos, moeda, quantidade };
+      return { inicio: g.inicio, fim, centavos, moeda };
     })
-    .filter((g) => !g.quantidade && g.centavos > 0);
-  const escolhido = candidatos.find((g) => g.moeda) ??
-    candidatos.reduce<(typeof candidatos)[number] | null>((m, g) => (!m || g.centavos > m.centavos ? g : m), null);
+    // o "50" de "300 reais e 50 centavos" já foi lido junto com o 300
+    .filter((g, k, todos) => !todos.slice(0, k).some((o) => g.inicio < o.fim))
+    // "um" sozinho é artigo ("um frete de 300"), a não ser que venha com "real"/"conto".
+    .filter((g) => !(g.fim - g.inicio === 1 && (ps[g.inicio] === 'um' || ps[g.inicio] === 'uma')) && (g.centavos === null || g.centavos > 0));
+  const comMoeda = candidatos.filter((g) => g.moeda);
+  const escolhido = candidatos.length === 1 ? candidatos[0] : comMoeda.length === 1 ? comMoeda[0] : null;
   if (escolhido) {
     for (let k = escolhido.inicio; k < escolhido.fim; k++) usadas.add(k);
     if (ps[escolhido.inicio - 1] === 'r$') usadas.add(escolhido.inicio - 1);
-    if (MOEDA.has(ps[escolhido.fim] ?? '')) usadas.add(escolhido.fim);
   }
+  const valor = escolhido?.centavos ?? null;
 
   // Categoria, descrição e fornecedor, do mais certo para o menos certo.
   const hist = aprender(contexto.custos);
@@ -389,10 +471,10 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
   }
 
   const faltou: Interpretacao['faltou'] = [];
-  if (!escolhido) faltou.push('valor');
+  if (valor === null) faltou.push('valor');
   if (!obraId && contexto.obras.length > 1) faltou.push('obra');
   return {
-    valor: escolhido?.centavos ?? null, data, obraId, categoria: categoria && CATEGORIAS.includes(categoria) ? categoria : null,
+    valor, data, obraId, categoria: categoria && CATEGORIAS.includes(categoria) ? categoria : null,
     descricao, fornecedor, pagamento, pago, faltou,
   };
 }
