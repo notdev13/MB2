@@ -243,7 +243,7 @@ const TEMPO = new Set(['dias', 'hora', 'horas', 'diaria', 'diarias', 'semana', '
 // que exige o contexto ("subiu 200", "proposta de 12 mil", "acho que").
 const CALCULO = new Set(['cada', 'metade', 'dobro', 'triplo', 'terco', 'abatimento', 'troco', 'sobrou', 'restou',
   'diferenca', 'estorno', 'estornei', 'reembolso', 'reembolsei', 'devolveram', 'devolvi', 'devolucao', 'cotei',
-  'recebi', 'recebemos', 'talvez', 'provavelmente', 'possivelmente', 'chutando', 'chutei', 'chute', 'aparentemente',
+  'recebi', 'recebemos', 'entrou', 'entraram', 'depositou', 'creditou', 'aportou', 'rendeu', 'lucrou', 'faturou', 'ganhamos', 'ganhei', 'ganhou', 'talvez', 'provavelmente', 'possivelmente', 'chutando', 'chutei', 'chute', 'aparentemente',
   'precisar', 'precisarei', 'comprarei', 'compraremos', 'pagaram', 'depositaram', 'transferiram', 'recebimento', 'repasse',
   'venda', 'vendas', 'vendi', 'vendemos', 'lucro', 'faturamento', 'orcar', 'contratar', 'quanto', 'quantos', 'qual', 'quais']);
 // "meio fio", "meia cana", "meia parede", "meio tijolo": nome de peça, não metade de nada.
@@ -254,7 +254,7 @@ const CONTRATO_SEM_MOEDA = / (aditivo|retencao|caucao|garantia|no orcamento|do o
 const PALAVRAS_PARA_EXIGIR_GASTO = 5;
 // Lista de preços: "o m3 de areia 160", "quilo do prego 18" (unidade no começo da frase = preço de cada).
 const PRECO_DE_TABELA = /^ (o |a )?(m3|m2|metro|quilo|kg|saco|hora|litro|milheiro|tonelada|unidade|lata) (de|do|da|dos|das) /;
-const NAO_CUSTO = / (renda (do|familiar|mensal|bruta|liquida)|salarial|subiu para|aumentou para|passou para|proposta (aceita|aprovada|recebida|enviada)|(a |o )?(casa|imovel|terreno|apartamento) vale|vale [0-9]|ate agora|ate hoje|ate aqui|ate o momento|acumulado|desde o comeco|desde o inicio|estour(ou|ar|amos) (o )?orcamento|pesquisar (o )?(orcamento|preco|valor)|simular|simulei|simulando|contrato [a-z0-9 ]*(assinado|assinamos|assinei|fechado)|multa contratual|saldo (da|do|de|em) (conta|caixa|banco)|saldo (bancario|disponivel|atual)|verba|limite|previsto|prevista|tabela|sinapi|aporte|extrato|meta|teto de gastos|teto maximo|teto do orcamento|teto orcamentario|estoque|poupanca|lembrar|lembrete|conferir|revisar|verificar|checar|medindo|mede|(a )?media de|estimado|estimada|capital|patrimonio|nota de credito|entrada de dinheiro|pe direito) /;
+const NAO_CUSTO = / (dinheiro do (financiamento|cliente|banco)|chegou o dinheiro|parcela da caixa|liberacao da caixa|orcamento (original|inicial|previsto|total|da obra)|(fechou|ficou|esta|estamos) (no )?(negativ[oa]|positiv[oa])|acima do previsto|abaixo do previsto|economiz[a-z]+|poup[a-z]+ |credito na loja|vale-compra|vale compra|vale presente|cashback|ja (saiu|sairam|gastamos|gastou|pagamos)|caso|se (eu|a gente|nos|voce|ele|ela|for|der|puder|fechar|comprar|pagar|precisar)|renda (do|familiar|mensal|bruta|liquida)|salarial|subiu para|aumentou para|passou para|proposta (aceita|aprovada|recebida|enviada)|(a |o )?(casa|imovel|terreno|apartamento) vale|vale [0-9]|ate agora|ate hoje|ate aqui|ate o momento|acumulado|desde o comeco|desde o inicio|estour(ou|ar|amos) (o )?orcamento|pesquisar (o )?(orcamento|preco|valor)|simular|simulei|simulando|contrato [a-z0-9 ]*(assinado|assinamos|assinei|fechado)|multa contratual|saldo (da|do|de|em) (conta|caixa|banco)|saldo (bancario|disponivel|atual)|verba|limite|previsto|prevista|tabela|sinapi|aporte|extrato|meta|teto de gastos|teto maximo|teto do orcamento|teto orcamentario|estoque|poupanca|lembrar|lembrete|conferir|revisar|verificar|checar|medindo|mede|(a )?media de|estimado|estimada|capital|patrimonio|nota de credito|entrada de dinheiro|pe direito) /;
 const ESTRANGEIRA =new Set(['dolar', 'dolares', 'euro', 'euros', 'libra', 'libras']);
 const SIMBOLO_ESTRANGEIRO = new Set(['us$', 'usd', 'u$s', 'eur', 'dolar', 'dolares', 'euro', 'euros']);
 // Flexões dos mesmos verbos ('estornaram', 'devolveu'...)
@@ -262,7 +262,7 @@ const RAIZ_CALCULO = /^(estorn|reembols|devolv|emprest|ressarc|(sobr|rest)(a|am|
 // Começo de um número escrito: "R$", dígitos ou palavra de número ("dois", "cem", "mil").
 const COMECO_DE_NUMERO = '(r\\$|[0-9][0-9.,]*|' + Object.keys(NUMEROS).join('|') + '|mil|meio|meia)';
 const ENTRE_VERBOS = '(apaga|apague|exclui|exclua|remove|remova|cancela|cancele|desfaz|desfaca|corrige|corrija|altera|altere|edita|edite|' +
-  'atualiza|atualize|substitui|substitua|anula|anule|esquece|ignora|retira|tira|troca|troque|muda|mude|mudar|alterar|corrigir|editar|atualizar|apagar|excluir|remover|desfazer|cancelar|substituir|anular)';
+  'atualiza|atualize|substitui|substitua|anula|anule|esquece|ignora|retira|tira|troca|troque|muda|mude|mudar|alterar|corrigir|editar|atualizar|apagar|excluir|remover|desfazer|cancelar|substituir|anular|reabre|reabra|restaura|restaure|duplica|duplique|copia|copie|repete|repita)';
 // Frases de dúvida, intenção, comando e receita (olham o texto todo, não uma palavra solta).
 const FRASES_SEM_VALOR = new RegExp(' (' + [
   // comando de edição: "apaga o último", "corrige para 700", "exclui o de 300"; "troca de fechadura" é serviço e passa
@@ -270,7 +270,7 @@ const FRASES_SEM_VALOR = new RegExp(' (' + [
   ENTRE_VERBOS + ' (o|a|os|as) de',
   // intenção e pergunta
   '(vou|vamos|preciso|precisamos|pretendo|pretendemos|queria|quero|tenho que|tenho de|temos que|precisa|planejo) (comprar|gastar|orcar|contratar|fechar)',
-  '(preciso|precisamos|precisa) de', '(iremos|vamos|ia) gastar', '(ia|iria|queria|gostaria de|pretendia) (pagar|comprar|mandar|depositar|transferir|contratar)', '(custa|custam|custaria|custara|seria|sera) ' + COMECO_DE_NUMERO,
+  '(preciso|precisamos|precisa) de', '(iremos|vamos|ia) gastar', '(ia|iria|queria|gostaria de|pretendia) (pagar|comprar|mandar|depositar|transferir|contratar)', '(custa|custam|custando|custaria|custara|seria|sera) ' + COMECO_DE_NUMERO,
   // quem fala não tem certeza
   '(acho|creio|penso|imagino|suponho|aposto|recordo|estimo|calculo) (que|q)', 'deve (ter|ser)', 'nao sei', 'sei la', 'nao lembro',
   'nao me engano', 'nao tenho certeza', 'sem certeza', 'por alto', 'a olho', 'parece que', 'me parece', 'mais ou menos', 'a menos',
@@ -290,6 +290,8 @@ const FRASES_SEM_VALOR = new RegExp(' (' + [
   'vou (conferir|confirmar|ver|checar|pensar)', 'a (conferir|confirmar|combinar|definir)', 'se (der|puder|conseguir|fechar|rolar|precisar|tiver|a gente)',
   'pode (ser|custar|ficar|sair)', 'vai (custar|sair|ficar)', 'deve (custar|ficar|sair)', 'custe',
   ENTRE_VERBOS + ' ((o|a) )?(valor|preco|total)', ENTRE_VERBOS + '( [a-z]+){1,3} (para|pra) ' + COMECO_DE_NUMERO,
+  // pedido de pix/transferência e aporte de sócio: "me faz um pix de 300", "o sócio colocou 30 mil no caixa"
+  '(me|nos) (faz|faca|fazer|fizer) (um |uma )?(pix|ted|doc|transferencia|deposito)', '(socio|socia|dono|dona|patrao) (colocou|botou|pos|investiu|aportou)',
   // dívida de outra pessoa conosco: "fulano deve 500 pra mim", "ele me deve 300"
   '(me|nos) (deve|devem|devia|devendo)', '(deve|devem) ' + COMECO_DE_NUMERO + '( [a-z]+)? (pra|para) (mim|gente|nos)',
   // outra pessoa pagou: "a dona Marlene pagou ela mesma a pintura"
@@ -754,7 +756,10 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
     // "2º andar 480": o andar vem antes do número, então o 480 continua sendo dinheiro
     const andarComOrdinal = prev === 'andar' && (numeroEscrito(ps[g.inicio - 2] ?? '') !== null || /^\d+º$/.test(ps[g.inicio - 2] ?? '') || /^(primeiro|segundo|terceiro|quarto|quinto|sexto|setimo|oitavo|nono|decimo)$/.test(ps[g.inicio - 2] ?? ''));
     // "parcela 3" é índice; "última parcela 2.000" é valor
-    const documento = DOCUMENTOS.has(prev) && !(/[.,]/.test(ps[g.inicio] ?? '') && !/^(cei|cno|nf|nfe|nfs|nfse|nf-e|cnpj|cpf|cep|processo|protocolo|matricula|telefone|fone|agencia|codigo|cod|ref|referencia|serie|modelo|pedido|romaneio|nota|fiscal)$/.test(prev)) && !andarComOrdinal && !(prev === 'parcela' && (g.valor ?? 0) > 99); // "segundo andar 480": o andar vem antes
+    // número com ponto ou vírgula de milhar ("9.360") é dinheiro mesmo depois de "nota"/"sala"; identificador (CEI, CPF, processo...) ou
+    // número com dois pontos ou mais ("000.123.456") continua sendo documento
+    const formatadoComoDinheiro = /[.,]/.test(ps[g.inicio] ?? '') && !/^(cei|cno|cnpj|cpf|cep|processo|protocolo|matricula|telefone|fone|agencia|codigo|cod|serie|modelo|romaneio)$/.test(prev) && (ps[g.inicio].match(/\./g) ?? []).length < 2;
+    const documento = DOCUMENTOS.has(prev) && !formatadoComoDinheiro && !andarComOrdinal && !(prev === 'parcela' && (g.valor ?? 0) > 99); // "segundo andar 480": o andar vem antes
     const minDigitos = ['crea', 'art', 'rrt', 'apolice', 'inscricao'].includes(prev) ? 5 : 4; // "anuidade do CREA 1150" é valor
     if ((documento || DOCUMENTOS_LONGOS.has(prev)) && ps[g.inicio].length >= minDigitos && /^\d+$/.test(ps[g.inicio])) return 'ruido'; // "nota fiscal 4521": número de documento
     if (/^(metros?|m|m2|m3|m²|m³|kg|quilos?|litros?|toneladas?)$/.test(depois)) return 'ruido'; // "25 kg", "6 metros": medida, não quantidade a conferir
@@ -1100,7 +1105,9 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
   // "pagar" solto ("fui pagar a areia") não diz se pagou: fica em branco, nunca "a pagar" por chute.
 
   // "A pagar sexta" / "a pagar dia 30" é vencimento no futuro; o interpretador só sabe voltar no tempo, então deixa em branco.
-  const data = pago === false && dataInfo.semMes ? null : dataFalada;
+  // (só é vencimento se a fala diz que vence/vai pagar; "dia 28 comprei a prazo" é a data da compra)
+  const vencimentoNaFala = / (vence|venc|vencimento|a vencer|vencer|pagar|vou pagar|para pagar|pra pagar|ate|pagamento) /.test(junto);
+  const data = pago === false && dataInfo.semMes && vencimentoNaFala ? null : dataFalada;
 
   const numerosDeOutrasObras = new Set<number>();
   // Só desconfia de número igual ao de outra obra quando a fala já citou uma obra ("lote 39 cimento 12"): sem obra citada, 12 é só 12.
