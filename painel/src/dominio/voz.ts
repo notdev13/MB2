@@ -253,7 +253,7 @@ const PECA_COM_MEIO = /^(fio|cana|parede|tijolo|agua|bloco|esquadria)$/;
 const ESTRANGEIRA =new Set(['dolar', 'dolares', 'euro', 'euros', 'libra', 'libras']);
 const SIMBOLO_ESTRANGEIRO = new Set(['us$', 'usd', 'u$s', 'eur', 'dolar', 'dolares', 'euro', 'euros']);
 // Flexões dos mesmos verbos ('estornaram', 'devolveu'...)
-const RAIZ_CALCULO = /^(estorn|reembols|devolv|emprest|ressarc)/;
+const RAIZ_CALCULO = /^(estorn|reembols|devolv|emprest|ressarc|(sobr|rest)(a|am|aram|ando)$)/;
 // Começo de um número escrito: "R$", dígitos ou palavra de número ("dois", "cem", "mil").
 const COMECO_DE_NUMERO = '(r\\$|[0-9][0-9.,]*|' + Object.keys(NUMEROS).join('|') + '|mil|meio|meia)';
 const ENTRE_VERBOS = '(apaga|apague|exclui|exclua|remove|remova|cancela|cancele|desfaz|desfaca|corrige|corrija|altera|altere|edita|edite|' +
@@ -620,7 +620,14 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
     if (NOME_LUGAR.has(p) && !RUAS.has(p) && começaNumero(ps[i + 1])) ruido.add(i + 1); // "residencial dez de abril"
     // "pedreiro 450 faz 450 dias": ninguém sabe de que dia
     if ((p === 'faz' || p === 'ha') && (inteiro(ps[i + 1]) ?? 0) > 365 && TEMPO.has(ps[i + 2] ?? '')) diasAbsurdos = true;
-    if (TELEFONE.has(p)) for (let k = i + 1; k <= i + 4 && ehDigitos(ps[k]); k++) ruido.add(k);
+    if (TELEFONE.has(p)) {
+      // "telefone 48 3333 4455" ou "telefone do Jair 48 3333 4455": até 3 palavras de nome antes dos números
+      let k = i + 1;
+      while (k <= i + 4 && !ehDigitos(ps[k]) && /^[a-z]+$/.test(ps[k] ?? '') && !começaNumero(ps[k])) k++;
+      const seq: number[] = [];
+      for (let q = k; ehDigitos(ps[q]); q++) seq.push(q);
+      if (seq.length && (k === i + 1 || seq.reduce((t, q) => t + ps[q].length, 0) >= 8)) seq.forEach((q) => ruido.add(q));
+    }
     if (p === 'parcela' && inteiro(ps[i + 1]) !== null && ps[i + 2] === 'de' && inteiro(ps[i + 3]) !== null) { ruido.add(i + 1); ruido.add(i + 3); } // "parcela 3 de 10"
     // "4 de 12", "1 de 3": posição numa série (parcela, boleto), não valor
     const serieA = /^\d{1,2}$/.test(p) ? Number(p) : null;
@@ -637,7 +644,8 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
     const a = numeroEscrito(p);
     const c = numeroEscrito(ps[i + 2] ?? '');
     if (a !== null && a <= 999 && ps[i + 1] === 'por' && c !== null && c <= 999 && !usadas.has(i) && !usadas.has(i + 2) &&
-      ((a < 10 && c < 10) || (a >= 10 && a <= 99 && c >= 10 && c <= 99) || ps[i + 3] === 'de') && // "120 por 100 de alumínio" (medida em cm)
+      // medidas do mesmo objeto são da mesma ordem de grandeza ("82 por 210", "2 por 4"); "12 por 480" é quantidade e preço
+      ((a > 0 && c > 0 && Math.max(a, c) / Math.min(a, c) <= 5) || ps[i + 3] === 'de') && // "120 por 100 de alumínio" (medida em cm)
       !MOEDA.has(ps[i + 3] ?? '') && !(ps[i + 3] === 'r$' && !começaNumero(ps[i + 4])) &&
       ps[i - 1] !== 'r$' && ps[i + 1 - 1] !== 'r$') { ruido.add(i); ruido.add(i + 2); } // "tábua de 2 por 4", "telha 40 por 40"
   });
@@ -674,6 +682,7 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
     if (marcadoDe(g)) return 'candidato'; // "R$ 480 cômodo 2", "nota 800 reais": o dinheiro vence
     const prev = ps[g.inicio - 1] ?? '';
     const depois = ps[g.fim] ?? '';
+    if (depois === 'a' && originais[g.fim] === 'A' && !começaNumero(ps[g.fim + 1])) return 'ruido'; // "disjuntor 32 A": ampere
     if (MEDIDA_TECNICA.has(depois) && depois !== 'metros' && depois !== 'm2' && depois !== 'm3' && depois !== 'm²' && depois !== 'm³') return 'ruido';
     const maoDeObra = prev === 'obra' && ps[g.inicio - 2] === 'de' && ps[g.inicio - 3] === 'mao'; // "mão de obra 95": é o valor
     // "ordem de serviço 17", "OS 17": número do documento, qualquer tamanho
@@ -696,7 +705,7 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
     // "2º andar 480": o andar vem antes do número, então o 480 continua sendo dinheiro
     const andarComOrdinal = prev === 'andar' && (numeroEscrito(ps[g.inicio - 2] ?? '') !== null || /^\d+º$/.test(ps[g.inicio - 2] ?? '') || /^(primeiro|segundo|terceiro|quarto|quinto|sexto|setimo|oitavo|nono|decimo)$/.test(ps[g.inicio - 2] ?? ''));
     // "parcela 3" é índice; "última parcela 2.000" é valor
-    const documento = DOCUMENTOS.has(prev) && !andarComOrdinal && !(prev === 'parcela' && (g.valor ?? 0) > 99); // "segundo andar 480": o andar vem antes
+    const documento = DOCUMENTOS.has(prev) && !(/[.,]/.test(ps[g.inicio] ?? '') && /^(cheque|recibo|fatura|duplicata|comprovante|parcela|conta|orcamento|contrato)$/.test(prev)) && !andarComOrdinal && !(prev === 'parcela' && (g.valor ?? 0) > 99); // "segundo andar 480": o andar vem antes
     const minDigitos = ['crea', 'art', 'rrt', 'apolice', 'inscricao'].includes(prev) ? 5 : 4; // "anuidade do CREA 1150" é valor
     if ((documento || DOCUMENTOS_LONGOS.has(prev)) && ps[g.inicio].length >= minDigitos && /^\d+$/.test(ps[g.inicio])) return 'ruido'; // "nota fiscal 4521": número de documento
     if (/^(metros?|m|m2|m3|m²|m³|kg|quilos?|litros?|toneladas?)$/.test(depois)) return 'ruido'; // "25 kg", "6 metros": medida, não quantidade a conferir
@@ -935,7 +944,7 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
       // "orçamento do pintor 4 mil mas ainda não fechei": orçamento que ainda não foi aceito não é custo
       (ps.some((p) => /^(orcamento|cotacao|proposta|estimativa)$/.test(p)) && / (ainda nao|nao fechei|nao fechamos|nao fechou|nao aprovei|nao aprovamos|aguardando|esperando|sem fechar) /.test(junto)) ||
       / pagou( [a-z0-9$.,]+){1,4} (o|a|pelo|pela) cliente /.test(junto) || // "pagou 450 de areia o cliente": o cliente pagou, é receita
-      ps.some((p, i) => (CALCULO.has(p) && !(p === 'cada' && (cadaConsumido || pista(e))) &&
+      ps.some((p, i) => (CALCULO.has(p) && !(p === 'cada' && (cadaConsumido || /^(total|tot|igual)$/.test(ps[e.inicio - 1] ?? ''))) &&
         !(p === 'troco' && ps[i + 1] === 'de' && !começaNumero(ps[i + 2]) && ps[i + 2] !== 'r$') && // "troco de fechadura" é serviço; "troco de 50" é conta
         !(/^(recebi|recebemos)$/.test(p) && ps.some((q) => GASTO_NA_FALA.test(q)) && !ps.slice(i + 1, i + 3).some((q) => começaNumero(q) || q === 'r$'))) || RAIZ_CALCULO.test(p))) anula(); // "recebi o cimento, paguei 360"
     // "meio dia de servente 150", "meia hora": metade de alguma coisa que não é "dois e meio"/"meio milhão";
@@ -1010,7 +1019,7 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
   let pago: boolean | null = null;
   // Sinais fortes: dizem que ainda não foi pago. "paguei"/"quitei" vencem os fracos (boleto atrasado, fiado,
   // "pagar" solto), que só descrevem a conta: "paguei o boleto atrasado" já está pago.
-  if (/ (a pagar|falta pagar|vou pagar|vamos pagar|vai pagar|para pagar|pra pagar|em aberto|a prazo|ainda nao paguei|nao paguei|nao foi pago|nao foi paga|nao pagou|ainda nao pagou|nao pago|pendente|pendurado|pendurei|devo|vence|vencimento|a vencer|vai vencer|vencer|vencendo|preciso pagar|(vai|vou|vao) cobrar|tenho que pagar|tenho de pagar|pagar (dia|amanha|depois|segunda|terca|quarta|quinta|sexta|sabado|domingo)|(amanha|depois|semana|vem|mes|proximo|proxima|tarde|noite|segunda|terca|quarta|quinta|sexta|sabado|domingo) pagar|mais tarde pago|mais tarde pagar) /.test(junto)) pago = false;
+  if (/ (a pagar|falta pagar|vou pagar|vamos pagar|vai pagar|para pagar|pra pagar|em aberto|a prazo|ainda nao paguei|nao paguei|nao quitei|nao quitamos|ainda nao quitei|nao foi pago|nao foi paga|nao pagou|ainda nao pagou|nao pago|pendente|pendurado|pendurei|devo|vence|vencimento|a vencer|vai vencer|vencer|vencendo|preciso pagar|(vai|vou|vao) cobrar|tenho que pagar|tenho de pagar|pagar (dia|amanha|depois|segunda|terca|quarta|quinta|sexta|sabado|domingo)|(amanha|depois|semana|vem|mes|proximo|proxima|tarde|noite|segunda|terca|quarta|quinta|sexta|sabado|domingo) pagar|mais tarde pago|mais tarde pagar) /.test(junto)) pago = false;
   else if (parcelado) pago = disseuPago ? null : false;
   else if (disseuPago) pago = true;
   else if (/ (acabei de|terminei de|acabamos de) pagar /.test(junto)) pago = true;
