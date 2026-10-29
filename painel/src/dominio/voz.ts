@@ -149,14 +149,14 @@ function lerNumero(ps: string[], i: number): Numero | null {
 function contagemDeMaterial(ps: string[], g: { inicio: number; fim: number }): boolean {
   const w = ps[g.fim];
   if (!w || ps[g.inicio - 1] === 'r$' || !w.endsWith('s')) return false;
-  return MAPA_CATEGORIA.get(w.slice(0, -1)) === 'Materiais (M)';
+  return daCategoria(w.slice(0, -1)) === 'Materiais (M)';
 }
 
 // "40 reais o saco", "300 a janela": depois de "o/a/por" vem a unidade ou o material, então é preço de cada.
 function precoPorUnidade(w: string | undefined): boolean {
   if (!w) return false;
-  return UNIDADES.has(w) || TEMPO.has(w) || PRECO_POR.has(w) || MAPA_CATEGORIA.get(w) === 'Materiais (M)' ||
-    MAPA_CATEGORIA.get(w.replace(/s$/, '')) === 'Materiais (M)';
+  return UNIDADES.has(w) || TEMPO.has(w) || PRECO_POR.has(w) || daCategoria(w) === 'Materiais (M)' ||
+    daCategoria(w.replace(/s$/, '')) === 'Materiais (M)';
 }
 
 function numerosDe(ps: string[]): Numero[] {
@@ -414,7 +414,9 @@ const PALAVRAS_CATEGORIA: [string, Categoria][] = [
     'celesc casan copel internet combustivel gasolina diesel'),
   ['consorcio', 'Consórcio'],
 ];
-const MAPA_CATEGORIA = new Map(PALAVRAS_CATEGORIA);
+// Chaves simplificadas (sem acento, letra repetida vira uma): "terraplenagem" e "ferro" casam com o que a fala vira.
+const MAPA_CATEGORIA = new Map(PALAVRAS_CATEGORIA.map(([p, c]) => [simplificar(p), c] as [string, Categoria]));
+const daCategoria = (w: string) => MAPA_CATEGORIA.get(simplificar(w));
 
 const VAZIAS = new Set([
   '', // o "|" de fim de frase
@@ -613,7 +615,7 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
  // A pessoa disse um valor com "R$"/"reais" e sobrou outro número solto ("tinta R$ 250 e depois frete 150"):
   // dois lançamentos numa fala. Só passa se o valor veio depois de "por"/"total", ou se o resto é medida de material ("brita 2").
   const medidaDeMaterial = (g: { inicio: number; centavos: number | null }) =>
-    g.centavos !== null && g.centavos % 100 === 0 && g.centavos <= 900 && MAPA_CATEGORIA.has(ps[g.inicio - 1] ?? '');
+    g.centavos !== null && g.centavos % 100 === 0 && g.centavos <= 900 && daCategoria(ps[g.inicio - 1] ?? '') !== undefined;
   // Sobras que não são dinheiro: prazo ("12 meses", "5 anos"), ano ("2026") e número falado pequeno ("Quatro Irmãos").
   const sobraSemValor = (g: { inicio: number; fim: number; centavos: number | null }) =>
     /^(ano|anos|mes|meses)$/.test(ps[g.fim] ?? '') || /^(19|20)\d\d$/.test(ps[g.inicio]) ||
