@@ -9,7 +9,7 @@
     "preview": "vite preview --host",
     "test": "vitest run",
     "check": "tsc --noEmit && tsc -p tsconfig.node.json && vitest run",
-    "voz:medir": "VOZ_MEDIR=1 vitest run src/dominio/voz.medir.test.ts --reporter=verbose",
+    "voz:medir": "VOZ_MEDIR=1 vitest run src/dominio/voz.medir.test.ts src/dominio/voz.revisor.medir.test.ts src/dominio/voz.cega2.medir.test.ts --reporter=verbose",
     "pagina": "vite build && node scripts/pagina_unica.mjs",
     "iphone": "node scripts/apresentacao_iphone.mjs"
   },

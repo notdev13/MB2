@@ -8,6 +8,8 @@ import { VALIDACAO5 } from './voz.validacao5';
 import { VALIDACAO6 } from './voz.validacao6';
 import { VALIDACAO7 } from './voz.validacao7';
 import { VALIDACAO8 } from './voz.validacao8';
+import { VALIDACAO9 } from './voz.validacao9';
+import { VALIDACAO10 } from './voz.validacao10';
 
 // Conjunto "cega2": 1.020 frases escritas por um revisor independente (sintéticas). Entra como conjunto fixo de treino.
 // Desacordos conhecidos e aceitos (o revisor espera outra coisa; anotados no relatório):
@@ -110,6 +112,16 @@ describe('validação 7 (agora treino)', () => {
 // ("versão 2 do projeto arquiteto 1.500"); depois virou treino.
 describe('validação 8 (agora treino)', () => {
   const m = medirLinhas(VALIDACAO8);
+  it('nenhum valor errado, nenhuma regressão de campos', () => {
+    expect(m.errados).toEqual([]);
+    expect(m.secundarios).toEqual([]);
+  });
+});
+
+// Validações 9 e 10 (rodada 67): distribuição realista (80% gasto). Medidas ANTES de qualquer ajuste, no código da rodada 66:
+// 2 valores errados em 206 (0,97%), 2 brancos em 147 frases comuns (1,4%), 0 regressões de pagamento/pago. Depois viraram treino.
+describe('validações 9 e 10 (agora treino)', () => {
+  const m = medirLinhas([...VALIDACAO9, ...VALIDACAO10]);
   it('nenhum valor errado, nenhuma regressão de campos', () => {
     expect(m.errados).toEqual([]);
     expect(m.secundarios).toEqual([]);

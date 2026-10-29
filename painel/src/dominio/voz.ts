@@ -281,7 +281,7 @@ const FRASES_SEM_VALOR = new RegExp(' (' + [
   '(proposta|cotacao|orcamento|estimativa|previsao|simulacao) de ' + COMECO_DE_NUMERO, 'receita (de|da|do)',
   // combinado ou pedido ainda não é pagamento: "combinei 3 mil com o pintor", "o pintor pediu 3 mil"
   '(combinei|combinamos|pediu|pediram|ofereceu|ofereceram|prometi|prometeu|propos) (de |em |uns )?' + COMECO_DE_NUMERO,
-  'cliente (me |nos )?(pagou|pagaram|depositou|transferiu|mandou|enviou|passou)',
+  'cliente (me |nos )?(pagou|pagaram|depositou|transferiu)', 'cliente (me |nos )?(mandou|enviou|passou) (de |uns |mais )?' + COMECO_DE_NUMERO,
   // alguém pagou ou liberou dinheiro PARA nós: entrada, não custo
   '(me|nos) (pagou|pagaram|depositou|depositaram|transferiu|transferiram|mandou|mandaram|devolveu|devolveram)', '(banco|financeira|caixa) (liberou|liberaram|creditou|aprovou)', '(liberou|liberaram|creditou|creditaram|emprestou|emprestaram)',
   // desejo, conversa em andamento e comando de edição com o valor no fim
@@ -290,6 +290,8 @@ const FRASES_SEM_VALOR = new RegExp(' (' + [
   'vou (conferir|confirmar|ver|checar|pensar)', 'a (conferir|confirmar|combinar|definir)', 'se (der|puder|conseguir|fechar|rolar|precisar|tiver|a gente)',
   'pode (ser|custar|ficar|sair)', 'vai (custar|sair|ficar)', 'deve (custar|ficar|sair)', 'custe',
   ENTRE_VERBOS + ' ((o|a) )?(valor|preco|total)', ENTRE_VERBOS + '( [a-z]+){1,3} (para|pra) ' + COMECO_DE_NUMERO,
+  // outra pessoa pagou: "a dona Marlene pagou ela mesma a pintura"
+  'pagou (ela|ele|elas|eles) (mesm[oa]s?|proprio|propria)', 'por conta (dele|dela|deles|delas)',
   // recado para ligar para alguém: "ligar pro fornecedor 48 99912 3456 areia 500"
   '(ligar|ligue|liga) (pro|pra|para|no|na|ao|a) [a-z]+',
   // pedido de dinheiro, oferta, salário e valor que falta: nada disso é um pagamento já feito
@@ -314,7 +316,7 @@ const RUAS = new Set(['rua', 'avenida', 'av', 'travessa', 'alameda', 'rodovia', 
 const TELEFONE = new Set(['telefone', 'fone', 'tel', 'celular', 'whats', 'whatsapp', 'zap', 'contato']);
 // Número que descreve o lugar ou o material, não é valor: "banheiro 2", "cômodo 25", "cp 2", "brita 1".
 const TAMANHOS = new Set(['tamanho', 'tam', 'bota', 'botina', 'calca', 'camisa', 'camiseta', 'sapato', 'tenis', 'luva']); // numeração de roupa/calçado vai até 99
-const SPEC_PREFIX =new Set(['tamanho', 'tam', 'bota', 'botina', 'calca', 'camisa', 'camiseta', 'sapato', 'tenis', 'luva', 'dn', 'km', 'etapa', 'fase', 'parte', 'medicao', 'boletim', 'pav', 'pavimento', 'cp', 'classe', 'banheiro', 'quarto', 'suite', 'cozinha', 'comodo', 'bloco', 'galpao', 'torre', 'andar', 'fck', 'semana', 'mes', 'versao', 'revisao', 'folha', 'prancha', 'trimestre', 'semestre', 'quinzena', 'voltagem', 'tensao', 'cota', 'nivel']);
+const SPEC_PREFIX =new Set(['tamanho', 'tam', 'bota', 'botina', 'calca', 'camisa', 'camiseta', 'sapato', 'tenis', 'luva', 'dn', 'km', 'etapa', 'fase', 'parte', 'medicao', 'boletim', 'pav', 'pavimento', 'cp', 'classe', 'banheiro', 'quarto', 'suite', 'cozinha', 'comodo', 'bloco', 'galpao', 'torre', 'andar', 'fck', 'lancamento', 'semana', 'mes', 'versao', 'revisao', 'folha', 'prancha', 'trimestre', 'semestre', 'quinzena', 'voltagem', 'tensao', 'cota', 'nivel']);
 // Medida técnica logo depois do número ("8 milímetros", "220 volts"): o número descreve o material, não é valor nem quantidade.
 const MEDIDA_TECNICA = new Set(['km', 'gb', 'mb', 'tb', 'mega', 'gbps', 'mbps', 'va', 'dbi', 'milimetro', 'milimetros', 'mm', 'centimetro', 'centimetros', 'cm', 'polegada', 'polegadas', 'volt', 'volts', 'v',
   'ampere', 'amperes', 'watts', 'w', 'hz', 'btu', 'btus', 'kva', 'kw', 'kwh', 'kwp', 'cv', 'hp', 'graus', 'rpm', 'bar', 'psi', 'ohms', 'mpa', 'kgf',
@@ -666,7 +668,7 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
     const serieB = /^\d{1,2}$/.test(ps[i + 2] ?? '') ? Number(ps[i + 2]) : null;
     if (serieA !== null && serieB !== null && ps[i + 1] === 'de' && serieA <= serieB && serieB <= 30 && !MOEDA.has(ps[i + 3] ?? '') && ps[i + 3] !== 'r$') { ruido.add(i); ruido.add(i + 2); }
     if (p === 'x') for (const k of [i - 1, i + 1]) if (começaNumero(ps[k])) ruido.add(k); // "38 x 20 = 760"
-    if (p === 'em' && /^20\d\d$/.test(ps[i + 1] ?? '') && !MOEDA.has(ps[i + 2] ?? '')) ruido.add(i + 1); // "em 2026": ano
+    if ((p === 'em' || p === 'de') && /^20\d\d$/.test(ps[i + 1] ?? '') && !MOEDA.has(ps[i + 2] ?? '')) ruido.add(i + 1); // "em 2026", "de 2026": ano
     // "escala 1 para 50", "talude 1 para 1": razão entre dois números
     if (/^\d{1,4}$/.test(p) && ps[i + 1] === 'para' && /^\d{1,4}$/.test(ps[i + 2] ?? '') && !MOEDA.has(ps[i + 3] ?? '') && ps[i + 3] !== 'r$' && !VERBO_GASTO.test(ps[i - 1] ?? '')) { ruido.add(i); ruido.add(i + 2); }
     // três grupos de dígitos juntos (48 99988 7766): telefone ou chave pix
@@ -860,7 +862,7 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
       if (dia !== null && dia <= 31 && g.valor !== null && g.valor > 31) centavos = null;
       // "1 de 3", "20-10": traços e barras de data
       // "gastei 2,5", "ferro 2,5": uma casa decimal sem "R$"/"reais" é medida ou "2,5 mil", não R$ 2,50
-      if (!moeda && g.fim === g.inicio + 1 && /^\d+,\d$/.test(ps[g.inicio])) centavos = null;
+      if (!moeda && g.fim === g.inicio + 1 && /^[1-9]\d*,\d$/.test(ps[g.inicio])) centavos = null;
       if (remover && centavos !== null) removidos.push(centavos);
       return { inicio: g.inicio, fim, centavos, moeda, remover };
     })
