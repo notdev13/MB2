@@ -605,6 +605,10 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
     if ((p === 'faz' || p === 'ha') && (inteiro(ps[i + 1]) ?? 0) > 365 && TEMPO.has(ps[i + 2] ?? '')) diasAbsurdos = true;
     if (TELEFONE.has(p)) for (let k = i + 1; k <= i + 4 && ehDigitos(ps[k]); k++) ruido.add(k);
     if (p === 'parcela' && inteiro(ps[i + 1]) !== null && ps[i + 2] === 'de' && inteiro(ps[i + 3]) !== null) { ruido.add(i + 1); ruido.add(i + 3); } // "parcela 3 de 10"
+    // "4 de 12", "1 de 3": posição numa série (parcela, boleto), não valor
+    const serieA = /^\d{1,2}$/.test(p) ? Number(p) : null;
+    const serieB = /^\d{1,2}$/.test(ps[i + 2] ?? '') ? Number(ps[i + 2]) : null;
+    if (serieA !== null && serieB !== null && ps[i + 1] === 'de' && serieA <= serieB && !MOEDA.has(ps[i + 3] ?? '') && ps[i + 3] !== 'r$') { ruido.add(i); ruido.add(i + 2); }
     if (p === 'x') for (const k of [i - 1, i + 1]) if (começaNumero(ps[k])) ruido.add(k); // "38 x 20 = 760"
     const a = numeroEscrito(p);
     const c = numeroEscrito(ps[i + 2] ?? '');
@@ -637,7 +641,8 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
       (n >= 1 && n <= 9 && daCategoria(prev) === 'Materiais (M)' && !PERTO_DE_OUTRO_VALOR.test(depois)))) return 'ruido';
     // "2º andar 480": o andar vem antes do número, então o 480 continua sendo dinheiro
     const andarComOrdinal = prev === 'andar' && (numeroEscrito(ps[g.inicio - 2] ?? '') !== null || /^(primeiro|segundo|terceiro|quarto|quinto|sexto|setimo|oitavo|nono|decimo)$/.test(ps[g.inicio - 2] ?? ''));
-    const documento = DOCUMENTOS.has(prev) && !andarComOrdinal; // "segundo andar 480": o andar vem antes
+    // "parcela 3" é índice; "última parcela 2.000" é valor
+    const documento = DOCUMENTOS.has(prev) && !andarComOrdinal && !(prev === 'parcela' && (g.valor ?? 0) > 99); // "segundo andar 480": o andar vem antes
     if ((documento || DOCUMENTOS_LONGOS.has(prev)) && /^\d{4,}$/.test(ps[g.inicio])) return 'ruido'; // "nota fiscal 4521": número de documento
     if (/^(metros?|m|m2|m3|m²|m³|kg|quilos?|litros?|toneladas?)$/.test(depois)) return 'ruido'; // "25 kg", "6 metros": medida, não quantidade a conferir
     const rotuloDeLugar = SPEC_PREFIX.has(depois) && inteiro(ps[g.fim + 1]) !== null && (g.valor ?? 0) > 99; // "1200 andar 8", "480 cômodo 2": o 8 e o 2 são o lugar
@@ -714,7 +719,7 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
       const prefixo = ps.slice(Math.max(0, ant + 1 - 3), ant + 1).join(' ');
       if (/ (uns|umas|cerca|cerca de|aproximadamente|quase|mais ou menos|perto de|em torno de|tipo|mais de|menos de|na casa dos|na casa de|casa dos|acima de|abaixo de|ate|no maximo|no minimo|a partir de|por volta de|na faixa de|em media|media de)$/.test(' ' + prefixo)) centavos = null;
       // "mais 500 de areia": soma ou subtração, não um valor sozinho
-      if (ps[ant] === 'mais' || ps[ant] === 'menos') centavos = null;
+      if ((ps[ant] === 'mais' && ps[ant - 1] !== 'a') || ps[ant] === 'menos') centavos = null; // "paguei a mais, 350" é advérbio
       // "mil e pouco", "mil e tantos"
       if (ps[g.fim] === 'e' && /^(pouco|poucos|picos|tanto|tantos|alguma)$/.test(ps[g.fim + 1] ?? '')) centavos = null;
       // "3 vezes de 400", "10 parcelas de 300": não dá para saber se o lançamento é a parcela ou o total

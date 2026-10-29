@@ -14,7 +14,7 @@ export const CASOS_ROD29: Caso[] = [
   r('CEP 88063-000 frete 150', 150), r('Cliente do apto 302 pediu troca de piso, 1.400 reais', 1400),
   r('No dia 10, 11 e 12 trabalharam 3 pedreiros, 2.700 reais', 2700), r('Medição 3 da obra: 12.400 reais', 12400),
   r('Etapa 2 da laje, 8.000 de mão de obra', 8000), r('Fase 3, reboco, 5.500', 5500), r('Parte 2 do terreno 30 mil', 30000),
-  r('Torre 2 bloco 3 apto 41 pintura 7.800', 7800), r('Pagamento 1 de 3: 1.000', null),
+  r('Torre 2 bloco 3 apto 41 pintura 7.800', 7800), r('Pagamento 1 de 3: 1.000', 1000),
   r('Sessenta e cinco por cento do contrato, 12 mil', null), r('Saldo devedor 8.000, paguei 2.000', null),
   r('Foram 5 homens por 2 dias, 1.500 reais', 1500), r('Mais 2 ajudantes por 3 dias, 600', 600),
   r('6 sacos de cimento 38 cada, 228', 228), r('3 sacos de cimento a 38 cada: 114', 114), r('3 sacos de cimento 114', 114),
