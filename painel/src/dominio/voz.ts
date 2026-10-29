@@ -251,7 +251,10 @@ const PECA_COM_MEIO = /^(fio|cana|parede|tijolo|agua|bloco|esquadria)$/;
 // Palavras de quem fala de saldo, verba, previsão, tabela, aporte ou conferência: o número é outra coisa, não um gasto.
 // Cláusulas e garantias de contrato: sem "R$"/"reais" o número é do contrato; com "R$"/"reais" pode ser pagamento (caução, medição).
 const CONTRATO_SEM_MOEDA = / (aditivo|retencao|caucao|garantia|no orcamento|do orcamento|medicao [a-z0-9 ]*aprovad[oa]) /;
-const NAO_CUSTO = / (ate agora|ate hoje|ate aqui|ate o momento|acumulado|desde o comeco|desde o inicio|estour(ou|ar|amos) (o )?orcamento|pesquisar (o )?(orcamento|preco|valor)|simular|simulei|simulando|contrato [a-z0-9 ]*(assinado|assinamos|assinei|fechado)|multa contratual|saldo (da|do|de|em) (conta|caixa|banco)|saldo (bancario|disponivel|atual)|verba|limite|previsto|prevista|tabela|sinapi|aporte|extrato|meta|teto|estoque|poupanca|lembrar|lembrete|conferir|revisar|verificar|checar|medindo|mede|(a )?media de|estimado|estimada|capital|patrimonio|nota de credito|entrada de dinheiro|pe direito) /;
+const PALAVRAS_PARA_EXIGIR_GASTO = 5;
+// Lista de preços: "o m3 de areia 160", "quilo do prego 18" (unidade no começo da frase = preço de cada).
+const PRECO_DE_TABELA = /^ (o |a )?(m3|m2|metro|quilo|kg|saco|hora|litro|milheiro|tonelada|unidade|lata) (de|do|da|dos|das) /;
+const NAO_CUSTO = / (renda (do|familiar|mensal|bruta|liquida)|salarial|subiu para|aumentou para|passou para|proposta (aceita|aprovada|recebida|enviada)|(a |o )?(casa|imovel|terreno|apartamento) vale|vale [0-9]|ate agora|ate hoje|ate aqui|ate o momento|acumulado|desde o comeco|desde o inicio|estour(ou|ar|amos) (o )?orcamento|pesquisar (o )?(orcamento|preco|valor)|simular|simulei|simulando|contrato [a-z0-9 ]*(assinado|assinamos|assinei|fechado)|multa contratual|saldo (da|do|de|em) (conta|caixa|banco)|saldo (bancario|disponivel|atual)|verba|limite|previsto|prevista|tabela|sinapi|aporte|extrato|meta|teto|estoque|poupanca|lembrar|lembrete|conferir|revisar|verificar|checar|medindo|mede|(a )?media de|estimado|estimada|capital|patrimonio|nota de credito|entrada de dinheiro|pe direito) /;
 const ESTRANGEIRA =new Set(['dolar', 'dolares', 'euro', 'euros', 'libra', 'libras']);
 const SIMBOLO_ESTRANGEIRO = new Set(['us$', 'usd', 'u$s', 'eur', 'dolar', 'dolares', 'euro', 'euros']);
 // Flexões dos mesmos verbos ('estornaram', 'devolveu'...)
@@ -309,7 +312,7 @@ const RUAS = new Set(['rua', 'avenida', 'av', 'travessa', 'alameda', 'rodovia', 
 const TELEFONE = new Set(['telefone', 'fone', 'tel', 'celular', 'whats', 'whatsapp', 'zap', 'contato']);
 // Número que descreve o lugar ou o material, não é valor: "banheiro 2", "cômodo 25", "cp 2", "brita 1".
 const TAMANHOS = new Set(['tamanho', 'tam', 'bota', 'botina', 'calca', 'camisa', 'camiseta', 'sapato', 'tenis', 'luva']); // numeração de roupa/calçado vai até 99
-const SPEC_PREFIX =new Set(['tamanho', 'tam', 'bota', 'botina', 'calca', 'camisa', 'camiseta', 'sapato', 'tenis', 'luva', 'dn', 'km', 'etapa', 'fase', 'parte', 'medicao', 'boletim', 'pav', 'pavimento', 'cp', 'classe', 'banheiro', 'quarto', 'suite', 'cozinha', 'comodo', 'bloco', 'galpao', 'torre', 'andar']);
+const SPEC_PREFIX =new Set(['tamanho', 'tam', 'bota', 'botina', 'calca', 'camisa', 'camiseta', 'sapato', 'tenis', 'luva', 'dn', 'km', 'etapa', 'fase', 'parte', 'medicao', 'boletim', 'pav', 'pavimento', 'cp', 'classe', 'banheiro', 'quarto', 'suite', 'cozinha', 'comodo', 'bloco', 'galpao', 'torre', 'andar', 'fck']);
 // Medida técnica logo depois do número ("8 milímetros", "220 volts"): o número descreve o material, não é valor nem quantidade.
 const MEDIDA_TECNICA = new Set(['km', 'gb', 'mb', 'tb', 'mega', 'gbps', 'mbps', 'va', 'dbi', 'milimetro', 'milimetros', 'mm', 'centimetro', 'centimetros', 'cm', 'polegada', 'polegadas', 'volt', 'volts', 'v',
   'ampere', 'amperes', 'watts', 'w', 'hz', 'btu', 'btus', 'kva', 'kw', 'kwh', 'kwp', 'cv', 'hp', 'graus', 'rpm', 'bar', 'psi', 'ohms', 'mpa', 'kgf',
@@ -623,7 +626,7 @@ const parecido = (falado: string, nome: string) =>
 // ter certeza qual é o valor, devolve null com `duvida` verdadeiro (a tela pode avisar "confira o valor").
 // Princípio: número com "R$"/"reais" colado é dinheiro e nunca é descartado como quantidade ou documento;
 // o resto só vale se for o único que sobra e nada na fala o contradiz. Na dúvida, null.
-function acharValor(ps: string[], originais: string[], usadas: Set<number>, outrasObras: Set<number>): { valor: number | null; duvida: boolean } {
+function acharValor(ps: string[], originais: string[], usadas: Set<number>, outrasObras: Set<number>, vocabulario: Set<string>, pergunta = false): { valor: number | null; duvida: boolean } {
   const junto = ' ' + ps.join(' ') + ' ';
   const ehDigitos = (p: string | undefined) => /^\d+$/.test(p ?? '');
   const escritoEmCaixaAlta = !originais.some((w) => /[a-zà-ÿ]/.test(w)); // "300 A JANELA": tudo maiúsculo não diz nada sobre nome próprio
@@ -977,7 +980,7 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
     {
       const k = ps[e.inicio - 1] === 'r$' ? e.inicio - 2 : e.inicio - 1;
       const kk = ps[k] === 'de' && /^(é|está|esta)$/.test(originais[k - 1] ?? '') ? k - 1 : k; // "é de 22 mil"
-      if (!fechado && !pista(e) && /^(é|está|esta)$/.test(originais[kk] ?? '') && kk > 0 && !VAZIAS.has(ps[kk - 1]) && !ps.slice(Math.max(0, kk - 3), kk).some((w) => /^(valor|total|custo|gasto|gastos)$/.test(w))) anula();
+      if (!fechado && !pista(e) && /^(é|está|esta)$/.test(originais[kk] ?? '') && kk > 0 && !/^(hum|hm|ah|eh|ne|ta|entao|ok|olha|certo|pronto|bom|assim|tipo|paguei|pagou|gastei|comprei|foi|deu|dei)$/.test(ps[kk - 1]) && !ps.slice(Math.max(0, kk - 3), kk).some((w) => /^(valor|total|custo|gasto|gastos)$/.test(w))) anula();
     }
     // Parcelado sem "reais"/"R$": o número pode ser a parcela ou o total.
     if (!fechado && !e.moeda && / (\d+x|em \d+ x|\d+ vezes|[a-z]+ vezes|parcelas) /.test(junto)) anula();
@@ -987,14 +990,15 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
     // "casa 12 mil reais", "dia 5 mil reais": o 12 era da obra ou o valor era 12 mil?
     const usadoColadoAMil = ps.some((p, i) => usadas.has(i) && !usadas.has(i + 1) && (ehMilhar(ps[i + 1]) || ehMilhao(ps[i + 1])) && numeroEscrito(p) !== null);
     // Assuntos que não são custo: saldo, verba, previsão, tabela de preço, aporte, lembrete, conferência.
-    const naoECusto = NAO_CUSTO.test(junto) || (!e.moeda && CONTRATO_SEM_MOEDA.test(junto));
+    const naoECusto = NAO_CUSTO.test(junto) || PRECO_DE_TABELA.test(junto) || (!e.moeda && CONTRATO_SEM_MOEDA.test(junto));
     // Frase longa (6+ palavras) sem verbo de gasto, sem R$/reais, sem forma de pagamento e sem item de obra: comentário.
     const palavrasDeFala = ps.filter((w, i) => !usadas.has(i) && w.length >= 3 && !começaNumero(w) && !ehMilhao(w) && !/^[\d.,]+$/.test(w) && !VAZIAS.has(simplificar(w))).length;
     const singularW = (w: string) => (w.endsWith('s') ? w.slice(0, -1) : w);
     const comoGasto = e.moeda || ps.some((w) => VERBO_DE_LANCAMENTO.test(w) || daCategoria(w) !== undefined || daCategoria(singularW(w)) !== undefined ||
-      UNIDADES.has(w) || MEDIDA_TECNICA.has(w) || DOCUMENTOS.has(w) || TEMPO.has(w) || PAGAMENTOS.some(([re]) => re.test(w)) ||
+      UNIDADES.has(w) || MEDIDA_TECNICA.has(w) || DOCUMENTOS.has(w) || TEMPO.has(w) || PAGAMENTOS.some(([re]) => re.test(w)) || vocabulario.has(simplificar(w)) ||
       /^(guia|gps|darf|inss|fgts|iss|das|mei|simples|imposto|tributo|competencia|honorarios|custas|emolumentos|seguro|apolice)$/.test(w));
-    if (!fechado && palavrasDeFala >= 5 && !comoGasto) anula();
+    if (!fechado && palavrasDeFala >= PALAVRAS_PARA_EXIGIR_GASTO && !comoGasto) anula();
+    if (!fechado && pergunta && !e.moeda && !ps.some((w) => VERBO_DE_LANCAMENTO.test(w))) anula();
     const dataComTraco = ps.some((p) => /^\d{1,2}-\d{1,2}$/.test(p));
     if (negou || naoECusto || usadoColadoAMil || dataComTraco || diasAbsurdos || (ps.includes('financiamento') && ps.some((p) => p === 'meses' || p === 'anos')) || FRASES_SEM_VALOR.test(junto) ||
       // "orçamento do pintor 4 mil mas ainda não fechei": orçamento que ainda não foi aceito não é custo
@@ -1089,7 +1093,11 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
   const numerosDeOutrasObras = new Set<number>();
   // Só desconfia de número igual ao de outra obra quando a fala já citou uma obra ("lote 39 cimento 12"): sem obra citada, 12 é só 12.
   if (obraId !== null) for (const o of contexto.obras) if (o.id !== obraId) for (const w of palavras(o.nome)) if (/^\d+$/.test(w)) numerosDeOutrasObras.add(Number(w));
-  const { valor, duvida: duvidaValor } = acharValor(ps, palavrasOriginais(texto), usadas, numerosDeOutrasObras);
+  // Palavras dos lançamentos já feitos (itens, lojas, pessoas) e das obras: mostram que a fala é de gasto.
+  const vocabulario = new Set([...contexto.custos.flatMap((c) => significativas(c.descricao + ' ' + c.fornecedor)), ...contexto.obras.flatMap((o) => significativas(o.nome))]);
+  // Pergunta ("pode fechar por 4 mil e 800?") não é lançamento, a não ser que traga "reais" ou um verbo de gasto ("pode registrar que paguei 150?").
+  const pergunta = /\?\s*$/.test(texto.trim()) && !/(^|[\s,])(tá|ta|né|ne|certo|ok|beleza|viu|hein|não|nao|então|entao)\?\s*$/i.test(texto.trim()); // "tá?", "né?" no fim são só muleta de fala
+  const { valor, duvida: duvidaValor } = acharValor(ps, palavrasOriginais(texto), usadas, numerosDeOutrasObras, vocabulario, pergunta);
 
   // Categoria, descrição e fornecedor, do mais certo para o menos certo.
   const hist = aprender(contexto.custos);

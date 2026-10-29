@@ -6,6 +6,7 @@ import { VALIDACAO3 } from './voz.validacao3';
 import { VALIDACAO4 } from './voz.validacao4';
 import { VALIDACAO5 } from './voz.validacao5';
 import { VALIDACAO6 } from './voz.validacao6';
+import { VALIDACAO7 } from './voz.validacao7';
 
 // Conjunto "cega2": 1.020 frases escritas por um revisor independente (sintéticas). Entra como conjunto fixo de treino.
 // Desacordos conhecidos e aceitos (o revisor espera outra coisa; anotados no relatório):
@@ -87,6 +88,18 @@ describe('validação 6 (agora treino)', () => {
   const m = medirLinhas(VALIDACAO6);
   it('nenhum valor errado, nenhuma regressão de campos', () => {
     expect(m.errados).toEqual([]);
+    expect(m.secundarios).toEqual([]);
+  });
+});
+
+// Validação 7 (rodada 65): gastos comuns de vocabulário novo + frases que não são gasto. Medida ANTES dos ajustes:
+// 14 valores errados em 116 (valor de mercado, salário, preço de tabela, pergunta, "fck"); depois virou treino.
+// Dois erros ficam como limite conhecido: "contrato com o pintor 6 mil" e "avaliação do imóvel 520 mil" não se distinguem
+// de um gasto real ("contrato com o pintor 6 mil" pago, "avaliação do imóvel 600" taxa do avaliador) sem saber o que o dono quis dizer.
+describe('validação 7 (agora treino)', () => {
+  const m = medirLinhas(VALIDACAO7);
+  it('só os limites conhecidos ficam errados; nenhuma regressão de campos', () => {
+    expect(m.errados.map((e) => e.split(' => ')[0]).sort()).toEqual(['avaliação do imóvel 520 mil', 'contrato com o pintor 6 mil']);
     expect(m.secundarios).toEqual([]);
   });
 });
