@@ -67,6 +67,8 @@ function numeroEscrito(p: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+// Palavras que, logo depois de "2 mil 500", mostram que o 500 era outra coisa (quantidade).
+const UNIDADES_NUMERO = new Set(['sacos', 'metros', 'dias', 'horas', 'unidades', 'pecas', 'caixas', 'latas', 'kg']);
 const palavraNum = (p: string | undefined) => (p !== undefined && Object.hasOwn(NUMEROS, p) ? NUMEROS[p] : undefined);
 const ehMilhar = (p: string | undefined) => p === 'mil';
 const ehMilhao = (p: string | undefined) => p === 'milhao' || p === 'milhoes';
@@ -118,8 +120,11 @@ function lerNumero(ps: string[], i: number): Numero | null {
     if (emK !== null) escala = 1000;
     else if (mult) { total *= mult; escala = mult; j++; }
     // "5 mil e 500"
-    const resto = ps[j] === 'e' && mult === 1000 && emK === null ? numeroEscrito(ps[j + 1] ?? '') : null;
-    if (resto !== null && Number.isInteger(resto) && resto >= 1 && resto < 1000) { total += resto; j += 2; escala = 0; }
+    const comE = ps[j] === 'e';
+    const resto = mult === 1000 && emK === null ? numeroEscrito(ps[comE ? j + 1 : j] ?? '') : null;
+    const fimResto = comE ? j + 2 : j + 1;
+    if (resto !== null && Number.isInteger(resto) && resto >= 1 && resto < 1000 && /^\d+$/.test(ps[comE ? j + 1 : j]) &&
+      !(UNIDADES_NUMERO.has(ps[fimResto] ?? ''))) { total += resto; j = fimResto; escala = 0; } // "5 mil e 500", "2 mil 500"
   } else {
     let algo = false;
     for (const [teste, mult] of [[ehMilhao, 1_000_000], [ehMilhar, 1000]] as const) {
@@ -758,10 +763,25 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
   return { valor, duvida: valor === null && (candidatos.length > 0 || descartados > 0) };
 }
 
+// O reconhecimento de voz erra a grafia de numeral ("sesenta", "quinhento", "sinco"). Sem corrigir, o número
+// pararia no pedaço certo e o valor sairia errado ("trezentos e sesenta" virava 300). Troca por uma edição só.
+const PALAVRAS_DE_NUMERO = [...Object.keys(NUMEROS), 'mil', 'milhao', 'milhoes'];
+function corrigeNumerais(ps: string[]): string[] {
+  return ps.map((w, i) => {
+    if (Object.hasOwn(NUMEROS, w) || ehMilhar(w) || ehMilhao(w) || !/^[a-z]+$/.test(w)) return w;
+    const depoisDeDezena = i >= 2 && ps[i - 1] === 'e' && (palavraNum(ps[i - 2]) ?? 0) >= 20;
+    if (w.length < 7 && !(depoisDeDezena && w.length >= 3)) return w;
+    const alvos = PALAVRAS_DE_NUMERO.filter((a) => quase(w, a) && (w.length >= 7 || (palavraNum(a) ?? 99) <= 9));
+    // "sesenta" está a uma letra de "sessenta" (faltou o s) e de "setenta" (trocou o s): vale o que só tem letra a mais ou a menos
+    const insDel = alvos.filter((a) => a.length !== w.length);
+    return alvos.length === 1 ? alvos[0] : insDel.length === 1 ? insDel[0] : w;
+  });
+}
+
 // ---- tudo junto ----
 
 export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos: Custo[]; hoje: string }): Interpretacao {
-  const ps = palavras(texto);
+  const ps = corrigeNumerais(palavras(texto));
   const usadas = new Set<number>();
   const simples = ps.map(simplificar);
 
