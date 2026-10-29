@@ -192,31 +192,37 @@ const DOCUMENTOS = new Set(['nota', 'nf', 'pedido', 'orcamento', 'ordem', 'chequ
 // Só para "X reais a dúzia": preço por unidade; "duas dúzias" sozinho continua valendo como número solto.
 const PRECO_POR = new Set(['duzia', 'duzias', 'metro', 'dia', 'degrau', 'lance', 'trecho', 'pe', 'centimetro']);
 const TEMPO = new Set(['dias', 'hora', 'horas', 'diaria', 'diarias', 'semana', 'semanas', 'meses']);
-// Palavras que tiram o valor falado do lançamento: conta, estimativa, receita, pergunta, intenção.
-// Só entram palavras que quase nunca aparecem num serviço ou material de obra.
-const CALCULO = new Set(['cada', 'metade', 'dobro', 'triplo', 'terco', 'desconto', 'abatimento', 'troco', 'sobrou', 'restou', 'restante',
-  'diferenca', 'estorno', 'estornei', 'reembolso', 'reembolsei', 'devolveram', 'devolvi', 'devolucao', 'cotacao', 'cotei',
-  'simulacao', 'estimativa', 'previsao', 'recebi', 'recebemos', 'recebido', 'aumentou', 'aumento', 'aumentaram', 'reajuste',
-  'reajustou', 'subiu', 'caiu', 'acrescimo',
-  // quem fala não tem certeza, ou é receita/empréstimo
-  'acho', 'talvez', 'creio', 'engano', 'lembro', 'provavelmente', 'possivelmente', 'chutando', 'chutei', 'chute',
-  'imagino', 'suponho', 'aposto', 'aparentemente', 'penso', 'recordo', 'estimo', 'precisar', 'precisarei', 'comprarei',
-  'compraremos', 'pagaram', 'depositaram', 'transferiram', 'recebimento', 'repasse', 'repassei', 'caucao', 'venda', 'vendas',
-  'vendi', 'vendemos', 'lucro', 'faturamento',
-  // pergunta ou preço de tabela
-  'orcar', 'contratar', 'quanto', 'quantos', 'qual', 'quais', 'queria', 'quero', 'pretendo', 'pretendemos', 'planejo', 'custa',
-  'custam', 'custaria', 'custara', 'seria', 'sera']);
+// Palavras que tiram o valor falado do lançamento: conta, receita, empréstimo, dúvida de quem fala.
+// Só entram palavras que quase nunca aparecem num serviço ou material de obra; o resto fica em FRASES_SEM_VALOR,
+// que exige o contexto ("subiu 200", "proposta de 12 mil", "acho que").
+const CALCULO = new Set(['cada', 'metade', 'dobro', 'triplo', 'terco', 'desconto', 'abatimento', 'troco', 'sobrou', 'restou',
+  'diferenca', 'estorno', 'estornei', 'reembolso', 'reembolsei', 'devolveram', 'devolvi', 'devolucao', 'cotei',
+  'recebi', 'recebemos', 'talvez', 'provavelmente', 'possivelmente', 'chutando', 'chutei', 'chute', 'aparentemente',
+  'precisar', 'precisarei', 'comprarei', 'compraremos', 'pagaram', 'depositaram', 'transferiram', 'recebimento', 'repasse',
+  'repassei', 'venda', 'vendas', 'vendi', 'vendemos', 'lucro', 'faturamento', 'orcar', 'contratar', 'quanto', 'quantos', 'qual', 'quais']);
 const ESTRANGEIRA = new Set(['dolar', 'dolares', 'euro', 'euros', 'libra', 'libras']);
 const SIMBOLO_ESTRANGEIRO = new Set(['us$', 'usd', 'u$s', 'eur', 'dolar', 'dolares', 'euro', 'euros']);
 // Flexões dos mesmos verbos ('estornaram', 'devolveu'...)
-const RAIZ_CALCULO = /^(estorn|reembols|devolv|aument|reajust|emprest|ressarc)/;
+const RAIZ_CALCULO = /^(estorn|reembols|devolv|emprest|ressarc)/;
+// Começo de um número escrito: "R$", dígitos ou palavra de número ("dois", "cem", "mil").
+const COMECO_DE_NUMERO = '(r\\$|[0-9][0-9.,]*|' + Object.keys(NUMEROS).join('|') + '|mil|meio|meia)';
+const ENTRE_VERBOS = '(apaga|apague|exclui|exclua|remove|remova|cancela|cancele|desfaz|desfaca|corrige|corrija|altera|altere|edita|edite|' +
+  'atualiza|atualize|substitui|substitua|anula|anule|esquece|ignora|retira|tira|troca|troque|muda|mude)';
 // Frases de dúvida, intenção, comando e receita (olham o texto todo, não uma palavra solta).
 const FRASES_SEM_VALOR = new RegExp(' (' + [
-  '(apaga|apague|exclui|exclua|remove|remova|cancela|cancele|desfaz|desfaca|corrige|corrija|altera|altere|edita|edite|atualiza|atualize|' +
-    'substitui|substitua|anula|anule|esquece|ignora|retira|tira|troca|troque|muda|mude) (o|a|os|as|aquele|aquela|esse|essa|isso|ultimo|ultima|lancamento|gasto|custo|para|pra)',
-  '(vou|vamos|preciso|precisamos|pretendo|queria|quero|tenho que|tenho de|temos que|precisa) (comprar|gastar|orcar|contratar|fechar)',
-  'deve (ter|ser)', 'calculo que', '(iremos|vamos|ia) gastar', 'nao sei', 'sei la', 'por alto', 'a olho', 'parece que', 'me parece', 'a menos', 'cliente (pagou|pagaram|depositou|transferiu)',
-  '(proposta|cotacao|orcamento|estimativa|previsao|simulacao) de', 'receita (de|da|do)', 'mais ou menos',
+  // comando de edição: "apaga o último", "corrige para 700", "exclui o de 300"; "troca de fechadura" é serviço e passa
+  ENTRE_VERBOS + ' ((o|a|os|as) )?(ultimo|ultima|lancamento|gasto|custo|anterior|esse|essa|isso|aquele|aquela|primeiro|para|pra)',
+  ENTRE_VERBOS + ' (o|a|os|as) de',
+  // intenção e pergunta
+  '(vou|vamos|preciso|precisamos|pretendo|pretendemos|queria|quero|tenho que|tenho de|temos que|precisa|planejo) (comprar|gastar|orcar|contratar|fechar)',
+  '(preciso|precisamos|precisa) de', '(iremos|vamos|ia) gastar', '(custa|custam|custaria|custara|seria|sera) ' + COMECO_DE_NUMERO,
+  // quem fala não tem certeza
+  '(acho|creio|penso|imagino|suponho|aposto|recordo|estimo|calculo) (que|q)', 'deve (ter|ser)', 'nao sei', 'sei la', 'nao lembro',
+  'nao me engano', 'nao tenho certeza', 'sem certeza', 'por alto', 'a olho', 'parece que', 'me parece', 'mais ou menos', 'a menos',
+  // variação de preço, proposta e receita: só com o número logo depois
+  '(subiu|caiu|baixou|aumentou|aumentaram|aumento|reajuste|reajustou|acrescimo) (de |em |uns )?' + COMECO_DE_NUMERO,
+  '(proposta|cotacao|orcamento|estimativa|previsao|simulacao) de ' + COMECO_DE_NUMERO, 'receita (de|da|do)',
+  'cliente (pagou|pagaram|depositou|transferiu)',
 ].join('|') + ') ');
 // Espaço, bairro ou prédio: o número que vem depois é endereço, não dinheiro.
 const NOME_LUGAR = new Set(['rua', 'avenida', 'av', 'travessa', 'alameda', 'rodovia', 'estrada', 'residencial', 'edificio',
@@ -699,9 +705,9 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
       !/^(pago|paga|pagos|pagas)$/.test(ps[k + 2] ?? ''));
     // "casa 12 mil reais", "dia 5 mil reais": o 12 era da obra ou o valor era 12 mil?
     const usadoColadoAMil = ps.some((p, i) => usadas.has(i) && !usadas.has(i + 1) && (ehMilhar(ps[i + 1]) || ehMilhao(ps[i + 1])) && numeroEscrito(p) !== null);
-    const precisa = ps.some((p, k) => /^(preciso|precisamos|precisa)$/.test(p) && ps[k + 1] !== 'pagar');
     const dataComTraco = ps.some((p) => /^\d{1,2}-\d{1,2}$/.test(p));
-    if (negou || precisa || usadoColadoAMil || dataComTraco || diasAbsurdos || FRASES_SEM_VALOR.test(junto) || ps.some((p) => CALCULO.has(p) || RAIZ_CALCULO.test(p))) anula();
+    if (negou || usadoColadoAMil || dataComTraco || diasAbsurdos || FRASES_SEM_VALOR.test(junto) ||
+      ps.some((p) => (CALCULO.has(p) && !(p === 'cada' && pista(e))) || RAIZ_CALCULO.test(p))) anula();
     // "meio dia de servente 150", "meia hora": metade de alguma coisa que não é "dois e meio"/"meio milhão"
     const lidos = numerosDe(ps);
     if (ps.some((p, i) => ehMeio(p) && !lidos.some((n) => i >= n.inicio && i < n.fim))) anula();
