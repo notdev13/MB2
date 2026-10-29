@@ -353,7 +353,7 @@ export const CASOS_ROD9: Caso[] = [
   { tipo: 'artigo', frase: 'um saco de cimento por 40', esperado: { valor: 40_00 } },
   { tipo: 'artigo', frase: 'um saco de cimento 40 reais o saco', esperado: { valor: null } },
   { tipo: 'artigo', frase: 'dois cimentos por 80 reais', esperado: { valor: 80_00 } },
-  { tipo: 'artigo', frase: 'dois cimentos 80', esperado: { valor: null } },
+  { tipo: 'artigo', frase: 'dois cimentos 80', esperado: { valor: 80_00 } },
   { tipo: 'dois-valores', frase: '20 reais de gasolina e 30 de óleo', esperado: { valor: null } },
   { tipo: 'dois-valores', frase: '20 de gasolina, 30 reais', esperado: { valor: null } },
   { tipo: 'dois-valores', frase: 'o terreno custou 350 mil reais, paguei 50 de entrada', esperado: { valor: null } },
@@ -482,6 +482,31 @@ export const CASOS_ROD12: Caso[] = [
   { tipo: 'pago', frase: 'conta de luz paga 230', esperado: { valor: 230_00, pago: true } },
   { tipo: 'receita', frase: 'recebi 300 do cliente', esperado: { valor: null } },
   { tipo: 'receita', frase: 'recebemos 5 mil de entrada do cliente', esperado: { valor: null } },
+];
+
+// Rodada 13: quantidade sem unidade conhecida, nome com número, telefone, fração e faixa de preço.
+export const CASOS_ROD13: Caso[] = [
+  { tipo: 'quantidade', frase: 'comprei 200 telhas', esperado: { valor: null } },
+  { tipo: 'quantidade', frase: 'comprei dois mil tijolos', esperado: { valor: null } },
+  { tipo: 'quantidade', frase: 'paguei 30 blocos hoje', esperado: { valor: null, data: HOJE } },
+  { tipo: 'quantidade', frase: '3 viagens de caminhão', esperado: { valor: null } },
+  { tipo: 'quantidade', frase: '3 viagens de caminhão por 900', esperado: { valor: 900_00 } },
+  { tipo: 'quantidade', frase: 'cinco pedreiros e dois serventes', esperado: { valor: null } },
+  { tipo: 'quantidade', frase: '200 telhas, R$ 300', esperado: { valor: 300_00 } },
+  { tipo: 'quantidade', frase: 'telhas 200 reais', esperado: { valor: 200_00 } },
+  { tipo: 'sem-quantidade', frase: '250 pedreiro', esperado: { valor: 250_00, categoria: MO } },
+  { tipo: 'nome', frase: 'Madeireira Dois Irmãos', esperado: { valor: null } },
+  { tipo: 'nome', frase: 'Madeireira Dois Irmãos 800 reais', esperado: { valor: 800_00 } },
+  { tipo: 'nome', frase: 'paguei dez de frete', esperado: { valor: null } },
+  { tipo: 'nome', frase: 'paguei dez reais de frete', esperado: { valor: 10_00 } },
+  { tipo: 'nome', frase: 'paguei vinte e cinco de frete', esperado: { valor: 25_00 } },
+  { tipo: 'telefone', frase: 'ligar (48) 99999-8888 e pagar 300 de areia', esperado: { valor: 300_00 } },
+  { tipo: 'telefone', frase: 'ligar 999998888 pagar 300 de areia', esperado: { valor: 300_00 } },
+  { tipo: 'telefone', frase: 'pagar 999998888', esperado: { valor: null } },
+  { tipo: 'fracao', frase: 'tubo 3/4 de polegada 80 reais', esperado: { valor: 80_00, data: null } },
+  { tipo: 'faixa', frase: 'R$ 360 a 400', esperado: { valor: null } },
+  { tipo: 'faixa', frase: 'dois a três mil reais', esperado: { valor: null } },
+  { tipo: 'faixa', frase: 'de 300 a 400 reais', esperado: { valor: null } },
 ];
 
 // ---- gerador de frases ----

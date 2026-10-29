@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CASOS_FIXOS, CASOS_ROD3, CASOS_ROD4, CASOS_ROD5, CASOS_ROD7, CASOS_ROD8, CASOS_ROD9, CASOS_ROD10, CASOS_ROD12, CONTEXTO, gerarCaos, gerarCasos, type Caso } from './voz.corpus';
+import { CASOS_FIXOS, CASOS_ROD3, CASOS_ROD4, CASOS_ROD5, CASOS_ROD7, CASOS_ROD8, CASOS_ROD9, CASOS_ROD10, CASOS_ROD12, CASOS_ROD13, CONTEXTO, gerarCaos, gerarCasos, type Caso } from './voz.corpus';
 import { interpretarFala } from './voz';
 
 // Mede o interpretador de voz contra o corpus (fixo + gerado). `npm run voz:medir` imprime a taxa
@@ -42,7 +42,7 @@ const caosPerigoso = [1, 2, 3, 4, 5].flatMap((k) => gerarCaos(BASE + 1000 + k, 6
 const caos = [1, 2, 3, 4, 5].flatMap((k) => gerarCaos(BASE + 2000 + k, 600));
 
 describe('corpus da voz', () => {
-  const TODOS_FIXOS = [...CASOS_FIXOS, ...CASOS_ROD3, ...CASOS_ROD4, ...CASOS_ROD5, ...CASOS_ROD7, ...CASOS_ROD8, ...CASOS_ROD9, ...CASOS_ROD10, ...CASOS_ROD12];
+  const TODOS_FIXOS = [...CASOS_FIXOS, ...CASOS_ROD3, ...CASOS_ROD4, ...CASOS_ROD5, ...CASOS_ROD7, ...CASOS_ROD8, ...CASOS_ROD9, ...CASOS_ROD10, ...CASOS_ROD12, ...CASOS_ROD13];
   const fixos = medir(TODOS_FIXOS.filter((c) => !c.pendente));
   const ger = medir(gerados);
   const cao = medir(caos);

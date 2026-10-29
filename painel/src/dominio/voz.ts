@@ -52,7 +52,7 @@ const NUMEROS: Record<string, number> = {
 // "5.800", "5800", "360,50", "2,5", "1.234,56", "1,200" -> número; "17/09" e afins não são número.
 // "1,200" e "1.200" são mil e duzentos (centavos nunca têm 3 casas).
 function numeroEscrito(p: string): number | null {
-  if (!/^\d[\d.,]*$/.test(p)) return null;
+  if (!/^\d[\d.,]*$/.test(p) || /^\d{8,}$/.test(p)) return null; // 8+ dígitos corridos: telefone, CEP
   let s = p;
   if (/^[1-9]\d{0,2}(,\d{3})+(\.\d{1,2})?$/.test(s)) s = s.replace(/,/g, ''); // 1,200 ou 1,200.50
   else if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
@@ -144,6 +144,13 @@ function lerNumero(ps: string[], i: number): Numero | null {
   return { inicio: i, fim: j, valor: ambiguo ? null : total };
 }
 
+// "200 telhas", "30 blocos": número seguido do plural de um material é quantidade (sem "R$" antes).
+function contagemDeMaterial(ps: string[], g: { inicio: number; fim: number }): boolean {
+  const w = ps[g.fim];
+  if (!w || ps[g.inicio - 1] === 'r$' || !w.endsWith('s')) return false;
+  return MAPA_CATEGORIA.get(w.slice(0, -1)) === 'Materiais (M)';
+}
+
 function numerosDe(ps: string[]): Numero[] {
   const lista: Numero[] = [];
   for (let i = 0; i < ps.length;) {
@@ -157,7 +164,8 @@ const UNIDADES = new Set([
   'saco', 'sacos', 'metro', 'metros', 'm', 'm2', 'm3', 'unidade', 'unidades', 'peca', 'pecas', 'lata', 'latas',
   'kg', 'quilo', 'quilos', 'tonelada', 'toneladas', 'caminhao', 'caminhoes', 'barra', 'barras', 'milheiro',
   'rolo', 'rolos', 'caixa', 'caixas', 'galao', 'galoes', 'litro', 'litros', 'dias', 'horas', 'vezes', 'parcelas',
-  'parcela', 'etapa', 'fase', 'milimetro', 'milimetros', 'mm', 'centimetro', 'centimetros', 'cm', 'polegada', 'polegadas', 'semanas', 'semana',
+  'parcela', 'etapa', 'fase', 'viagem', 'viagens', 'pessoas', 'homens', 'funcionarios', 'operarios', 'pedreiros', 'serventes',
+  'ajudantes', 'quartos', 'andares', 'casas', 'lotes', 'pontos', 'tomadas', 'lampadas', 'milimetro', 'milimetros', 'mm', 'centimetro', 'centimetros', 'cm', 'polegada', 'polegadas', 'semanas', 'semana',
 ]);
 const MOEDA = new Set(['reais', 'real', 'conto', 'contos', 'pila', 'pilas', 'pratas', 'mangos']);
 // "lote 39", "casa 12": o número é da obra, não é valor.
@@ -251,6 +259,8 @@ function acharData(ps: string[], usadas: Set<number>, hoje: string, info: { semM
       for (let k = i; k < atras.fim; k++) usadas.add(k);
       return diasAntes(hoje, atras.dias);
     }
+    if (/^\d\/\d$/.test(p) && /^pol/.test(ps[i + 1] ?? ps[i + 2] ?? '')) { usadas.add(i); continue; } // 3/4 de polegada
+    if (/^\d\/\d$/.test(p) && ps[i + 1] === 'de' && /^pol/.test(ps[i + 2] ?? '')) { usadas.add(i); continue; }
     const barra = p.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
     if (barra) {
       usadas.add(i);
@@ -491,7 +501,8 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
   const livres = numerosDe(ps)
     .filter((g) => ![...Array(g.fim - g.inicio).keys()].some((k) => usadas.has(g.inicio + k)))
     .filter((g) => !UNIDADES.has(ps[g.fim] ?? '') && !NUMERADORES.has(ps[g.inicio - 1] ?? '') &&
-      !DOCUMENTOS.has(ps[g.inicio - 1] ?? ''));
+      !DOCUMENTOS.has(ps[g.inicio - 1] ?? '') && !/^\d{4,5}-?\d{4}$/.test(ps[g.fim] ?? '') && // "(48) 99999-8888"
+      !contagemDeMaterial(ps, g)); // "200 telhas": quantidade, não dinheiro
   // Dois números escritos colados ("1 200", "R$ 1 250,00") podem ser um valor só ou dois: dúvida nos dois.
   const colados = new Set<Numero>();
   livres.forEach((n, k) => {
@@ -560,9 +571,12 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
   // "200 reais de areia e 100 de brita", "entrada de 1.200 e 3 parcelas de 500": dois valores, na dúvida não escolhe.
   const outroValor = (g: { inicio: number; fim: number; moeda: boolean }) =>
     !g.moeda && (/^(de|pro|pra|para|na|no|ou|ate)$/.test(ps[g.fim] ?? '') || ps[g.inicio - 1] === 'ou' || ps[g.inicio - 1] === 'ate' ||
-      (ps[g.fim] === 'a' && começaNumero(ps[g.fim + 1])) || (/^(parcelas?|vezes|x)$/.test(ps[g.inicio - 2] ?? '') && ps[g.inicio - 1] === 'de') ||
+      (ps[g.fim] === 'a' && começaNumero(ps[g.fim + 1])) || (ps[g.inicio - 1] === 'a' && unicos.some((o) => o.fim === g.inicio - 1)) || (/^(parcelas?|vezes|x)$/.test(ps[g.inicio - 2] ?? '') && ps[g.inicio - 1] === 'de') ||
       (ps[g.inicio - 1] === 'r$' && ps[g.inicio - 2] === 'de' && /^(parcelas|vezes|x)$/.test(ps[g.inicio - 3] ?? '')));
   if (escolhido && unicos.some((g) => g !== escolhido && outroValor(g))) escolhido = { ...escolhido, centavos: null };
+  // Número falado menor que 20 sem "reais"/"por" ("Dois Irmãos", "dez de frete") é nome ou quantidade.
+  if (escolhido && !escolhido.moeda && !PISTAS.has(ps[escolhido.inicio - 1] ?? '') && palavraNum(ps[escolhido.inicio]) !== undefined &&
+    escolhido.centavos !== null && escolhido.centavos < 2000) escolhido = { ...escolhido, centavos: null };
   // "3 dias de servente 150": sem "reais" nem "por", o 150 pode ser a diária, não o total.
   const tempoSolto = numerosDe(ps).some((n) => TEMPO.has(ps[n.fim] ?? '') && !usadas.has(n.inicio));
   if (escolhido && tempoSolto && !escolhido.moeda && !PISTAS.has(ps[escolhido.inicio - 1] ?? '')) escolhido = { ...escolhido, centavos: null };
