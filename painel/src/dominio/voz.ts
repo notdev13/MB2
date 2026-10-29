@@ -245,11 +245,13 @@ const CALCULO = new Set(['cada', 'metade', 'dobro', 'triplo', 'terco', 'abatimen
   'diferenca', 'estorno', 'estornei', 'reembolso', 'reembolsei', 'devolveram', 'devolvi', 'devolucao', 'cotei',
   'recebi', 'recebemos', 'talvez', 'provavelmente', 'possivelmente', 'chutando', 'chutei', 'chute', 'aparentemente',
   'precisar', 'precisarei', 'comprarei', 'compraremos', 'pagaram', 'depositaram', 'transferiram', 'recebimento', 'repasse',
-  'repassei', 'venda', 'vendas', 'vendi', 'vendemos', 'lucro', 'faturamento', 'orcar', 'contratar', 'quanto', 'quantos', 'qual', 'quais']);
+  'venda', 'vendas', 'vendi', 'vendemos', 'lucro', 'faturamento', 'orcar', 'contratar', 'quanto', 'quantos', 'qual', 'quais']);
 // "recebi" é entrada de dinheiro, a não ser que a fala diga que foi gasto ("recebi o cimento, paguei 360").
 const GASTO_NA_FALA = /^(paguei|pagamos|gastei|gastamos|comprei|compramos|nota|boleto|fatura|cupom|recibo)$/;
 // "meio fio", "meia cana", "meia parede", "meio tijolo": nome de peça, não metade de nada.
 const PECA_COM_MEIO = /^(fio|cana|parede|tijolo|agua|bloco|esquadria)$/;
+// Palavras de quem fala de saldo, verba, previsão, tabela, aporte ou conferência: o número é outra coisa, não um gasto.
+const NAO_CUSTO = / (saldo (da|do|de|em) (conta|caixa|banco)|saldo (bancario|disponivel|atual)|verba|limite|previsto|prevista|tabela|sinapi|aporte|extrato|meta|teto|estoque|poupanca|lembrar|lembrete|conferir|revisar|verificar|checar|medindo|mede|(a )?media de|estimado|estimada|capital|patrimonio|nota de credito|entrada de dinheiro|pe direito) /;
 const ESTRANGEIRA =new Set(['dolar', 'dolares', 'euro', 'euros', 'libra', 'libras']);
 const SIMBOLO_ESTRANGEIRO = new Set(['us$', 'usd', 'u$s', 'eur', 'dolar', 'dolares', 'euro', 'euros']);
 // Flexões dos mesmos verbos ('estornaram', 'devolveu'...)
@@ -285,6 +287,8 @@ const FRASES_SEM_VALOR = new RegExp(' (' + [
   'vou (conferir|confirmar|ver|checar|pensar)', 'a (conferir|confirmar|combinar|definir)', 'se (der|puder|conseguir|fechar|rolar|precisar|tiver|a gente)',
   'pode (ser|custar|ficar|sair)', 'vai (custar|sair|ficar)', 'deve (custar|ficar|sair)', 'custe',
   ENTRE_VERBOS + ' ((o|a) )?(valor|preco|total)', ENTRE_VERBOS + '( [a-z]+){1,3} (para|pra) ' + COMECO_DE_NUMERO,
+  // "o preço do m2 de piso 85", "o m2 sai a 42 reais": preço de tabela, não pagamento
+  'preco( [a-z0-9]+){0,4} ' + COMECO_DE_NUMERO, 'sai (a|por|em) ' + COMECO_DE_NUMERO, 'ainda nao (lancei|lancamos|registrei|anotei|incluimos)',
   // preço combinado ou de tabela no presente: "o orçamento da cobertura é 22 mil", "o preço do saco é 39"
   '(orcamento|preco|proposta|cotacao|tabela)( [a-z]+){0,4} (esta|ta|seria|sera|fica) ' + COMECO_DE_NUMERO,
 ].join('|') + ') ');
@@ -957,8 +961,10 @@ function acharValor(ps: string[], originais: string[], usadas: Set<number>, outr
       !/^(pago|paga|pagos|pagas)$/.test(ps[k + 2] ?? ''));
     // "casa 12 mil reais", "dia 5 mil reais": o 12 era da obra ou o valor era 12 mil?
     const usadoColadoAMil = ps.some((p, i) => usadas.has(i) && !usadas.has(i + 1) && (ehMilhar(ps[i + 1]) || ehMilhao(ps[i + 1])) && numeroEscrito(p) !== null);
+    // Assuntos que não são custo: saldo, verba, previsão, tabela de preço, aporte, lembrete, conferência.
+    const naoECusto = NAO_CUSTO.test(junto);
     const dataComTraco = ps.some((p) => /^\d{1,2}-\d{1,2}$/.test(p));
-    if (negou || usadoColadoAMil || dataComTraco || diasAbsurdos || (ps.includes('financiamento') && ps.some((p) => p === 'meses' || p === 'anos')) || FRASES_SEM_VALOR.test(junto) ||
+    if (negou || naoECusto || usadoColadoAMil || dataComTraco || diasAbsurdos || (ps.includes('financiamento') && ps.some((p) => p === 'meses' || p === 'anos')) || FRASES_SEM_VALOR.test(junto) ||
       // "orçamento do pintor 4 mil mas ainda não fechei": orçamento que ainda não foi aceito não é custo
       (ps.some((p) => /^(orcamento|cotacao|proposta|estimativa)$/.test(p)) && / (ainda nao|nao fechei|nao fechamos|nao fechou|nao aprovei|nao aprovamos|aguardando|esperando|sem fechar) /.test(junto)) ||
       / pagou( [a-z0-9$.,]+){1,4} (o|a|pelo|pela) cliente /.test(junto) || // "pagou 450 de areia o cliente": o cliente pagou, é receita
@@ -1033,11 +1039,11 @@ export function interpretarFala(texto: string, contexto: { obras: Obra[]; custos
   // "paguei" junto fica em dúvida (null): pode ser o cartão já pago ou só a primeira parcela.
   const junto = ' ' + ps.join(' ') + ' ';
   const parcelado = / (parcelad[oa]s?|parcelei|financiad[oa]|\d+x|em \d+ x|\d+ (vezes|parcelas)|[a-z]+ (vezes|parcelas)) /.test(junto);
-  const disseuPago = / (paguei|pagou|pagamos|pago|paga|mandei|transferi|depositei|quitei|quitamos|quitado|quitada) /.test(junto);
+  const disseuPago = / (paguei|pagou|pagamos|pago|pagos|pagas|paga|mandei|transferi|depositei|quitei|quitamos|quitado|quitada|liquidei|liquidamos) /.test(junto);
   let pago: boolean | null = null;
   // Sinais fortes: dizem que ainda não foi pago. "paguei"/"quitei" vencem os fracos (boleto atrasado, fiado,
   // "pagar" solto), que só descrevem a conta: "paguei o boleto atrasado" já está pago.
-  if (/ (a pagar|falta pagar|vou pagar|vamos pagar|vai pagar|para pagar|pra pagar|em aberto|a prazo|ainda nao paguei|nao paguei|nao quitei|nao quitamos|ainda nao quitei|nao foi pago|nao foi paga|nao pagou|ainda nao pagou|nao pago|pendente|pendurado|pendurei|devo|vence|vencimento|a vencer|vai vencer|vencer|vencendo|preciso pagar|(vai|vou|vao) cobrar|tenho que pagar|tenho de pagar|pagar (dia|ate|amanha|depois|segunda|terca|quarta|quinta|sexta|sabado|domingo)|(amanha|depois|semana|vem|mes|proximo|proxima|tarde|noite|segunda|terca|quarta|quinta|sexta|sabado|domingo) pagar|mais tarde pago|mais tarde pagar) /.test(junto)) pago = false;
+  if (/ (a pagar|falta pagar|vou pagar|vamos pagar|vai pagar|para pagar|pra pagar|em aberto|a prazo|ainda nao paguei|nao paguei|nao quitei|nao quitamos|ainda nao quitei|nao foi pago|nao foi paga|nao pagou|ainda nao pagou|nao pago|pendente|pendurado|pendurei|devo|vence|venc|vencimento|a vencer|vai vencer|vencer|vencendo|preciso pagar|(vai|vou|vao) cobrar|tenho que pagar|tenho de pagar|pagar (dia|ate|amanha|depois|segunda|terca|quarta|quinta|sexta|sabado|domingo)|(amanha|depois|semana|vem|mes|proximo|proxima|tarde|noite|segunda|terca|quarta|quinta|sexta|sabado|domingo) pagar|mais tarde pago|mais tarde pagar) /.test(junto)) pago = false;
   else if (parcelado) pago = disseuPago ? null : false;
   else if (disseuPago) pago = true;
   else if (/ (acabei de|terminei de|acabamos de) pagar /.test(junto)) pago = true;
