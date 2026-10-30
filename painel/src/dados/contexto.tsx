@@ -34,6 +34,7 @@ interface Dados {
   // Contas e saldos sincronizam com a nuvem como obras e custos (docs/nuvem.md).
   salvarConta(dados: NovaConta, id?: string): Promise<Conta>;
   salvarSaldo(dados: NovoSaldo): Promise<SaldoConta>;
+  listarSaldos(): Promise<SaldoConta[]>; // leitura direta do armazenamento (a importação relê antes de gravar)
   excluirSaldo(id: string): Promise<void>;
   exportar(): Promise<Backup>;
   restaurar(backup: Backup): Promise<void>;
@@ -215,6 +216,7 @@ export function DadosProvider({ children, repo, nuvem: nuvemDada }: {
       agendar();
       return r;
     },
+    listarSaldos: () => repositorio.listarSaldos(),
     async excluirSaldo(id) {
       await repositorio.excluirSaldo(id);
       await recarregar();

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { avaliarImportacao } from './importacao';
+import { avaliarImportacao, avaliarImportacaoPdf, confirmacoesNecessarias } from './importacao';
 import { aleatorio } from './ofx.fixtures';
 import type { Conta, SaldoConta } from './tipos';
 
@@ -59,15 +59,24 @@ describe('avaliarImportacao · ordem das regras', () => {
     expect(r).toMatchObject({ ok: true });
     expect(r.ok && r.aviso).toMatch(/mesmo dia do último saldo, valor diferente/i);
   });
-  it('(e) data depois de hoje + 1 dia: futuro', () => {
+  it('(e) extrato aceita no máximo hoje: amanhã já é futuro', () => {
+    expect(avaliarImportacao(extrato('2026-10-31', 1), conta(), [], HOJE)).toMatchObject({ ok: false, motivo: 'futuro' });
     expect(avaliarImportacao(extrato('2026-11-01', 1), conta(), [], HOJE)).toMatchObject({ ok: false, motivo: 'futuro' });
-    expect(avaliarImportacao(extrato('2026-10-31', 1), conta(), [], HOJE).ok).toBe(true); // amanhã ainda vale (fuso)
+    expect(avaliarImportacao(extrato('2026-10-30', 1), conta(), [], HOJE).ok).toBe(true);
   });
   it('(e) a virada de mês e de ano é calculada certo', () => {
-    expect(avaliarImportacao(extrato('2027-01-01', 1), conta(), [], '2026-12-31').ok).toBe(true);
-    expect(avaliarImportacao(extrato('2027-01-02', 1), conta(), [], '2026-12-31')).toMatchObject({ motivo: 'futuro' });
-    expect(avaliarImportacao(extrato('2028-02-29', 1), conta(), [], '2028-02-28').ok).toBe(true);
-    expect(avaliarImportacao(extrato('2028-03-01', 1), conta(), [], '2028-02-28')).toMatchObject({ motivo: 'futuro' });
+    expect(avaliarImportacao(extrato('2026-12-31', 1), conta(), [], '2026-12-31').ok).toBe(true);
+    expect(avaliarImportacao(extrato('2027-01-01', 1), conta(), [], '2026-12-31')).toMatchObject({ motivo: 'futuro' });
+    expect(avaliarImportacao(extrato('2028-02-29', 1), conta(), [], '2028-02-29').ok).toBe(true);
+    expect(avaliarImportacao(extrato('2028-02-29', 1), conta(), [], '2028-02-28')).toMatchObject({ motivo: 'futuro' });
+  });
+  it('(d) mesmo dia com valor diferente exige confirmação explícita; mudança pequena também', () => {
+    const r = avaliarImportacao(extrato('2026-10-30', 9_100), conta(), [saldo('2026-10-30', 9_000)], HOJE);
+    expect(r.ok && r.precisaConfirmarMesmoDia).toBe(true);
+    expect(r.ok && r.precisaConfirmarMudancaGrande).toBeFalsy();
+    const outroDia = avaliarImportacao(extrato('2026-10-30', 9_100), conta(), [saldo('2026-10-29', 9_000)], HOJE);
+    expect(outroDia.ok && outroDia.precisaConfirmarMesmoDia).toBeFalsy();
+    expect(r.ok && confirmacoesNecessarias(r)).toEqual(['mesmo-dia']);
   });
   it('(f) mudança grande (> 30%) exige confirmação extra; pequena não', () => {
     const s = [saldo('2026-10-20', 100_000)];
@@ -168,5 +177,40 @@ describe('avaliarImportacao · propriedades (a regra de ouro)', () => {
         rnd() < 0.5 ? [] : [saldo(mais(hoje, -3), 1)], hoje);
       expect(!r.ok && r.motivo, `semente ${semente}`).toBe('outra-conta');
     }
+  });
+});
+
+describe('avaliarImportacaoPdf · data escolhida x período e datas do PDF', () => {
+  const pdf = (data: string, saldos: SaldoConta[] = [], fim?: string, datas?: string[]) =>
+    avaliarImportacaoPdf({ saldo: 100, data }, conta(), saldos, HOJE, fim, datas);
+  it('data até 3 dias depois do fim do período: sem confirmação extra', () => {
+    const r = pdf('2026-10-29', [], '2026-10-26');
+    expect(r.ok && r.precisaConfirmarDataPosterior).toBeFalsy();
+  });
+  it('data mais de 3 dias depois do fim do período: exige confirmação extra', () => {
+    const r = pdf('2026-10-30', [], '2026-10-26');
+    expect(r.ok && r.precisaConfirmarDataPosterior).toBe(true);
+    expect(r.ok && r.aviso).toMatch(/depois do fim do período/i);
+    expect(r.ok && confirmacoesNecessarias(r)).toContain('data-posterior');
+  });
+  it('sem fim de período: data fora das datas do PDF exige confirmação; dentro, não', () => {
+    const fora = pdf('2026-10-30', [], undefined, ['2026-10-10', '2026-10-12']);
+    expect(fora.ok && fora.precisaConfirmarDataPosterior).toBe(true);
+    const dentro = pdf('2026-10-12', [], undefined, ['2026-10-10', '2026-10-12']);
+    expect(dentro.ok && dentro.precisaConfirmarDataPosterior).toBeFalsy();
+  });
+  it('a regra de ouro continua sem contorno (data antes do último saldo é recusada)', () => {
+    const r = pdf('2026-10-20', [saldo('2026-10-25', 1)], '2026-10-10');
+    expect(r).toMatchObject({ ok: false, motivo: 'antigo' });
+  });
+  it('mesmo dia com valor diferente também exige confirmação no PDF', () => {
+    const r = pdf('2026-10-30', [saldo('2026-10-30', 5)], '2026-10-30', ['2026-10-30']);
+    expect(r.ok && r.precisaConfirmarMesmoDia).toBe(true);
+  });
+  it('ano fora de 1990 até o ano atual + 1 é recusado', () => {
+    for (const d of ['1989-12-31', '0202-10-30', '2028-01-01', '9999-01-01']) {
+      expect(pdf(d)).toMatchObject({ ok: false, motivo: 'data-invalida' });
+    }
+    expect(pdf('1990-01-01').ok).toBe(true);
   });
 });

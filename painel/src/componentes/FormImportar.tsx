@@ -1,7 +1,7 @@
 import { lazy, Suspense, useMemo, useRef, useState, type DragEvent } from 'react';
 import { useDados } from '../dados/contexto';
 import { gravarImportacao } from '../dados/importar';
-import { avaliarImportacao, contaPeloFinal, ultimoSaldoValido } from '../dominio/importacao';
+import { avaliarImportacao, contaPeloFinal, ultimoSaldoValido, type Confirmacao } from '../dominio/importacao';
 import { dataBR, hoje, reais } from '../dominio/formato';
 import { decodificarOfx, lerOfx, TAMANHO_MAX_OFX, type ExtratoOfx } from '../dominio/ofx';
 import type { CandidatosPdf } from '../dominio/extratoPdf';
@@ -25,7 +25,7 @@ type Estado =
   | { tipo: 'pdf'; candidatos: CandidatosPdf; paginas: number; lidas: number };
 
 export function FormImportar({ aoFechar, aoDigitarSaldo }: { aoFechar: () => void; aoDigitarSaldo?: () => void }) {
-  const { contas, saldos, salvarSaldo, salvarConta } = useDados();
+  const { contas, saldos, salvarSaldo, salvarConta, listarSaldos } = useDados();
   const avisar = useAviso();
   const confirmar = useConfirmar();
   const entrada = useRef<HTMLInputElement>(null);
@@ -91,16 +91,26 @@ export function FormImportar({ aoFechar, aoDigitarSaldo }: { aoFechar: () => voi
 
   async function salvar() {
     if (!extrato || !conta || !avaliacao?.ok || salvando) return;
+    const confirmadas: Confirmacao[] = [];
+    if (avaliacao.precisaConfirmarMesmoDia) {
+      const ok = await confirmar({
+        texto: 'Já existe saldo deste dia com outro valor; este é mesmo o mais novo?',
+        acao: 'Sim, gravar',
+      });
+      if (!ok) return;
+      confirmadas.push('mesmo-dia');
+    }
     if (avaliacao.precisaConfirmarMudancaGrande && avaliacao.anterior) {
       const ok = await confirmar({
         texto: `Isso troca o saldo de ${reais(avaliacao.anterior.valor)} para ${reais(extrato.saldo)}. Gravar?`,
         acao: 'Gravar',
       });
       if (!ok) return;
+      confirmadas.push('mudanca-grande');
     }
     setSalvando(true);
     try {
-      const r = await gravarImportacao({ salvarSaldo, salvarConta }, extrato, conta, saldos, hoje());
+      const r = await gravarImportacao({ salvarSaldo, salvarConta, listarSaldos }, extrato, conta, hoje(), { confirmadas });
       if (!r.ok) {
         setEstado({ tipo: 'erro', mensagem: r.mensagem });
         setSalvando(false);
@@ -193,6 +203,9 @@ export function FormImportar({ aoFechar, aoDigitarSaldo }: { aoFechar: () => voi
               </dl>
               {!avaliacao.ok && <div className="aviso" role="alert">⚠ {avaliacao.mensagem}</div>}
               {avaliacao.ok && avaliacao.aviso && <div className="aviso atencao" role="alert">{avaliacao.aviso}</div>}
+              {avaliacao.ok && avaliacao.precisaConfirmarMesmoDia && (
+                <div className="aviso atencao" role="alert">Já existe saldo deste dia com outro valor. Vou pedir uma confirmação antes de gravar.</div>
+              )}
               {avaliacao.ok && avaliacao.precisaConfirmarMudancaGrande && (
                 <div className="aviso atencao" role="alert">A mudança é grande (mais de 30%). Vou pedir uma confirmação antes de gravar.</div>
               )}

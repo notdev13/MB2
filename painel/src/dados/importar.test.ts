@@ -47,7 +47,7 @@ describe('importação de PDF (valor e data escolhidos pelo dono)', () => {
   it('grava fonte "extrato" com a obs do PDF, sem finalConta e sem nada do arquivo', async () => {
     const repo = criarRepositorioLocal(new IDBFactory());
     const conta = await repo.salvarConta({ nome: 'C', banco: '', obraId: null, ativa: true });
-    const r = await gravarImportacao(repo, { saldo: -12_345, data: '2026-10-28' }, conta, [], HOJE, { origem: 'pdf' });
+    const r = await gravarImportacao(repo, { saldo: -12_345, data: '2026-10-28' }, conta, HOJE, { origem: 'pdf' });
     expect(r).toMatchObject({ ok: true, finalGravado: false });
     const [s] = await repo.listarSaldos();
     expect(s).toMatchObject({ valor: -12_345, data: '2026-10-28', fonte: 'extrato', obs: 'Importado do extrato (PDF), conferido pelo dono' });
@@ -56,14 +56,14 @@ describe('importação de PDF (valor e data escolhidos pelo dono)', () => {
   it('conta que já tem final aceita o PDF e mantém o final', async () => {
     const repo = criarRepositorioLocal(new IDBFactory());
     const conta = await repo.salvarConta({ nome: 'C', banco: '', obraId: null, ativa: true, finalConta: '0001' });
-    expect(await gravarImportacao(repo, { saldo: 1, data: HOJE }, conta, [], HOJE, { origem: 'pdf' })).toMatchObject({ ok: true });
+    expect(await gravarImportacao(repo, { saldo: 1, data: HOJE }, conta, HOJE, { origem: 'pdf' })).toMatchObject({ ok: true });
     expect((await repo.listarContas())[0].finalConta).toBe('0001');
   });
   it('a regra de ouro vale para PDF na hora de gravar: data antiga é recusada e nada é gravado', async () => {
     const repo = criarRepositorioLocal(new IDBFactory());
     const conta = await repo.salvarConta({ nome: 'C', banco: '', obraId: null, ativa: true });
     await repo.salvarSaldo({ contaId: conta.id, data: '2026-10-29', valor: 5, fonte: 'manual', obs: '' });
-    const r = await gravarImportacao(repo, { saldo: 9, data: '2026-10-01' }, conta, await repo.listarSaldos(), HOJE, { origem: 'pdf' });
+    const r = await gravarImportacao(repo, { saldo: 9, data: '2026-10-01' }, conta, HOJE, { origem: 'pdf' });
     expect(r).toMatchObject({ ok: false, motivo: 'antigo' });
     expect(await repo.listarSaldos()).toHaveLength(1);
   });
@@ -74,7 +74,7 @@ describe('importação ponta a ponta com repositório em memória', () => {
     const repo = criarRepositorioLocal(new IDBFactory());
     let conta: Conta = await repo.salvarConta({ nome: 'Conta Teste', banco: 'Banco Teste', obraId: null, ativa: true });
     const importar = async (o: Parameters<typeof ofxSgml>[0]) => {
-      const r = await gravarImportacao(repo, extratoDe(o), conta, await repo.listarSaldos(), HOJE);
+      const r = await gravarImportacao(repo, extratoDe(o), conta, HOJE);
       conta = (await repo.listarContas()).find((c) => c.id === conta.id)!;
       return r;
     };
@@ -102,7 +102,7 @@ describe('importação ponta a ponta com repositório em memória', () => {
     const repo = criarRepositorioLocal(new IDBFactory());
     const conta = await repo.salvarConta({ nome: 'C', banco: '', obraId: null, ativa: true });
     await repo.salvarSaldo({ contaId: conta.id, data: '2026-10-29', valor: 5, fonte: 'manual', obs: '' });
-    const r = await gravarImportacao(repo, extratoDe({ dtasof: '20261001' }), conta, await repo.listarSaldos(), HOJE);
+    const r = await gravarImportacao(repo, extratoDe({ dtasof: '20261001' }), conta, HOJE);
     expect(r).toMatchObject({ ok: false, motivo: 'antigo' });
     expect(await repo.listarSaldos()).toHaveLength(1);
   });
@@ -110,7 +110,7 @@ describe('importação ponta a ponta com repositório em memória', () => {
   it('o final gravado aparece no backup exportado e ele restaura', async () => {
     const repo = criarRepositorioLocal(new IDBFactory());
     const conta = await repo.salvarConta({ nome: 'C', banco: '', obraId: null, ativa: true });
-    await gravarImportacao(repo, extratoDe({}), conta, [], HOJE);
+    await gravarImportacao(repo, extratoDe({}), conta, HOJE);
     const v = validarBackup(JSON.parse(JSON.stringify(await repo.exportar())));
     expect(v.ok).toBe(true);
     expect(v.ok && v.backup.contas?.[0].finalConta).toBe('0001');
@@ -121,7 +121,37 @@ describe('importação ponta a ponta com repositório em memória', () => {
     const repo = criarRepositorioLocal(new IDBFactory());
     const conta = await repo.salvarConta({ nome: 'C', banco: '', obraId: null, ativa: true });
     await repo.salvarSaldo({ contaId: conta.id, data: '2027-05-01', valor: 5, fonte: 'manual', obs: '' });
-    const r = await gravarImportacao(repo, extratoDe({}), conta, await repo.listarSaldos(), HOJE);
+    const r = await gravarImportacao(repo, extratoDe({}), conta, HOJE);
     expect(r.ok).toBe(true);
+  });
+});
+
+describe('gravação relê os saldos e exige as confirmações', () => {
+  it('relê os saldos do repositório na hora de gravar (a tela estava com a lista velha)', async () => {
+    const repo = criarRepositorioLocal(new IDBFactory());
+    const conta = await repo.salvarConta({ nome: 'C', banco: '', obraId: null, ativa: true });
+    // outro aparelho / outra aba gravou um saldo mais novo depois que a tela abriu
+    await repo.salvarSaldo({ contaId: conta.id, data: '2026-10-29', valor: 5, fonte: 'manual', obs: '' });
+    const r = await gravarImportacao(repo, { saldo: 9, data: '2026-10-20' }, conta, HOJE, { origem: 'pdf' });
+    expect(r).toMatchObject({ ok: false, motivo: 'antigo' });
+    expect(await repo.listarSaldos()).toHaveLength(1);
+  });
+  it('mesmo dia com valor diferente só grava com a confirmação explícita', async () => {
+    const repo = criarRepositorioLocal(new IDBFactory());
+    const conta = await repo.salvarConta({ nome: 'C', banco: '', obraId: null, ativa: true });
+    await repo.salvarSaldo({ contaId: conta.id, data: HOJE, valor: 1_000, fonte: 'manual', obs: '' });
+    const sem = await gravarImportacao(repo, { saldo: 1_100, data: HOJE }, conta, HOJE, { origem: 'pdf' });
+    expect(sem).toMatchObject({ ok: false, motivo: 'confirmar' });
+    expect(await repo.listarSaldos()).toHaveLength(1);
+    const com = await gravarImportacao(repo, { saldo: 1_100, data: HOJE }, conta, HOJE, { origem: 'pdf', confirmadas: ['mesmo-dia'] });
+    expect(com).toMatchObject({ ok: true });
+    expect(await repo.listarSaldos()).toHaveLength(2);
+  });
+  it('data do PDF bem depois do período só grava com confirmação', async () => {
+    const repo = criarRepositorioLocal(new IDBFactory());
+    const conta = await repo.salvarConta({ nome: 'C', banco: '', obraId: null, ativa: true });
+    const base = { origem: 'pdf' as const, periodoFim: '2026-10-10' };
+    expect(await gravarImportacao(repo, { saldo: 1, data: HOJE }, conta, HOJE, base)).toMatchObject({ ok: false, motivo: 'confirmar' });
+    expect(await gravarImportacao(repo, { saldo: 1, data: HOJE }, conta, HOJE, { ...base, confirmadas: ['data-posterior'] })).toMatchObject({ ok: true });
   });
 });

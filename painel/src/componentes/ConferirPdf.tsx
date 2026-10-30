@@ -5,7 +5,7 @@ import {
   candidatoPreSelecionado, datasParaEscolher, PONTUACAO_MIN_PRESELECAO, type CandidatoSaldo, type CandidatosPdf,
 } from '../dominio/extratoPdf';
 import { dataBR, hoje, reais } from '../dominio/formato';
-import { avaliarImportacaoPdf, ultimoSaldoValido } from '../dominio/importacao';
+import { avaliarImportacaoPdf, dataPlausivel, ultimoSaldoValido, type Confirmacao } from '../dominio/importacao';
 import { useAviso } from './Aviso';
 import { useConfirmar } from './Confirmar';
 
@@ -22,7 +22,7 @@ type Etapa = 'saldo' | 'data' | 'resumo';
 export function ConferirPdf({ candidatos, paginas, lidas, aoFechar, aoDigitarSaldo }: {
   candidatos: CandidatosPdf; paginas: number; lidas: number; aoFechar: () => void; aoDigitarSaldo?: () => void;
 }) {
-  const { contas, saldos, salvarSaldo, salvarConta } = useDados();
+  const { contas, saldos, salvarSaldo, salvarConta, listarSaldos } = useDados();
   const avisar = useAviso();
   const confirmar = useConfirmar();
   const ativas = contas.filter((c) => c.ativa);
@@ -40,35 +40,42 @@ export function ConferirPdf({ candidatos, paginas, lidas, aoFechar, aoDigitarSal
     : escolhido.sinalIncerto ? (sinal === null ? null : sinal === 'devedor' ? -Math.abs(escolhido.valor) : Math.abs(escolhido.valor))
     : escolhido.valor;
   const datas = useMemo(() => datasParaEscolher(candidatos, escolhido), [candidatos, escolhido]);
-  const dataDigitada = /^\d{4}-\d{2}-\d{2}$/.test(data) ? data : '';
+  const dataDigitada = dataPlausivel(data, hoje()) ? data : '';
+  const datasEncontradas = useMemo(() => datas.map((d) => d.data), [datas]);
 
   const avaliacao = useMemo(
     () => (etapa === 'resumo' && conta && valorFinal !== null && dataDigitada
-      ? avaliarImportacaoPdf({ saldo: valorFinal, data: dataDigitada }, conta, saldos, hoje(), candidatos.periodoFim)
+      ? avaliarImportacaoPdf({ saldo: valorFinal, data: dataDigitada }, conta, saldos, hoje(), candidatos.periodoFim, datasEncontradas)
       : null),
-    [etapa, conta, valorFinal, dataDigitada, saldos, candidatos.periodoFim],
+    [etapa, conta, valorFinal, dataDigitada, saldos, candidatos.periodoFim, datasEncontradas],
   );
   const anterior = conta ? ultimoSaldoValido(conta.id, saldos, hoje()) : null;
 
   async function salvar() {
     if (!conta || valorFinal === null || !dataDigitada || !avaliacao?.ok || salvando) return;
-    if (avaliacao.precisaConfirmarDataAnteriorAoPeriodo && candidatos.periodoFim) {
-      const ok = await confirmar({
-        texto: `A data escolhida (${dataBR(dataDigitada)}) é anterior ao fim do período do extrato (${dataBR(candidatos.periodoFim)}). Gravar com esta data?`,
-        acao: 'Gravar',
-      });
-      if (!ok) return;
-    }
-    if (avaliacao.precisaConfirmarMudancaGrande && avaliacao.anterior) {
-      const ok = await confirmar({
-        texto: `Isso troca o saldo de ${reais(avaliacao.anterior.valor)} para ${reais(valorFinal)}. Gravar?`,
-        acao: 'Gravar',
-      });
-      if (!ok) return;
-    }
+    const confirmadas: Confirmacao[] = [];
+    const perguntar = async (c: Confirmacao, texto: string, acao = 'Gravar') => {
+      const ok = await confirmar({ texto, acao });
+      if (ok) confirmadas.push(c);
+      return ok;
+    };
+    if (avaliacao.precisaConfirmarMesmoDia
+      && !(await perguntar('mesmo-dia', 'Já existe saldo deste dia com outro valor; este é mesmo o mais novo?', 'Sim, gravar'))) return;
+    if (avaliacao.precisaConfirmarDataAnteriorAoPeriodo && candidatos.periodoFim
+      && !(await perguntar('data-anterior-periodo',
+        `A data escolhida (${dataBR(dataDigitada)}) é anterior ao fim do período do extrato (${dataBR(candidatos.periodoFim)}). Gravar com esta data?`))) return;
+    if (avaliacao.precisaConfirmarDataPosterior
+      && !(await perguntar('data-posterior', candidatos.periodoFim
+        ? `A data escolhida (${dataBR(dataDigitada)}) é bem depois do fim do período do extrato (${dataBR(candidatos.periodoFim)}). Gravar com esta data?`
+        : `A data escolhida (${dataBR(dataDigitada)}) não é nenhuma das datas encontradas no PDF. Gravar com esta data?`))) return;
+    if (avaliacao.precisaConfirmarMudancaGrande && avaliacao.anterior
+      && !(await perguntar('mudanca-grande', `Isso troca o saldo de ${reais(avaliacao.anterior.valor)} para ${reais(valorFinal)}. Gravar?`))) return;
     setSalvando(true);
     try {
-      const r = await gravarImportacao({ salvarSaldo, salvarConta }, { saldo: valorFinal, data: dataDigitada }, conta, saldos, hoje(), { origem: 'pdf' });
+      const r = await gravarImportacao(
+        { salvarSaldo, salvarConta, listarSaldos }, { saldo: valorFinal, data: dataDigitada }, conta, hoje(),
+        { origem: 'pdf', periodoFim: candidatos.periodoFim, datasEncontradas, confirmadas },
+      );
       if (!r.ok) {
         setRecusa(r.mensagem);
         setSalvando(false);
@@ -185,8 +192,9 @@ export function ConferirPdf({ candidatos, paginas, lidas, aoFechar, aoDigitarSal
         </div>
         <label className="campo">
           <span>Ou digite a data</span>
-          <input type="date" value={data} onChange={(e) => setData(e.target.value)} />
+          <input type="date" value={data} min="1990-01-01" onChange={(e) => setData(e.target.value)} />
         </label>
+        {data && !dataDigitada && <p className="nota" role="alert">Esta data não parece certa. Use uma data entre 1990 e o próximo ano.</p>}
         <div className="acoes">
           <button type="button" className="botao cheio" disabled={!dataDigitada} onClick={() => setEtapa('resumo')}>Continuar</button>
           <button type="button" className="botao secundario cheio" onClick={() => setEtapa('saldo')}>Voltar</button>
@@ -214,6 +222,9 @@ export function ConferirPdf({ candidatos, paginas, lidas, aoFechar, aoDigitarSal
       {!conta && <p className="nota">Escolha a conta do painel para continuar.</p>}
       {avaliacao && !avaliacao.ok && <div className="aviso" role="alert">⚠ {avaliacao.mensagem}</div>}
       {avaliacao?.ok && avaliacao.aviso && <div className="aviso atencao" role="alert">{avaliacao.aviso}</div>}
+      {avaliacao?.ok && (avaliacao.precisaConfirmarMesmoDia || avaliacao.precisaConfirmarDataPosterior || avaliacao.precisaConfirmarDataAnteriorAoPeriodo) && (
+        <div className="aviso atencao" role="alert">Vou pedir uma confirmação extra antes de gravar.</div>
+      )}
       {avaliacao?.ok && avaliacao.precisaConfirmarMudancaGrande && (
         <div className="aviso atencao" role="alert">A mudança é grande (mais de 30%). Vou pedir uma confirmação antes de gravar.</div>
       )}
