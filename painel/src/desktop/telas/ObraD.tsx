@@ -4,7 +4,6 @@ import { porCategoria, porMes, resumirObra } from '../../dominio/calculos';
 import { porFornecedor } from '../../dominio/consultas';
 import { dataBR, hoje, reais, reaisCurto } from '../../dominio/formato';
 import { EstadoVazio } from '../../componentes/EstadoVazio';
-import { dataBR, hoje, porcentagem, reais, reaisCurto } from '../../dominio/formato';
 import type { Custo, Obra } from '../../dominio/tipos';
 import { IconeD, Kpi, Painel, Vazio } from '../componentes/Base';
 import { BarrasCategoria, ColunasMes, UsoOrcamento } from '../componentes/Graficos';
