@@ -11,7 +11,7 @@ export interface Repositorio {
   salvarCusto(dados: NovoCusto, id?: string): Promise<Custo>;
   excluirCusto(id: string): Promise<void>;
 
-  // Dinheiro em conta. Por enquanto só no aparelho e no backup (não vai para a nuvem).
+  // Dinheiro em conta. Sincroniza com a nuvem como obras e custos (docs/nuvem.md).
   listarContas(): Promise<Conta[]>;
   salvarConta(dados: NovaConta, id?: string): Promise<Conta>;
   excluirConta(id: string): Promise<void>; // apaga também os saldos da conta
@@ -39,7 +39,7 @@ export interface Backup {
 
 // ---- Sincronização com a nuvem ----
 
-export type TipoRegistro = 'obra' | 'custo';
+export type TipoRegistro = 'obra' | 'custo' | 'conta' | 'saldo';
 
 // Uma mudança feita neste aparelho que ainda não chegou à nuvem.
 export interface Pendente {
@@ -49,11 +49,11 @@ export interface Pendente {
   alteradoEm: string; // ISO, quando a mudança foi feita
 }
 
-// Uma obra ou um custo como fica guardado na nuvem.
+// Uma obra, custo, conta ou saldo como fica guardado na nuvem.
 export interface RegistroNuvem {
   tipo: TipoRegistro;
   id: string;
-  dados: Obra | Custo | null; // null quando excluído
+  dados: Obra | Custo | Conta | SaldoConta | null; // null quando excluído
   excluido: boolean;
   alteradoEm: string;
   servidorEm?: string; // quando chegou à nuvem (marca até onde já foi buscado)

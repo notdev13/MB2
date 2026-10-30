@@ -136,13 +136,6 @@ describe('dinheiro em conta', () => {
     expect(await repo.listarSaldos()).toEqual([fica]);
   });
 
-  it('não entra na fila da nuvem', async () => {
-    const repo = criarRepositorioLocal(new IDBFactory());
-    const conta = await repo.salvarConta(novaConta(null));
-    await repo.salvarSaldo(novoSaldo(conta.id, 1_00));
-    expect(await repo.pendentes()).toEqual([]);
-  });
-
   it('subir o banco da versão 2 para a 3 só acrescenta lojas e mantém os dados', async () => {
     const fabrica = new IDBFactory();
     const v2 = await new Promise<IDBDatabase>((ok, erro) => {
@@ -264,5 +257,170 @@ describe('contas de obra que some', () => {
     await repo.substituirTudo(v.backup);
     expect((await repo.listarContas()).map((c) => c.id)).toEqual([cm.id]);
     expect(validarBackup(await repo.exportar()).ok).toBe(true);
+  });
+});
+
+// ---- Contas e saldos na fila da nuvem (dados inventados) ----
+describe('contas e saldos na fila da nuvem', () => {
+  const nConta = (obraId: string | null = null) => ({ nome: 'Conta A', banco: 'Banco X', obraId, ativa: true });
+  const nSaldo = (contaId: string, valor: number, data = '2026-10-29') => ({ contaId, data, valor, fonte: 'manual' as const, obs: '' });
+  const chaves = async (r: ReturnType<typeof criarRepositorioLocal>) => (await r.pendentes()).map((p) => `${p.tipo}:${p.id}${p.excluido ? ':x' : ''}`).sort();
+  const daNuvem = (tipo: 'conta' | 'saldo', dados: any, alteradoEm = '2099-01-01T00:00:00.000Z', excluido = false) =>
+    ({ tipo, id: dados.id, dados: excluido ? null : dados, excluido, alteradoEm }) as never;
+  const contaNuvem = (id = 'c1', extra: object = {}) =>
+    ({ id, nome: 'Conta N', banco: 'Banco Y', obraId: null, ativa: true, criadoEm: '2026-10-01T00:00:00.000Z', atualizadoEm: '2026-10-01T00:00:00.000Z', ...extra });
+  const saldoNuvem = (id = 's1', contaId = 'c1', extra: object = {}) =>
+    ({ id, contaId, data: '2026-10-29', valor: -12_34, fonte: 'manual', obs: '', criadoEm: '2026-10-29T00:00:00.000Z', ...extra });
+
+  it('gravar conta e saldo entra na fila; paraEnviar traz o registro atual em centavos', async () => {
+    const repo = criarRepositorioLocal(new IDBFactory());
+    const c = await repo.salvarConta(nConta());
+    const s = await repo.salvarSaldo(nSaldo(c.id, -1_050_00));
+    expect(await chaves(repo)).toEqual([`conta:${c.id}`, `saldo:${s.id}`].sort());
+    const env = await repo.paraEnviar(await repo.pendentes());
+    expect(env.find((r) => r.tipo === 'conta')!.dados).toEqual(c);
+    const rs = env.find((r) => r.tipo === 'saldo')!;
+    expect(rs.dados).toEqual(s);
+    expect(Number.isSafeInteger((rs.dados as { valor: number }).valor)).toBe(true);
+    expect(rs.alteradoEm).toBe(s.criadoEm);
+  });
+
+  it('excluir saldo e excluir conta viram exclusões na fila; a conta leva os saldos', async () => {
+    const repo = criarRepositorioLocal(new IDBFactory());
+    const c = await repo.salvarConta(nConta());
+    const s1 = await repo.salvarSaldo(nSaldo(c.id, 1_00));
+    const s2 = await repo.salvarSaldo(nSaldo(c.id, 2_00));
+    await repo.excluirSaldo(s1.id);
+    expect(await chaves(repo)).toContain(`saldo:${s1.id}:x`);
+    await repo.excluirConta(c.id);
+    expect(await chaves(repo)).toEqual([`conta:${c.id}:x`, `saldo:${s1.id}:x`, `saldo:${s2.id}:x`].sort());
+    const env = await repo.paraEnviar(await repo.pendentes());
+    expect(env.every((r) => r.excluido && r.dados === null)).toBe(true);
+  });
+
+  it('recebe conta e saldo da nuvem', async () => {
+    const repo = criarRepositorioLocal(new IDBFactory());
+    const mudou = await repo.aplicarDaNuvem([daNuvem('conta', contaNuvem()), daNuvem('saldo', saldoNuvem())]);
+    expect(mudou).toBe(2);
+    expect(await repo.listarContas()).toEqual([contaNuvem()]);
+    expect(await repo.listarSaldos()).toEqual([saldoNuvem()]);
+    expect(await repo.pendentes()).toEqual([]);
+  });
+
+  it('conflito: mudança local mais nova vence; nuvem mais nova vence', async () => {
+    const repo = criarRepositorioLocal(new IDBFactory());
+    const c = await repo.salvarConta(nConta());
+    await repo.aplicarDaNuvem([daNuvem('conta', { ...c, nome: 'Velha' }, '2000-01-01T00:00:00.000Z')]);
+    expect((await repo.listarContas())[0].nome).toBe('Conta A');
+    expect(await repo.pendentes()).toHaveLength(1);
+    await repo.aplicarDaNuvem([daNuvem('conta', { ...c, nome: 'Nova' }, '2099-01-01T00:00:00.000Z')]);
+    expect((await repo.listarContas())[0].nome).toBe('Nova');
+    expect(await repo.pendentes()).toEqual([]);
+  });
+
+  it('exclusão da nuvem leva a conta e os saldos dela; exclusão mais velha que a edição local não vale', async () => {
+    const repo = criarRepositorioLocal(new IDBFactory());
+    await repo.aplicarDaNuvem([daNuvem('conta', contaNuvem()), daNuvem('saldo', saldoNuvem())]);
+    await repo.aplicarDaNuvem([daNuvem('conta', contaNuvem(), '2099-01-02T00:00:00.000Z', true)]);
+    expect(await repo.listarContas()).toEqual([]);
+    expect(await repo.listarSaldos()).toEqual([]);
+
+    const c = await repo.salvarConta(nConta());
+    await repo.aplicarDaNuvem([daNuvem('conta', c, '2000-01-01T00:00:00.000Z', true)]);
+    expect(await repo.listarContas()).toEqual([c]);
+  });
+
+  it('ignora registro inválido da nuvem sem derrubar o lote nem apagar dado local', async () => {
+    const repo = criarRepositorioLocal(new IDBFactory());
+    const c = await repo.salvarConta(nConta());
+    const s = await repo.salvarSaldo(nSaldo(c.id, 5_00));
+    await repo.confirmarEnvio(await repo.pendentes());
+    const mudou = await repo.aplicarDaNuvem([
+      daNuvem('saldo', { ...s, valor: 10.5 }),
+      daNuvem('saldo', { ...s, valor: Number.MAX_SAFE_INTEGER + 2 }),
+      daNuvem('saldo', { ...s, data: '29/10/2026' }),
+      daNuvem('saldo', { ...s, fonte: 'automatica' }),
+      daNuvem('conta', { ...c, ativa: 'sim' }),
+      daNuvem('conta', { ...c, nome: 5 }),
+      { tipo: 'cofre', id: 'z', dados: { id: 'z' }, excluido: false, alteradoEm: '2099-01-01T00:00:00.000Z' } as never,
+      daNuvem('conta', contaNuvem('c-ok')),
+    ]);
+    expect(mudou).toBe(1);
+    expect((await repo.listarContas()).map((x) => x.id).sort()).toEqual([c.id, 'c-ok'].sort());
+    expect(await repo.listarSaldos()).toEqual([s]);
+  });
+
+  it('ordem: no mesmo lote a conta entra antes do saldo, mesmo que o saldo venha primeiro', async () => {
+    const repo = criarRepositorioLocal(new IDBFactory());
+    await repo.aplicarDaNuvem([daNuvem('saldo', saldoNuvem()), daNuvem('conta', contaNuvem())]);
+    expect(await repo.listarSaldos()).toEqual([saldoNuvem()]);
+  });
+
+  it('saldo que chega antes da conta (lotes separados) fica guardado e entra quando a conta chegar', async () => {
+    const repo = criarRepositorioLocal(new IDBFactory());
+    expect(await repo.aplicarDaNuvem([daNuvem('saldo', saldoNuvem())])).toBe(0);
+    expect(await repo.listarSaldos()).toEqual([]);
+    await repo.aplicarDaNuvem([daNuvem('conta', contaNuvem())]);
+    expect(await repo.listarContas()).toEqual([contaNuvem()]);
+    expect(await repo.listarSaldos()).toEqual([saldoNuvem()]);
+    expect(validarBackup(await repo.exportar()).ok).toBe(true);
+  });
+
+  it('saldo guardado de conta que foi excluída não volta', async () => {
+    const repo = criarRepositorioLocal(new IDBFactory());
+    await repo.aplicarDaNuvem([daNuvem('saldo', saldoNuvem())]);
+    await repo.aplicarDaNuvem([daNuvem('conta', contaNuvem(), '2099-01-02T00:00:00.000Z', true)]);
+    await repo.aplicarDaNuvem([daNuvem('conta', contaNuvem(), '2099-01-03T00:00:00.000Z')]);
+    expect(await repo.listarSaldos()).toEqual([]);
+  });
+
+  it('conta de uma obra que ainda não chegou espera pela obra', async () => {
+    const repo = criarRepositorioLocal(new IDBFactory());
+    await repo.aplicarDaNuvem([daNuvem('conta', contaNuvem('c1', { obraId: 'o1' }))]);
+    expect(await repo.listarContas()).toEqual([]);
+    const obra = { ...novaObra, id: 'o1', criadoEm: '2026-10-01T00:00:00.000Z', atualizadoEm: '2026-10-01T00:00:00.000Z' };
+    await repo.aplicarDaNuvem([{ tipo: 'obra', id: 'o1', dados: obra, excluido: false, alteradoEm: '2099-01-01T00:00:00.000Z' }]);
+    expect((await repo.listarContas()).map((c) => c.id)).toEqual(['c1']);
+  });
+
+  it('primeira entrada (enfileirarTudo) leva contas e saldos', async () => {
+    const repo = criarRepositorioLocal(new IDBFactory());
+    const c = await repo.salvarConta(nConta());
+    const s = await repo.salvarSaldo(nSaldo(c.id, 3_00));
+    await repo.confirmarEnvio(await repo.pendentes());
+    expect(await repo.pendentes()).toEqual([]);
+    await repo.gravarMarca(null);
+    await repo.enfileirarTudo();
+    expect(await chaves(repo)).toEqual([`conta:${c.id}`, `saldo:${s.id}`].sort());
+  });
+
+  it('restaurar backup v2 enfileira contas e saldos que entram e os que saem', async () => {
+    const repo = criarRepositorioLocal(new IDBFactory());
+    const velha = await repo.salvarConta(nConta());
+    const sv = await repo.salvarSaldo(nSaldo(velha.id, 1_00));
+    await repo.confirmarEnvio(await repo.pendentes());
+    const bk = { app: 'mb2-painel' as const, versao: 2 as const, geradoEm: '2026-10-30T00:00:00.000Z', obras: [], custos: [],
+      contas: [contaNuvem('cb')] as never, saldos: [saldoNuvem('sb', 'cb')] as never };
+    await repo.substituirTudo(bk);
+    expect(await chaves(repo)).toEqual([`conta:cb`, `saldo:sb`, `conta:${velha.id}:x`, `saldo:${sv.id}:x`].sort());
+  });
+
+  it('backup v1 não mexe nas contas do aparelho nem na fila delas', async () => {
+    const repo = criarRepositorioLocal(new IDBFactory());
+    const c = await repo.salvarConta(nConta());
+    await repo.confirmarEnvio(await repo.pendentes());
+    await repo.substituirTudo({ app: 'mb2-painel', versao: 1, geradoEm: '2026-10-30T00:00:00.000Z', obras: [], custos: [] });
+    expect(await repo.listarContas()).toEqual([c]);
+    expect(await repo.pendentes()).toEqual([]);
+  });
+
+  it('excluir obra enfileira a exclusão da conta dela e dos saldos', async () => {
+    const repo = criarRepositorioLocal(new IDBFactory());
+    const o = await repo.salvarObra(novaObra);
+    const c = await repo.salvarConta(nConta(o.id));
+    const s = await repo.salvarSaldo(nSaldo(c.id, 1_00));
+    await repo.confirmarEnvio(await repo.pendentes());
+    await repo.excluirObra(o.id);
+    expect(await chaves(repo)).toEqual([`obra:${o.id}:x`, `conta:${c.id}:x`, `saldo:${s.id}:x`].sort());
   });
 });

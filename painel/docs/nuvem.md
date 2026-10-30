@@ -17,7 +17,7 @@ Mais em [privacidade.md](privacidade.md).
 
 ## Como funciona
 - Banco: [Supabase](https://supabase.com) (plano grátis). Uma tabela, `painel_registros`, com uma
-  linha por obra ou lançamento (`painel/supabase/painel.sql`).
+  linha por obra, lançamento, conta ou saldo (`painel/supabase/painel.sql`).
 - Acesso: e-mail e senha. Só entra quem estiver em `painel_membros`; o cadastro aberto fica desligado.
   A chave que vai no painel é a **pública** (anon/publishable): quem protege os dados são as regras
   de acesso do banco (RLS). A chave secreta (service_role) **nunca** vai para o painel nem para o Git.
@@ -29,10 +29,19 @@ Mais em [privacidade.md](privacidade.md).
 - Primeira vez que um aparelho entra: tudo o que já está nele sobe junto, nada se perde. Se o
   mesmo backup foi restaurado nos dois aparelhos, os lançamentos não se duplicam (mesmo id).
 
+## Contas e saldos na nuvem
+- Contas bancárias e saldos sincronizam como obras e custos (mesma fila, "o mais recente vence", excluir
+  é marcar). Excluir uma conta leva os saldos dela; um saldo que chega antes da conta espera por ela.
+- Mesma segurança: só os e-mails autorizados (`painel_membros`) leem e gravam. O chefe e o dono veem
+  os mesmos saldos; não existe papel "somente leitura".
+- Saldo é dado sensível: no Git, em testes e em exemplos use só valores inventados.
+
 ## Ligar (uma vez)
 1. Em supabase.com, crie uma conta e um projeto novo (ex.: `mb2-painel`, região São Paulo).
    Guarde a senha do banco num lugar seguro; ela não é usada pelo painel.
-2. **SQL Editor › New query**: cole o conteúdo de `painel/supabase/painel.sql` e clique **Run**.
+2. **SQL Editor › New query**: cole **todo** o conteúdo de `painel/supabase/painel.sql` (script único) e clique
+   **Run**. Pode rodar de novo quando quiser: ele serve para projeto novo e também para **atualizar um
+   projeto antigo** (passa a aceitar contas e saldos), sem apagar nem duplicar nada.
 3. **Authentication › Sign In / Providers**: desligue **Allow new users to sign up**
    (deixe ligado só o provedor Email).
 4. **Authentication › Users › Add user › Create new user**: e-mail e senha do dono (marque

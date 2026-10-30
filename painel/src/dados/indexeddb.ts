@@ -1,5 +1,5 @@
 import type { Conta, Custo, NovaConta, NovaObra, NovoCusto, NovoSaldo, Obra, SaldoConta } from '../dominio/tipos';
-import { custoValido, obraValida } from './backup';
+import { contaValida, custoValido, obraValida, saldoValido } from './backup';
 import type { Backup, FilaLocal, Pendente, RegistroNuvem, Repositorio, TipoRegistro } from './repositorio';
 
 const NOME_BANCO = 'mb2-painel';
@@ -20,7 +20,7 @@ function abrir(fabrica: IDBFactory): Promise<IDBDatabase> {
       // Versão 2: fila de mudanças a enviar para a nuvem e marcas da sincronização.
       if (!db.objectStoreNames.contains('pendentes')) db.createObjectStore('pendentes');
       if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta');
-      // Versão 3: dinheiro em conta (só no aparelho por enquanto, fora da fila da nuvem).
+      // Versão 3: dinheiro em conta (contas e saldos; sincronizam pela mesma fila).
       if (!db.objectStoreNames.contains('contas')) db.createObjectStore('contas', { keyPath: 'id' });
       if (!db.objectStoreNames.contains('saldos')) {
         const saldos = db.createObjectStore('saldos', { keyPath: 'id' });
@@ -49,10 +49,14 @@ const novoId = () => crypto.randomUUID();
 
 const CHAVE_COPIA = 'antes-da-restauracao';
 const CHAVE_MARCA = 'nuvem-buscado-ate';
+// Registros da nuvem que chegaram antes do que dependem (saldo antes da conta, conta antes da obra).
+const CHAVE_ADIADOS = 'nuvem-adiados';
 type Loja = 'obras' | 'custos' | 'copias' | 'pendentes' | 'meta' | 'contas' | 'saldos';
-type LojaDados = 'obras' | 'custos';
+type LojaDados = 'obras' | 'custos' | 'contas' | 'saldos';
 
-const LOJA: Record<TipoRegistro, LojaDados> = { obra: 'obras', custo: 'custos' };
+const LOJA: Record<TipoRegistro, LojaDados> = { obra: 'obras', custo: 'custos', conta: 'contas', saldo: 'saldos' };
+// Ordem de aplicação do que vem da nuvem: quem depende de outro vem depois dele.
+const ORDEM: Record<TipoRegistro, number> = { obra: 0, custo: 1, conta: 2, saldo: 3 };
 const chavePendente = (tipo: TipoRegistro, id: string) => `${tipo}:${id}`;
 const depois = (a: string, b: string) => Date.parse(a) > Date.parse(b);
 
@@ -93,10 +97,6 @@ export function criarRepositorioLocal(fabrica: IDBFactory = indexedDB): Reposito
     return pedido(tx.objectStore(loja).getAll() as IDBRequest<T[]>);
   }
 
-  async function listarLoja<T>(loja: 'contas' | 'saldos'): Promise<T[]> {
-    const tx = await transacao(loja, 'readonly');
-    return pedido(tx.objectStore(loja).getAll() as IDBRequest<T[]>);
-  }
 
   async function gravar<T extends { id: string; criadoEm: string }, N>(
     loja: LojaDados,
@@ -126,7 +126,7 @@ export function criarRepositorioLocal(fabrica: IDBFactory = indexedDB): Reposito
       const tx = await transacao(['obras', 'custos', 'pendentes', 'contas', 'saldos'], 'readwrite');
       const agora = new Date().toISOString();
       tx.objectStore('obras').delete(id);
-      await removerContasSemObra(tx, (obraId) => obraId !== id); // a conta da SPE vai junto com a obra
+      await removerContasSemObra(tx, (obraId) => obraId !== id, agora); // a conta da SPE vai junto com a obra
       enfileirar(tx, 'obra', id, true, agora);
       const custos = tx.objectStore('custos');
       const chaves = await pedido(custos.index('obraId').getAllKeys(id));
@@ -137,35 +137,43 @@ export function criarRepositorioLocal(fabrica: IDBFactory = indexedDB): Reposito
       await concluir(tx);
     },
 
-    listarContas: () => listarLoja<Conta>('contas'),
+    listarContas: () => listar<Conta>('contas'),
     async salvarConta(dados: NovaConta, id?: string) {
-      const tx = await transacao('contas', 'readwrite');
+      const tx = await transacao(['contas', 'pendentes'], 'readwrite');
       const store = tx.objectStore('contas');
       const agora = new Date().toISOString();
       const anterior = id ? ((await pedido(store.get(id))) as Conta | undefined) : undefined;
       const conta: Conta = { ...dados, id: id ?? novoId(), criadoEm: anterior?.criadoEm ?? agora, atualizadoEm: agora };
       store.put(conta);
+      enfileirar(tx, 'conta', conta.id, false, agora);
       await concluir(tx);
       return conta;
     },
     async excluirConta(id) {
-      const tx = await transacao(['contas', 'saldos'], 'readwrite');
+      const tx = await transacao(['contas', 'saldos', 'pendentes'], 'readwrite');
       tx.objectStore('contas').delete(id);
+      const agora = new Date().toISOString();
+      enfileirar(tx, 'conta', id, true, agora);
       const saldos = tx.objectStore('saldos');
-      for (const k of await pedido(saldos.index('contaId').getAllKeys(id))) saldos.delete(k);
+      for (const k of await pedido(saldos.index('contaId').getAllKeys(id))) {
+        saldos.delete(k);
+        enfileirar(tx, 'saldo', String(k), true, agora);
+      }
       await concluir(tx);
     },
-    listarSaldos: () => listarLoja<SaldoConta>('saldos'),
+    listarSaldos: () => listar<SaldoConta>('saldos'),
     async salvarSaldo(dados: NovoSaldo) {
-      const tx = await transacao('saldos', 'readwrite');
+      const tx = await transacao(['saldos', 'pendentes'], 'readwrite');
       const saldo: SaldoConta = { ...dados, id: novoId(), criadoEm: new Date().toISOString() };
       tx.objectStore('saldos').add(saldo); // add: nunca sobrescreve uma linha existente
+      enfileirar(tx, 'saldo', saldo.id, false, saldo.criadoEm); // saldo não é editado: a data de criação é a da mudança
       await concluir(tx);
       return saldo;
     },
     async excluirSaldo(id) {
-      const tx = await transacao('saldos', 'readwrite');
+      const tx = await transacao(['saldos', 'pendentes'], 'readwrite');
       tx.objectStore('saldos').delete(id);
+      enfileirar(tx, 'saldo', id, true, new Date().toISOString());
       await concluir(tx);
     },
 
@@ -180,7 +188,7 @@ export function criarRepositorioLocal(fabrica: IDBFactory = indexedDB): Reposito
 
     async exportar(): Promise<Backup> {
       const [obras, custos, contas, saldos] = await Promise.all([
-        listar<Obra>('obras'), listar<Custo>('custos'), listarLoja<Conta>('contas'), listarLoja<SaldoConta>('saldos'),
+        listar<Obra>('obras'), listar<Custo>('custos'), listar<Conta>('contas'), listar<SaldoConta>('saldos'),
       ]);
       return { app: 'mb2-painel', versao: 2, geradoEm: new Date().toISOString(), obras, custos, contas, saldos };
     },
@@ -210,11 +218,11 @@ export function criarRepositorioLocal(fabrica: IDBFactory = indexedDB): Reposito
       return pedido(tx.objectStore('pendentes').getAll() as IDBRequest<Pendente[]>);
     },
     async paraEnviar(pendentes) {
-      const tx = await transacao(['obras', 'custos'], 'readonly');
+      const tx = await transacao(['obras', 'custos', 'contas', 'saldos'], 'readonly');
       return Promise.all(pendentes.map(async (p): Promise<RegistroNuvem> => {
         const dados = p.excluido
           ? undefined
-          : ((await pedido(tx.objectStore(LOJA[p.tipo]).get(p.id))) as Obra | Custo | undefined);
+          : ((await pedido(tx.objectStore(LOJA[p.tipo]).get(p.id))) as Obra | Custo | Conta | SaldoConta | undefined);
         return { tipo: p.tipo, id: p.id, dados: dados ?? null, excluido: !dados, alteradoEm: p.alteradoEm };
       }));
     },
@@ -229,38 +237,90 @@ export function criarRepositorioLocal(fabrica: IDBFactory = indexedDB): Reposito
       await concluir(tx);
     },
     async aplicarDaNuvem(registros) {
-      const tx = await transacao(['obras', 'custos', 'pendentes'], 'readwrite');
+      const tx = await transacao(['obras', 'custos', 'contas', 'saldos', 'pendentes', 'meta'], 'readwrite');
       const fila = tx.objectStore('pendentes');
+      const meta = tx.objectStore('meta');
+      // Junta o que ficou esperando de rodadas anteriores com o que chegou agora (o mais novo de cada um).
+      const adiados = ((await pedido(meta.get(CHAVE_ADIADOS))) as RegistroNuvem[] | undefined) ?? [];
+      const porChave = new Map<string, RegistroNuvem>();
+      for (const r of [...adiados, ...registros]) {
+        if (!r || !Object.hasOwn(ORDEM, r.tipo) || typeof r.id !== 'string') continue; // tipo desconhecido: ignora
+        const k = chavePendente(r.tipo, r.id);
+        const velho = porChave.get(k);
+        if (!velho || !depois(velho.alteradoEm, r.alteradoEm)) porChave.set(k, r);
+      }
+      // Obras e custos, depois contas, depois saldos: nada fica sem o dono por ordem de chegada.
+      const lista = [...porChave.values()].sort((x, y) => ORDEM[x.tipo] - ORDEM[y.tipo]);
+      const esperando: RegistroNuvem[] = [];
+      const contasExcluidas = new Set<string>();
+      let obraSaiu = false;
       let mudou = 0;
-      for (const r of registros) {
+      for (const r of lista) {
         const chave = chavePendente(r.tipo, r.id);
         const local = (await pedido(fila.get(chave))) as Pendente | undefined;
         if (local && depois(local.alteradoEm, r.alteradoEm)) continue; // a mudança daqui é mais nova
-        if (local) fila.delete(chave);
         const loja = tx.objectStore(LOJA[r.tipo]);
         const atual = await pedido(loja.get(r.id));
         if (r.excluido || !r.dados) {
+          if (local) fila.delete(chave);
           if (atual) { loja.delete(r.id); mudou++; }
+          if (r.tipo === 'obra') obraSaiu = true;
+          if (r.tipo === 'conta') {
+            contasExcluidas.add(r.id);
+            const saldos = tx.objectStore('saldos');
+            for (const k of await pedido(saldos.index('contaId').getAllKeys(r.id))) {
+              saldos.delete(k); // saldo não existe sem a conta
+              fila.delete(chavePendente('saldo', String(k)));
+              mudou++;
+            }
+          }
           continue;
         }
-        const valido = r.tipo === 'obra' ? obraValida(r.dados as never) : custoValido(r.dados as never);
-        if (!valido || r.dados.id !== r.id) continue; // registro estranho: ignora
+        // Registro estranho (não passa na validação do backup): ignora, sem tocar no que existe aqui.
+        const d = r.dados as unknown as Record<string, unknown>;
+        const valido =
+          r.tipo === 'obra' ? obraValida(d)
+          : r.tipo === 'custo' ? custoValido(d)
+          : r.tipo === 'conta' ? contaValida(d)
+          : saldoValido(d);
+        if (!valido || d.id !== r.id) continue;
+        // Falta o dono (obra da conta, conta do saldo)? Espera por ele, a não ser que ele tenha sido excluído.
+        const dono =
+          r.tipo === 'conta' && d.obraId !== null ? { loja: 'obras', id: d.obraId as string }
+          : r.tipo === 'saldo' ? { loja: 'contas', id: d.contaId as string }
+          : null;
+        if (dono && !(await pedido(tx.objectStore(dono.loja).getKey(dono.id)))) {
+          if (!contasExcluidas.has(dono.id)) esperando.push(r);
+          continue;
+        }
+        if (local) fila.delete(chave);
         if (JSON.stringify(atual) !== JSON.stringify(r.dados)) { loja.put(r.dados); mudou++; }
       }
+      // Obra excluída em outro aparelho: a conta dela (e os saldos) não ficam soltas aqui.
+      if (obraSaiu) {
+        const existentes = new Set((await pedido(tx.objectStore('obras').getAllKeys())).map(String));
+        await removerContasSemObra(tx, (id) => existentes.has(id), new Date().toISOString());
+      }
+      if (esperando.length) meta.put(esperando, CHAVE_ADIADOS);
+      else meta.delete(CHAVE_ADIADOS);
       await concluir(tx);
       return mudou;
     },
     async enfileirarTudo() {
-      const tx = await transacao(['obras', 'custos', 'pendentes'], 'readwrite');
+      const tx = await transacao(['obras', 'custos', 'contas', 'saldos', 'pendentes'], 'readwrite');
       const fila = tx.objectStore('pendentes');
-      const [obras, custos] = await Promise.all([
+      const [obras, custos, contas, saldos] = await Promise.all([
         pedido(tx.objectStore('obras').getAll() as IDBRequest<Obra[]>),
         pedido(tx.objectStore('custos').getAll() as IDBRequest<Custo[]>),
+        pedido(tx.objectStore('contas').getAll() as IDBRequest<Conta[]>),
+        pedido(tx.objectStore('saldos').getAll() as IDBRequest<SaldoConta[]>),
       ]);
       const ja = new Set((await pedido(fila.getAllKeys())).map(String));
       // Usa a data da última edição: se a nuvem tiver algo mais novo, ela vence.
       for (const o of obras) if (!ja.has(chavePendente('obra', o.id))) enfileirar(tx, 'obra', o.id, false, o.atualizadoEm);
       for (const c of custos) if (!ja.has(chavePendente('custo', c.id))) enfileirar(tx, 'custo', c.id, false, c.atualizadoEm);
+      for (const c of contas) if (!ja.has(chavePendente('conta', c.id))) enfileirar(tx, 'conta', c.id, false, c.atualizadoEm);
+      for (const s of saldos) if (!ja.has(chavePendente('saldo', s.id))) enfileirar(tx, 'saldo', s.id, false, s.criadoEm);
       await concluir(tx);
     },
     async lerMarca() {
@@ -276,15 +336,19 @@ export function criarRepositorioLocal(fabrica: IDBFactory = indexedDB): Reposito
   };
 }
 
-// Apaga as contas (e os saldos delas) de obras que não existem mais: conta sem obra não passaria na
+// Apaga (e põe a exclusão na fila) as contas e os saldos delas de obras que não existem mais: conta sem obra não passaria na
 // validação do backup e entraria nos totais sem dono.
-async function removerContasSemObra(tx: IDBTransaction, obraExiste: (obraId: string) => boolean) {
+async function removerContasSemObra(tx: IDBTransaction, obraExiste: (obraId: string) => boolean, agora: string) {
   const contas = tx.objectStore('contas');
   const saldos = tx.objectStore('saldos');
   for (const c of (await pedido(contas.getAll())) as Conta[]) {
     if (c.obraId === null || obraExiste(c.obraId)) continue;
     contas.delete(c.id);
-    for (const k of await pedido(saldos.index('contaId').getAllKeys(c.id))) saldos.delete(k);
+    enfileirar(tx, 'conta', c.id, true, agora);
+    for (const k of await pedido(saldos.index('contaId').getAllKeys(c.id))) {
+      saldos.delete(k);
+      enfileirar(tx, 'saldo', String(k), true, agora);
+    }
   }
 }
 
@@ -303,13 +367,18 @@ async function gravarTudo(tx: IDBTransaction, backup: Backup) {
   for (const o of backup.obras) { obras.put(o); enfileirar(tx, 'obra', o.id, false, agora); }
   for (const c of backup.custos) { custos.put(c); enfileirar(tx, 'custo', c.id, false, agora); }
   // Backup versão 1 não conhece contas e saldos: os do aparelho ficam, menos os de obra que sumiu.
-  if (backup.versao === 1) await removerContasSemObra(tx, (obraId) => novasObras.has(obraId));
+  if (backup.versao === 1) await removerContasSemObra(tx, (obraId) => novasObras.has(obraId), agora);
   if (backup.versao === 2) {
     const contas = tx.objectStore('contas');
     const saldos = tx.objectStore('saldos');
+    const [idsContas, idsSaldos] = await Promise.all([pedido(contas.getAllKeys()), pedido(saldos.getAllKeys())]);
+    const novasContas = new Set((backup.contas ?? []).map((c) => c.id));
+    const novosSaldos = new Set((backup.saldos ?? []).map((s) => s.id));
+    for (const k of idsContas) if (!novasContas.has(String(k))) enfileirar(tx, 'conta', String(k), true, agora);
+    for (const k of idsSaldos) if (!novosSaldos.has(String(k))) enfileirar(tx, 'saldo', String(k), true, agora);
     contas.clear();
     saldos.clear();
-    for (const c of backup.contas ?? []) contas.put(c);
-    for (const s of backup.saldos ?? []) saldos.put(s);
+    for (const c of backup.contas ?? []) { contas.put(c); enfileirar(tx, 'conta', c.id, false, agora); }
+    for (const s of backup.saldos ?? []) { saldos.put(s); enfileirar(tx, 'saldo', s.id, false, agora); }
   }
 }

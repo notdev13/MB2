@@ -5,6 +5,7 @@ import type { Nuvem } from './nuvem';
 import type { RegistroNuvem } from './repositorio';
 import { sincronizar } from './sincronizacao';
 import type { NovaObra, NovoCusto } from '../dominio/tipos';
+import { validarBackup } from './backup';
 
 // Nuvem de mentira com a mesma regra do banco (painel.sql): vale o alterado_em mais novo.
 function nuvemFalsa(): Nuvem & { linhas: Map<string, RegistroNuvem> } {
@@ -154,5 +155,128 @@ describe('sincronização entre aparelhos', () => {
     expect(await repo.pendentes()).toEqual([]);
     await repo.enfileirarTudo();
     expect(await repo.pendentes()).toHaveLength(1);
+  });
+});
+
+// ---- Contas e saldos entre aparelhos (dados inventados) ----
+describe('sincronização de contas e saldos', () => {
+  const nConta = (obraId: string | null = null) => ({ nome: 'Conta A', banco: 'Banco X', obraId, ativa: true });
+  const nSaldo = (contaId: string, valor: number, data = '2026-10-29') => ({ contaId, data, valor, fonte: 'manual' as const, obs: '' });
+
+  it('ponta a ponta: A cria conta+saldo, B recebe igual; B edita, A recebe; A exclui a conta, B perde tudo', async () => {
+    const nuvem = nuvemFalsa();
+    const a = criarRepositorioLocal(new IDBFactory());
+    const b = criarRepositorioLocal(new IDBFactory());
+
+    const obra = await a.salvarObra(novaObra);
+    const conta = await a.salvarConta(nConta(obra.id));
+    const saldo = await a.salvarSaldo(nSaldo(conta.id, -1_234_56));
+    await a.salvarSaldo(nSaldo(conta.id, 9_999_99, '2026-10-30'));
+    expect((await sincronizar(a, nuvem)).enviados).toBe(4);
+    await sincronizar(b, nuvem);
+    expect(await b.listarObras()).toEqual(await a.listarObras());
+    expect(await b.listarContas()).toEqual(await a.listarContas());
+    expect(await b.listarSaldos()).toEqual(await a.listarSaldos());
+    expect((await b.listarSaldos()).every((s) => Number.isSafeInteger(s.valor))).toBe(true);
+    expect(await b.pendentes()).toEqual([]);
+
+    // B edita a conta e lança um saldo novo; A recebe
+    await espera();
+    await b.salvarConta({ ...nConta(obra.id), nome: 'Conta renomeada' }, conta.id);
+    const novo = await b.salvarSaldo(nSaldo(conta.id, 50_00, '2026-10-31'));
+    await sincronizar(b, nuvem);
+    await sincronizar(a, nuvem);
+    expect((await a.listarContas())[0].nome).toBe('Conta renomeada');
+    expect((await a.listarSaldos()).map((s) => s.id)).toContain(novo.id);
+    expect(await a.listarSaldos()).toHaveLength(3);
+
+    // B corrige um saldo lançado por engano (exclui); A recebe
+    await espera();
+    await b.excluirSaldo(saldo.id);
+    await sincronizar(b, nuvem);
+    await sincronizar(a, nuvem);
+    expect((await a.listarSaldos()).map((s) => s.id)).not.toContain(saldo.id);
+
+    // A exclui a conta; B perde a conta e todos os saldos dela
+    await espera();
+    await a.excluirConta(conta.id);
+    await sincronizar(a, nuvem);
+    await sincronizar(b, nuvem);
+    expect(await b.listarContas()).toEqual([]);
+    expect(await b.listarSaldos()).toEqual([]);
+    expect(await b.listarObras()).toHaveLength(1);
+    expect(validarBackup(await b.exportar()).ok).toBe(true);
+  });
+
+  it('primeira sincronização de um aparelho com contas e saldos sobe tudo; o outro recebe', async () => {
+    const nuvem = nuvemFalsa();
+    const iphone = criarRepositorioLocal(new IDBFactory());
+    const pc = criarRepositorioLocal(new IDBFactory());
+    const c = await iphone.salvarConta(nConta());
+    await iphone.salvarSaldo(nSaldo(c.id, 1_00));
+    await iphone.confirmarEnvio(await iphone.pendentes()); // como dado antigo, anterior à nuvem
+    await iphone.gravarMarca(null);
+    expect((await sincronizar(iphone, nuvem)).enviados).toBe(2);
+    expect(await sincronizar(pc, nuvem)).toEqual({ enviados: 0, recebidos: 2 });
+    expect(await pc.listarSaldos()).toEqual(await iphone.listarSaldos());
+  });
+
+  it('"Outra conta": marca zerada manda contas e saldos para a nuvem nova', async () => {
+    const nuvemNova = nuvemFalsa();
+    const aparelho = criarRepositorioLocal(new IDBFactory());
+    const c = await aparelho.salvarConta(nConta());
+    await aparelho.salvarSaldo(nSaldo(c.id, 7_00));
+    await aparelho.confirmarEnvio(await aparelho.pendentes());
+    await aparelho.gravarMarca('2026-10-01T00:00:00.000Z'); // já sincronizou com a conta anterior
+    await aparelho.gravarMarca(null); // Sair zera a marca
+    await sincronizar(aparelho, nuvemNova);
+    const tipos = [...nuvemNova.linhas.values()].map((l) => l.tipo).sort();
+    expect(tipos).toEqual(['conta', 'saldo']);
+  });
+
+  it('conflito: a conta mais nova vence em qualquer ordem de sincronização', async () => {
+    const nuvem = nuvemFalsa();
+    const a = criarRepositorioLocal(new IDBFactory());
+    const b = criarRepositorioLocal(new IDBFactory());
+    const c = await a.salvarConta(nConta());
+    await sincronizar(a, nuvem);
+    await sincronizar(b, nuvem);
+    await a.salvarConta({ ...nConta(), nome: 'Feito primeiro' }, c.id);
+    await espera();
+    await b.salvarConta({ ...nConta(), nome: 'Feito por último' }, c.id);
+    await sincronizar(b, nuvem);
+    await sincronizar(a, nuvem);
+    await sincronizar(b, nuvem);
+    expect((await a.listarContas())[0].nome).toBe('Feito por último');
+    expect((await b.listarContas())[0].nome).toBe('Feito por último');
+  });
+
+  it('registro inválido na nuvem não derruba a sincronização e os válidos entram', async () => {
+    const nuvem = nuvemFalsa();
+    const a = criarRepositorioLocal(new IDBFactory());
+    const b = criarRepositorioLocal(new IDBFactory());
+    const c = await a.salvarConta(nConta());
+    const s = await a.salvarSaldo(nSaldo(c.id, 1_00));
+    await sincronizar(a, nuvem);
+    nuvem.linhas.set('saldo:ruim', { tipo: 'saldo', id: 'ruim', dados: { ...s, id: 'ruim', valor: 0.1 } as never, excluido: false, alteradoEm: '2026-10-30T00:00:00.000Z', servidorEm: '2026-02-01T00:00:00.000Z' });
+    expect(await sincronizar(b, nuvem)).toEqual({ enviados: 0, recebidos: 2 });
+    expect(await b.listarSaldos()).toEqual([s]);
+  });
+
+  it('saldo recebido antes da conta (em rodadas separadas) não se perde', async () => {
+    const nuvem = nuvemFalsa();
+    const a = criarRepositorioLocal(new IDBFactory());
+    const b = criarRepositorioLocal(new IDBFactory());
+    const c = await a.salvarConta(nConta());
+    const s = await a.salvarSaldo(nSaldo(c.id, 2_00));
+    await sincronizar(a, nuvem);
+    const conta = nuvem.linhas.get(`conta:${c.id}`)!;
+    nuvem.linhas.delete(`conta:${c.id}`); // a conta ainda não "chegou" à nuvem lida por B
+    await sincronizar(b, nuvem);
+    expect(await b.listarSaldos()).toEqual([]);
+    nuvem.linhas.set(`conta:${c.id}`, { ...conta, servidorEm: '2027-01-01T00:00:00.000Z' });
+    await sincronizar(b, nuvem);
+    expect(await b.listarContas()).toEqual([c]);
+    expect(await b.listarSaldos()).toEqual([s]);
   });
 });

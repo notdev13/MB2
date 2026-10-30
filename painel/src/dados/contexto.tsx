@@ -30,7 +30,7 @@ interface Dados {
   excluirObra(id: string): Promise<void>;
   salvarCusto(dados: NovoCusto, id?: string): Promise<Custo>;
   excluirCusto(id: string): Promise<void>;
-  // Contas e saldos ficam só no aparelho e no backup (ainda não sincronizam com a nuvem).
+  // Contas e saldos sincronizam com a nuvem como obras e custos (docs/nuvem.md).
   salvarConta(dados: NovaConta, id?: string): Promise<Conta>;
   salvarSaldo(dados: NovoSaldo): Promise<SaldoConta>;
   excluirSaldo(id: string): Promise<void>;
@@ -207,16 +207,19 @@ export function DadosProvider({ children, repo, nuvem: nuvemDada }: {
     async salvarConta(d, id) {
       const r = await repositorio.salvarConta(d, id);
       await recarregar();
+      agendar();
       return r;
     },
     async salvarSaldo(d) {
       const r = await repositorio.salvarSaldo(d);
       await recarregar();
+      agendar();
       return r;
     },
     async excluirSaldo(id) {
       await repositorio.excluirSaldo(id);
       await recarregar();
+      agendar();
     },
     exportar: () => repositorio.exportar(),
     async restaurar(b) {
