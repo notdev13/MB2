@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import fonte from '../../vite.config.ts?raw';
 
 // A leitura de PDF (pdf.js) não pode afrouxar a política de conteúdo do painel.
-// A prova no navegador está no teste ponta a ponta (sem violações de CSP); este teste
-// segura a configuração para ninguém "resolver" um erro de CSP abrindo a porta.
+// Este teste só confere o TEXTO da política no vite.config.ts (não roda o navegador): serve para
+// ninguém "resolver" um erro de CSP abrindo a porta. A prova no navegador é conferida à mão.
 describe('política de conteúdo (CSP) do build', () => {
   const politica = /const politica = \[([\s\S]*?)\]\.join/.exec(fonte)?.[1] ?? '';
 

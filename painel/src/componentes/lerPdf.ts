@@ -27,7 +27,7 @@ export async function lerCandidatosDoPdf(bytes: ArrayBuffer): Promise<Candidatos
 }
 
 export async function lerLinhasDoPdf(bytes: ArrayBuffer): Promise<LeituraPdf> {
-  let tarefa: { promise: Promise<unknown>; destroy: () => Promise<void> } | null = null;
+  let tarefa: { destroy: () => Promise<void> } | null = null;
   let temporizador: ReturnType<typeof setTimeout> | undefined;
   try {
     if (bytes.byteLength > TAMANHO_MAX_PDF) return falha('O PDF é grande demais (o limite é 10 MB).');
@@ -44,35 +44,43 @@ export async function lerLinhasDoPdf(bytes: ArrayBuffer): Promise<LeituraPdf> {
       // Só texto: sem fontes, sem imagens, sem scripts, sem buscar nada fora.
       disableFontFace: true, useSystemFonts: false, enableXfa: false, isImageDecoderSupported: false,
       useWorkerFetch: false, disableAutoFetch: true, disableStream: true, disableRange: true, verbosity: 0,
+      // Pedido de segurança: nada de código gerado em tempo de execução. A versão 6.4.299 do pdf.js
+      // já não tem essa opção (nem usa eval), então não muda nada hoje; fica para versões que a tragam.
+      ...({ isEvalSupported: false } as object),
     });
     tarefa = carregando;
+
+    // O prazo de 30 s cobre a leitura INTEIRA (abrir, getPage e getTextContent), não só a abertura.
     const limite = new Promise<never>((_, rejeitar) => {
       temporizador = setTimeout(() => rejeitar(new Error('tempo')), TEMPO_MAX_MS);
     });
-    const doc = await Promise.race([carregando.promise, limite]);
-
-    const paginas = doc.numPages;
-    const lidas = Math.min(paginas, MAX_PAGINAS);
-    const linhas: string[] = [];
-    let caracteres = 0;
-    for (let n = 1; n <= lidas && caracteres <= MAX_CARACTERES; n++) {
-      const pagina = await doc.getPage(n);
-      const conteudo = await pagina.getTextContent();
-      const itens: ItemTexto[] = [];
-      for (const it of conteudo.items) {
-        if (!('str' in it) || typeof it.str !== 'string') continue;
-        caracteres += it.str.length;
-        // transform = [a, b, c, d, x, y]
-        itens.push({ str: it.str, x: it.transform[4], y: it.transform[5] });
+    const leitura = (async (): Promise<LeituraPdf> => {
+      const doc = await carregando.promise;
+      const paginas = doc.numPages;
+      const lidas = Math.min(paginas, MAX_PAGINAS);
+      const linhas: string[] = [];
+      let caracteres = 0;
+      for (let n = 1; n <= lidas && caracteres <= MAX_CARACTERES; n++) {
+        const pagina = await doc.getPage(n);
+        const conteudo = await pagina.getTextContent();
+        const itens: ItemTexto[] = [];
+        for (const it of conteudo.items) {
+          if (!('str' in it) || typeof it.str !== 'string') continue;
+          caracteres += it.str.length;
+          // transform = [a, b, c, d, x, y]
+          itens.push({ str: it.str, x: it.transform[4], y: it.transform[5] });
+        }
+        // Cada página no seu "bloco": a altura reinicia a cada página.
+        linhas.push(...agruparEmLinhas(itens));
+        pagina.cleanup();
       }
-      // Cada página no seu "bloco": a altura reinicia a cada página.
-      linhas.push(...agruparEmLinhas(itens));
-      pagina.cleanup();
-    }
-    if (caracteres < MIN_CARACTERES) {
-      return falha('Este PDF é uma imagem, não tem texto. Baixe o extrato em OFX.');
-    }
-    return { ok: true, linhas, paginas, lidas };
+      if (caracteres < MIN_CARACTERES) {
+        return falha('Este PDF é uma imagem, não tem texto. Baixe o extrato em OFX.');
+      }
+      return { ok: true, linhas, paginas, lidas };
+    })();
+    leitura.catch(() => { /* se o prazo vencer, o erro desta leitura já não importa */ });
+    return await Promise.race([leitura, limite]);
   } catch (e) {
     const nome = (e as { name?: string } | null)?.name;
     if (nome === 'PasswordException') return falha('Este PDF tem senha. Baixe o extrato sem senha.');
