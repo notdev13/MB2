@@ -229,3 +229,11 @@
 .dk .botao { min-height: 42px; font-size: 14px; }
 .dk .toast { bottom: 28px; left: calc(50% + var(--d-lateral) / 2); }
 @keyframes d-entrar { from { transform: translateX(32px); opacity: 0; } }
+
+/* ---------- Estado vazio (componente EstadoVazio) no computador: ícone ao lado do texto ---------- */
+.dk .ev { flex-direction: row; align-items: center; text-align: left; gap: 24px; max-width: 640px; margin: 0 auto; padding: 48px 24px; border: 0; border-radius: 0; }
+.dk .ev-icone { flex: none; width: 72px; height: 72px; }
+.dk .ev h3 { font-size: 30px; }
+.dk .ev p { margin: 0; max-width: 46ch; }
+.dk .ev-acoes { flex-direction: row; flex-wrap: wrap; align-items: center; margin-top: 18px; }
+.dk .ev-acoes .d-botao { height: 44px; }

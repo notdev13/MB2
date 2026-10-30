@@ -72,7 +72,7 @@ function Conteudo() {
         {erro && <div className="aviso" role="alert">{erro}</div>}
         {!carregando && !erro && (
           <main>
-            {rota.tela === 'visao' && <Visao aoNovaObra={novaObra} aoAbrirCusto={abrirCusto} />}
+            {rota.tela === 'visao' && <Visao aoNovaObra={novaObra} aoAbrirCusto={abrirCusto} aoLancar={() => setFolha({ tipo: 'custo' })} />}
             {rota.tela === 'obras' && <Obras aoNovaObra={novaObra} />}
             {rota.tela === 'obra' && (
               <ObraDetalhe id={rota.id} aoAbrirCusto={abrirCusto}
