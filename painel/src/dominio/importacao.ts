@@ -8,6 +8,7 @@ import type { Conta, NovoSaldo, SaldoConta } from './tipos';
 // Não existe "importar assim mesmo": quem chama só tem o resultado ok ou recusado.
 
 export const OBS_IMPORTADO = 'Importado do extrato (OFX)';
+export const OBS_IMPORTADO_PDF = 'Importado do extrato (PDF), conferido pelo dono';
 
 export interface ExtratoParaAvaliar {
   contaFinal: string;
@@ -92,9 +93,27 @@ export function avaliarImportacao(
   };
 }
 
+export type AvaliacaoPdf =
+  | (Extract<Avaliacao, { ok: true }> & { precisaConfirmarDataAnteriorAoPeriodo?: boolean })
+  | Extract<Avaliacao, { ok: false }>;
+
+// PDF: o mesmo avaliarImportacao (data antiga, repetido, futuro, mudança grande). Como o PDF não
+// traz número de conta confiável, a checagem de final não se aplica; o dono escolhe a conta.
+// Regra extra do PDF: data escolhida anterior ao fim do período do documento = aviso forte e
+// confirmação extra. Isso NUNCA contorna a regra de ouro, que já foi aplicada antes.
+export function avaliarImportacaoPdf(
+  extrato: Pick<ExtratoParaAvaliar, 'saldo' | 'data'>, conta: Pick<Conta, 'id' | 'finalConta'>, saldos: SaldoConta[], hoje: string, periodoFim?: string,
+): AvaliacaoPdf {
+  const r = avaliarImportacao({ ...extrato, contaFinal: conta.finalConta ?? '' }, conta, saldos, hoje);
+  if (!r.ok || !periodoFim || extrato.data >= periodoFim) return r;
+  const forte = `Atenção: a data escolhida (${dataBR(extrato.data)}) é anterior ao fim do período do extrato (${dataBR(periodoFim)}). ` +
+    'Se o saldo escolhido é o do fim do período, use a data do fim.';
+  return { ...r, aviso: [r.aviso, forte].filter(Boolean).join(' '), precisaConfirmarDataAnteriorAoPeriodo: true };
+}
+
 // O saldo que será gravado: só valor, data e a origem "extrato". Nada mais do arquivo.
-export const saldoDoExtrato = (contaId: string, extrato: Pick<ExtratoParaAvaliar, 'saldo' | 'data'>): NovoSaldo =>
-  ({ contaId, data: extrato.data, valor: extrato.saldo, fonte: 'extrato', obs: OBS_IMPORTADO });
+export const saldoDoExtrato = (contaId: string, extrato: Pick<ExtratoParaAvaliar, 'saldo' | 'data'>, origem: 'ofx' | 'pdf' = 'ofx'): NovoSaldo =>
+  ({ contaId, data: extrato.data, valor: extrato.saldo, fonte: 'extrato', obs: origem === 'pdf' ? OBS_IMPORTADO_PDF : OBS_IMPORTADO });
 
 // Conta do painel que já tem este final (para pré-selecionar). Só se for única: na dúvida, o dono escolhe.
 export function contaPeloFinal(contas: Conta[], contaFinal: string): Conta | null {
