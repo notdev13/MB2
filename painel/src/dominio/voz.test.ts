@@ -327,3 +327,24 @@ describe('interpretador de voz: rodada final', () => {
     }
   });
 });
+
+describe('dúvida sobre o valor (a tela avisa "ouvi um número, confira")', () => {
+  it('valor em branco por dúvida traz duvidaValor; sem número na fala, não traz', () => {
+    for (const f of ['paguei 1.000 faltam 500 reais', 'cimento 360 reais e prego 18', 'paguei 360 de cimento e 200 de areia']) {
+      const r = ler(f);
+      expect(r.valor, f).toBeNull();
+      expect(r.duvidaValor, f).toBe(true);
+    }
+    const sem = ler('paguei o pedreiro ontem');
+    expect(sem.valor).toBeNull();
+    expect(sem.duvidaValor).toBeUndefined();
+  });
+
+  it('valor entendido nunca vem com dúvida', () => {
+    for (const f of ['paguei 360 de cimento', 'mil e duzentos de tijolo', 'areia pro 2º andar 480']) {
+      const r = ler(f);
+      expect(r.valor, f).not.toBeNull();
+      expect(r.duvidaValor, f).toBeUndefined();
+    }
+  });
+});

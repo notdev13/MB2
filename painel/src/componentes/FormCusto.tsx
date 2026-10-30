@@ -35,7 +35,7 @@ export function FormCusto({ custo, obraId, aoFechar }: { custo?: Custo; obraId?:
   const [pago, setPago] = useState(custo?.pago ?? true);
   const [tentou, setTentou] = useState(false);
   const [salvando, setSalvando] = useState(false);
-  const [entendido, setEntendido] = useState<{ preenchidos: string[]; faltou: string[] } | null>(null);
+  const [entendido, setEntendido] = useState<{ preenchidos: string[]; faltou: string[]; duvidaValor: boolean } | null>(null);
 
   // Preenche o formulário com o que foi falado; o que não foi entendido fica como estava.
   function entender(texto: string) {
@@ -52,6 +52,7 @@ export function FormCusto({ custo, obraId, aoFechar }: { custo?: Custo; obraId?:
     setEntendido({
       preenchidos,
       faltou: r.faltou.map((f) => (f === 'valor' ? 'o valor' : 'a obra')),
+      duvidaValor: r.valor === null && !!r.duvidaValor,
     });
   }
 
@@ -113,8 +114,9 @@ export function FormCusto({ custo, obraId, aoFechar }: { custo?: Custo; obraId?:
           <div className="entendi" role="status">
             {entendido.preenchidos.length > 0
               ? <>Entendi: <strong>{entendido.preenchidos.join(' · ')}</strong>. Confira antes de salvar.</>
-              : 'Não entendi o lançamento. Preencha os campos abaixo.'}
+              : !entendido.duvidaValor && 'Não entendi o lançamento. Preencha os campos abaixo.'}
             {entendido.faltou.length > 0 && entendido.preenchidos.length > 0 && <> Faltou {entendido.faltou.join(' e ')}.</>}
+            {entendido.duvidaValor && <> <strong>Ouvi um número, mas não tive certeza de qual é o valor.</strong> Digite o valor abaixo.</>}
           </div>
         )}
         <label className="campo valor">
