@@ -1,75 +1,67 @@
 import { useEffect, useRef, useState } from 'react';
+import { useDados } from '../dados/contexto';
 import { Icone } from './Icone';
+import { construtorDoNavegador, criarControleFalar, type ControleFalar, type Visao } from './Falar.logica';
+import type { EstadoVoz } from './sessaoVoz';
 
 // Campo "fale ou escreva o lançamento". O microfone usa o reconhecimento de voz do próprio
 // aparelho (Safari/Chrome); onde ele não existir ou não for liberado, o microfone do teclado
-// do iPhone escreve no campo do mesmo jeito.
+// do iPhone escreve no campo do mesmo jeito. Toda a regra (texto digitado x ao vivo, tempos,
+// reinício) está em Falar.logica.ts e sessaoVoz.ts, com testes. Nenhum áudio é gravado ou guardado.
 
-interface Resultado { 0: { transcript: string }; isFinal: boolean }
-interface Reconhecedor {
-  lang: string;
-  interimResults: boolean;
-  continuous: boolean;
-  onresult: ((e: { resultIndex: number; results: ArrayLike<Resultado> }) => void) | null;
-  onerror: ((e: { error: string }) => void) | null;
-  onend: (() => void) | null;
-  start(): void;
-  stop(): void;
-}
-type Construtor = new () => Reconhecedor;
-
-const construtor = (): Construtor | null => {
-  const w = window as unknown as { SpeechRecognition?: Construtor; webkitSpeechRecognition?: Construtor };
-  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
+const FRASE: Record<EstadoVoz, string> = {
+  pronto: 'Toque no microfone e fale.',
+  pedindo: 'Abrindo o microfone… se o iPhone perguntar, toque em Permitir.',
+  ouvindo: 'Ouvindo… fale o valor, a obra e o que foi pago. Toque no microfone para terminar.',
+  processando: 'Entendendo o que você disse…',
+  erro: '',
 };
 
 export function Falar({ aoEntender }: { aoEntender: (texto: string) => void }) {
-  const [texto, setTexto] = useState('');
-  const [ouvindo, setOuvindo] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
-  const reconhecedor = useRef<Reconhecedor | null>(null);
-  const temVoz = construtor() !== null;
+  const [v, setV] = useState<Visao>({ texto: '', estado: 'pronto', erro: null });
+  const ctl = useRef<ControleFalar | null>(null);
+  const rolagem = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const aoEntenderRef = useRef(aoEntender);
+  aoEntenderRef.current = aoEntender;
+  const temVoz = construtorDoNavegador() !== null;
 
-  useEffect(() => () => reconhecedor.current?.stop(), []);
+  // "Salvar e lançar outro" mantém este campo na tela: quando entra um custo novo, o texto que já
+  // virou lançamento é esquecido, para o próximo não herdar (nem acrescentar a) a fala antiga.
+  // (Sem mexer no FormCusto: o campo observa a lista de custos.)
+  const { custos } = useDados();
+  const totalCustos = useRef(custos.length);
+  useEffect(() => {
+    if (custos.length > totalCustos.current) ctl.current?.novoLancamento();
+    totalCustos.current = custos.length;
+  }, [custos.length]);
 
-  function ouvir() {
-    if (ouvindo) { reconhecedor.current?.stop(); return; }
-    const R = construtor();
-    if (!R) return;
-    const r = new R();
-    r.lang = 'pt-BR';
-    r.interimResults = true;
-    r.continuous = false;
-    let final = '';
-    r.onresult = (e) => {
-      let parcial = '';
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) final += e.results[i][0].transcript;
-        else parcial += e.results[i][0].transcript;
-      }
-      setTexto((final + parcial).trim());
+  useEffect(() => {
+    const c = criarControleFalar({
+      obterConstrutor: construtorDoNavegador,
+      aoEntender: (t) => aoEntenderRef.current(t),
+      aoMudar: setV,
+    });
+    ctl.current = c;
+    return () => {
+      c.destruir();
+      ctl.current = null;
+      if (rolagem.current) clearTimeout(rolagem.current);
     };
-    r.onerror = (e) => {
-      setErro(e.error === 'not-allowed' || e.error === 'service-not-allowed'
-        ? 'O microfone não foi liberado aqui. Toque no campo e use o microfone do teclado.'
-        : e.error === 'no-speech' ? 'Não ouvi nada. Toque no microfone e fale de novo.'
-        : 'Não consegui ouvir. Tente de novo ou escreva no campo.');
-    };
-    r.onend = () => {
-      setOuvindo(false);
-      reconhecedor.current = null;
-      if (final.trim()) aoEntender(final.trim());
-    };
-    setErro(null);
-    setTexto('');
-    reconhecedor.current = r;
-    try {
-      r.start();
-      setOuvindo(true);
-    } catch {
-      setErro('Não consegui ligar o microfone. Toque no campo e use o microfone do teclado.');
-    }
+  }, []);
+
+  const { texto, estado, erro } = v;
+  const escutando = estado === 'pedindo' || estado === 'ouvindo';
+  const temTexto = texto.trim().length > 0;
+
+  function aoFocarCampo(el: HTMLTextAreaElement) {
+    ctl.current?.focar(); // quer editar: encerra a escuta, mantém o texto, não preenche o formulário
+    // Com o teclado aberto, mantém o campo visível acima dele.
+    if (rolagem.current) clearTimeout(rolagem.current);
+    rolagem.current = setTimeout(() => el.scrollIntoView?.({ block: 'nearest' }), 350);
   }
+
+  const frase = erro ?? FRASE[estado];
+  const rotuloMic = escutando ? 'Parar de ouvir' : temTexto ? 'Ouvir de novo e acrescentar' : 'Falar o lançamento';
 
   return (
     <div className="falar">
@@ -78,25 +70,45 @@ export function Falar({ aoEntender }: { aoEntender: (texto: string) => void }) {
           <span>Fale ou escreva o lançamento</span>
           <textarea rows={2} value={texto} enterKeyHint="done"
             placeholder="Ex.: paguei 360 de cimento no Lote 39 ontem, no pix"
-            onChange={(e) => setTexto(e.target.value)}
+            onFocus={(e) => aoFocarCampo(e.currentTarget)}
+            onChange={(e) => ctl.current?.digitar(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (texto.trim()) aoEntender(texto.trim()); }
+              if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ctl.current?.enter(); }
             }} />
         </label>
         {temVoz && (
-          <button type="button" className={'botao microfone' + (ouvindo ? ' ouvindo' : ' secundario')} onClick={ouvir}
-            aria-label={ouvindo ? 'Parar de ouvir' : 'Falar o lançamento'} aria-pressed={ouvindo}>
+          <button type="button" className={'botao microfone' + (escutando ? ' ouvindo' : ' secundario')} onClick={() => ctl.current?.ouvir()}
+            disabled={estado === 'processando'}
+            aria-label={rotuloMic} aria-pressed={escutando}>
             <Icone nome="microfone" />
           </button>
         )}
       </div>
-      {ouvindo && <p className="nota">Ouvindo… fale o valor, a obra e o que foi pago.</p>}
-      {erro && <p className="nota" style={{ color: 'var(--alerta)' }}>{erro}</p>}
-      {!ouvindo && texto.trim() && (
-        <button type="button" className="botao secundario pequeno" style={{ marginTop: 8 }} onClick={() => aoEntender(texto.trim())}>
-          Preencher com este texto
-        </button>
+      <div className={'falar-estado' + (erro ? ' com-erro' : '')} role="status" aria-live="polite">
+        {estado === 'ouvindo' && <span className="nivel" aria-hidden="true"><i /><i /><i /></span>}
+        <span>{temVoz ? frase : (erro ?? 'Este navegador não tem reconhecimento de voz. Toque no campo e use o microfone do teclado, ou digite.')}</span>
+      </div>
+      {!escutando && estado !== 'processando' && temTexto && (
+        <div className="falar-acoes">
+          <button type="button" className="botao secundario" onClick={() => ctl.current?.preencher()}>
+            Preencher com este texto
+          </button>
+          {temVoz && (
+            <button type="button" className="botao secundario" onClick={() => ctl.current?.ouvir()}>
+              Ouvir de novo
+            </button>
+          )}
+          <button type="button" className="botao secundario" onClick={() => ctl.current?.limpar()}>
+            Limpar
+          </button>
+        </div>
       )}
+      {temVoz && temTexto && !escutando && (
+        <p className="nota">Ouvir de novo acrescenta ao texto acima; nada é apagado. Para recomeçar, toque em Limpar.</p>
+      )}
+      <p className="nota falar-privacidade">
+        Falar usa o reconhecimento de voz do navegador e pode enviar o áudio à Apple ou ao Google. O painel não grava nem guarda áudio. Se preferir, é só digitar.
+      </p>
     </div>
   );
 }
