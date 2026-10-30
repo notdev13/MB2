@@ -5,6 +5,7 @@ import { criarRepositorioLocal, type RepositorioLocal } from './indexeddb';
 import { ErroNuvem, nuvemDoBuild, type Nuvem } from './nuvem';
 import type { Backup, Repositorio } from './repositorio';
 import { sincronizar } from './sincronizacao';
+import { gravarUltima, lerUltima, limparUltima } from './ultimaSincronizacao';
 
 export interface EstadoNuvem {
   configurada: boolean; // o painel foi publicado com o endereço do banco na nuvem
@@ -36,8 +37,6 @@ interface Dados {
 
 const Contexto = createContext<Dados | null>(null);
 
-const CHAVE_ULTIMA = 'mb2-nuvem-ultima';
-const lerUltima = () => { try { return localStorage.getItem(CHAVE_ULTIMA); } catch { return null; } };
 const INTERVALO_MS = 60_000;
 const ESPERA_APOS_MUDANCA_MS = 1500;
 
@@ -76,7 +75,7 @@ export function DadosProvider({ children, repo, nuvem: nuvemDada }: {
   // ---- Nuvem ----
   const [email, setEmail] = useState(() => nuvem?.email() ?? null);
   const [sincronizando, setSincronizando] = useState(false);
-  const [ultimaVez, setUltimaVez] = useState(lerUltima);
+  const [ultimaVez, setUltimaVez] = useState(() => lerUltima());
   const [pendentes, setPendentes] = useState(0);
   const [erroNuvem, setErroNuvem] = useState<string | null>(null);
   const rodando = useRef<Promise<void> | null>(null);
@@ -100,7 +99,7 @@ export function DadosProvider({ children, repo, nuvem: nuvemDada }: {
           if (r.recebidos) await recarregar();
         } while (deNovo.current);
         const agora = new Date().toISOString();
-        try { localStorage.setItem(CHAVE_ULTIMA, agora); } catch { /* ignora */ }
+        gravarUltima(agora);
         setUltimaVez(agora);
         setErroNuvem(null);
       } catch (e) {
@@ -156,7 +155,7 @@ export function DadosProvider({ children, repo, nuvem: nuvemDada }: {
       await nuvem.sair();
       // Na próxima entrada, tudo o que estiver aqui é conferido com a nuvem de novo.
       await repositorio.gravarMarca(null);
-      try { localStorage.removeItem(CHAVE_ULTIMA); } catch { /* ignora */ }
+      limparUltima();
       setEmail(null);
       setUltimaVez(null);
       setErroNuvem(null);

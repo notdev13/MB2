@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
+import { validarConfigNuvem } from './src/dados/validarConfig.ts';
 
 // Gera o service worker com a lista de todos os arquivos do build, para o painel abrir
 // sem internet já depois da primeira visita. O nome do cache muda a cada build.
@@ -49,8 +50,23 @@ function politicaDeConteudo(urlNuvem: string | undefined): Plugin {
 }
 
 // base relativa: o painel funciona em qualquer endereço (raiz do domínio ou subpasta).
-export default defineConfig(({ mode }) => ({
-  base: './',
-  build: { sourcemap: false }, // não publicar mapas do código
-  plugins: [react(), serviceWorker(), politicaDeConteudo(loadEnv(mode, process.cwd(), 'VITE_').VITE_SUPABASE_URL)],
-}));
+export default defineConfig(({ mode, command }) => {
+  const env = loadEnv(mode, process.cwd(), 'VITE_');
+  // Na publicação (VITE_EXIGIR_LOGIN=1), sem URL e chave válidas o painel sairia SEM login: o build falha.
+  const exigir = (process.env.VITE_EXIGIR_LOGIN ?? env.VITE_EXIGIR_LOGIN) === '1';
+  if (command === 'build' && exigir) {
+    const problemas = validarConfigNuvem(env.VITE_SUPABASE_URL, env.VITE_SUPABASE_CHAVE);
+    if (problemas.length) {
+      throw new Error(
+        'Publicação cancelada: o painel sairia SEM tela de login.\n- ' + problemas.join('\n- ') +
+        '\nComo resolver: no GitHub, Settings > Secrets and variables > Actions > Variables, ' +
+        'crie SUPABASE_URL e SUPABASE_CHAVE (guia: painel/docs/nuvem.md) e rode o workflow de novo.',
+      );
+    }
+  }
+  return {
+    base: './',
+    build: { sourcemap: false }, // não publicar mapas do código
+    plugins: [react(), serviceWorker(), politicaDeConteudo(env.VITE_SUPABASE_URL)],
+  };
+});

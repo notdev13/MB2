@@ -24,9 +24,25 @@ desenhado antes disso.
 - Os dados **no aparelho** (IndexedDB) ficam protegidos pelo bloqueio do próprio celular
   (senha ou Face ID). Quem desbloquear o iPhone abre o painel.
 - O **código do app é público**, porque o repositório é público. Isso é normal e não contém
-  segredos: a chave que vai no painel é a pública. A **tela de login é visível** para quem tiver
-  o link. Por isso: não divulgue o endereço.
-- Sem a nuvem ligada (build sem as variáveis), o painel abre direto, como antes.
+  segredos: a chave que vai no painel é a pública.
+- A **tela de login é pública por desenho**: qualquer pessoa que chegue ao endereço a vê. O endereço
+  do painel **não é segredo garantido**: ele aparece também em Settings e Deployments do GitHub
+  enquanto o repositório for público, e quem achar o link vê o login. Evitar divulgá-lo reduz
+  visitas curiosas, mas **não é proteção**. A proteção real são o login e as regras do banco (RLS).
+- Sem a nuvem ligada (build sem as variáveis), o painel abre direto, como antes. Por isso a
+  publicação no GitHub **falha de propósito** se faltarem as variáveis (veja abaixo).
+- **Outra conta no mesmo aparelho**: se alguém entrar com um e-mail diferente do que já usou este
+  aparelho, o painel pergunta antes de enviar os dados que estão aqui para a conta nova.
+- **Duas abas abertas**: elas se acompanham (entrar, sair e renovar a sessão numa vale para a outra).
+
+## Publicação sem login é bloqueada
+
+O workflow define `VITE_EXIGIR_LOGIN=1`. Se faltar `SUPABASE_URL` ou `SUPABASE_CHAVE` no GitHub, ou a
+URL não começar com `https://`, o build **falha** e nada é publicado. O dono vê a execução
+"Publicar painel" em vermelho (aba Actions, passo "Testar e gerar o painel") com a mensagem
+"Publicação cancelada: o painel sairia SEM tela de login" e o que falta. Para resolver, crie as duas
+variáveis (Settings › Secrets and variables › Actions › Variables, passo 7 do [nuvem.md](nuvem.md)) e
+rode o workflow de novo. No computador, `npm run build` e `npm run dev` continuam livres, sem login.
 
 ## Buscadores (noindex) e seu limite
 
@@ -37,8 +53,8 @@ cabeçalho (`X-Robots-Tag`) em hospedagens que o leem (Cloudflare Pages, Netlify
 `Permissions-Policy` (câmera e localização bloqueadas; o **microfone fica liberado** para lançar custos por voz).
 No GitHub Pages o `_headers` não faz efeito (só as `<meta>` valem); é inofensivo.
 
-O noindex **pede** ao buscador para não listar a página. **Não impede ninguém de abrir** o
-endereço. Quem tem o link entra na tela de login.
+O noindex só **pede** ao buscador para não listar a página. **Não impede ninguém de abrir** o
+endereço, e nada garante que todo buscador ou robô obedeça. Quem tem o link vê a tela de login.
 
 Além disso, o build gera uma política de conteúdo (CSP) no `index.html`: só carrega código,
 fontes e imagens do próprio endereço e só conversa com o banco da nuvem do build.
@@ -57,7 +73,7 @@ visitável e dizer "noindex".
 - [ ] Ligar **verificação em duas etapas (MFA/TOTP)** no Supabase Auth, se o plano permitir. [CONFIRMAR na documentação do Supabase antes de afirmar disponibilidade no plano e como ativar]. Observação: o painel hoje só tem tela de e-mail e senha; se o MFA for exigido pelo banco, a tela de entrada precisará de um passo a mais (pedir a um desenvolvedor).
 - [ ] **Senha forte e única**, num gerenciador de senhas.
 - [ ] iPhone com **bloqueio e Face ID** ligados.
-- [ ] **Não divulgar o endereço**: nem no site institucional, nem em redes sociais ou mensagens públicas.
+- [ ] **Evitar divulgar o endereço** (site institucional, redes sociais, mensagens públicas). Isso só reduz visitas; não é proteção (o endereço também aparece no GitHub).
 - [ ] Configurar no GitHub as variáveis `SUPABASE_URL` e `SUPABASE_CHAVE` (Settings › Secrets and variables › Actions › Variables). Sem elas, o painel publicado abre **sem login**.
 - [ ] **Se perder o celular**: troque a senha e encerre as sessões no painel do Supabase (Authentication › Users, trocar a senha / sair de todas as sessões do usuário) [CONFIRMAR os nomes exatos dos botões na tela do Supabase]. Ajuste o bloqueio remoto do iPhone (Buscar iPhone). O backup em arquivo, se estiver no iCloud, continua seguro.
 

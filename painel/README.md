@@ -87,7 +87,7 @@ no terminal.
 
 ## Publicar
 A cada mudança na `main`, o workflow `.github/workflows/site.yml` testa, gera o painel e publica no
-GitHub Pages em **https://notdev13.github.io/MB2/painel/** (o site institucional fica na raiz).
+GitHub Pages do repositório (o endereço aparece em Settings › Pages; o site institucional fica na raiz do domínio).
 Uma vez só, no GitHub: Settings › Pages › Source = "GitHub Actions".
 `npm run build` gera a mesma pasta `dist/`, que serve em qualquer hospedagem estática com HTTPS.
 

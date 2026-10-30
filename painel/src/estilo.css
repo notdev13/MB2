@@ -242,7 +242,8 @@ h2 { font-size: 13px; font-weight: 600; letter-spacing: -0.02em; color: var(--fo
   padding: calc(env(safe-area-inset-top) + 24px) 20px calc(env(safe-area-inset-bottom) + 24px); }
 .porteiro-marca { font-family: var(--serif); font-weight: 600; font-size: 30px; color: var(--white); margin: 0 0 18px; letter-spacing: 0.02em; }
 .porteiro-sub { color: var(--mist); font-size: 16px; margin: 0 0 24px; }
-.campo > span.porteiro-senha { position: relative; display: block; padding-left: 0; font-size: inherit; font-weight: inherit; color: inherit; }
+.porteiro .campo > label { font-size: 13px; font-weight: 500; color: var(--fog); padding-left: 4px; }
+.porteiro-senha { position: relative; }
 .porteiro-senha input { padding-right: 104px; }
 .porteiro-ver { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); min-height: 48px; min-width: 48px; padding: 0 14px;
   background: transparent; border: 0; color: var(--bone); font-size: 15px; font-weight: 500; border-radius: 9999px; text-decoration: underline; }

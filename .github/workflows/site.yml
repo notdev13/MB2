@@ -1,6 +1,6 @@
 # Publica o painel de obras (painel/, build do Vite) no GitHub Pages a cada mudança na main,
-# em https://notdev13.github.io/MB2/painel/. O site institucional mora no repositório
-# notdev13.github.io e é publicado de lá.
+# (endereço em Settings > Pages). O site institucional mora em outro
+# repositório e é publicado de lá.
 # Antes do primeiro uso: Settings > Pages > Source = "GitHub Actions".
 name: Publicar painel
 
@@ -39,6 +39,8 @@ jobs:
           # Settings > Secrets and variables > Actions > Variables. Guia: painel/docs/nuvem.md
           VITE_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           VITE_SUPABASE_CHAVE: ${{ vars.SUPABASE_CHAVE }}
+          # Falha o build se faltar a URL ou a chave: sem elas o painel sairia SEM login.
+          VITE_EXIGIR_LOGIN: "1"
         run: |
           npm ci
           npm run check

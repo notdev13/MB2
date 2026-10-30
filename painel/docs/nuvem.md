@@ -9,6 +9,9 @@ sessão guardada no aparelho. A **primeira entrada num aparelho precisa de inter
 painel abre direto, mesmo sem internet. Falha de rede, 429 e erros 5xx na renovação nunca
 derrubam a sessão (só 400/401). **Ajustes › Sair** volta ao login, **sem apagar** os dados do
 aparelho, e para a sincronização. Sem as variáveis (`npm run dev` sem `.env`), não há login.
+Na publicação pelo GitHub, o workflow usa `VITE_EXIGIR_LOGIN=1`: se faltar `SUPABASE_URL` ou
+`SUPABASE_CHAVE` (ou a URL não for `https://`), o build **falha** com uma mensagem em português e
+nada é publicado; a solução é criar as duas variáveis (passo 7 abaixo) e rodar o workflow de novo.
 O porteiro trava a tela; os dados na nuvem são protegidos pelo login e pelo RLS do banco.
 Mais em [privacidade.md](privacidade.md).
 

@@ -110,6 +110,48 @@ describe('nuvem (Supabase)', () => {
     });
   });
 
+  it('429 no login pede para aguardar', async () => {
+    const nuvem = criarNuvem(config, guardaMemoria(), webFalsa([{ status: 429 }]).buscar);
+    const erro = await nuvem.entrar('a@b', 'x').catch((e) => e);
+    expect(erro.message).toBe('Muitas tentativas. Aguarde um minuto e tente de novo.');
+    expect((erro as ErroNuvem).tipo).toBe('limite');
+  });
+
+  describe('duas abas', () => {
+    const vencida = (): Sessao => ({ ...valida(), expiraEm: Date.now() - 1, renovacao: 'r0' });
+    const novaDeOutraAba = (): Sessao => ({ email: 'dono@mb2', acesso: 'a9', renovacao: 'r9', expiraEm: Date.now() + 3_600_000 });
+
+    it('usa a sessão que outra aba já renovou, sem renovar de novo', async () => {
+      const guarda = guardaMemoria(vencida());
+      const web = webFalsa([{ status: 200, corpo: [] }]);
+      const nuvem = criarNuvem(config, guarda, web.buscar); // lê a sessão vencida
+      guarda.valor = novaDeOutraAba(); // outra aba renova e guarda
+      await nuvem.buscar(null);
+      expect(web.pedidos).toHaveLength(1);
+      expect(web.pedidos[0].url).toContain('/rest/v1/');
+      expect((web.pedidos[0].init.headers as Record<string, string>).Authorization).toBe('Bearer a9');
+    });
+
+    it('400 no refresh, mas outra aba já guardou token novo: adota e não apaga', async () => {
+      const guarda = guardaMemoria(vencida());
+      const nuvem = criarNuvem(config, guarda, (async () => {
+        guarda.valor = novaDeOutraAba(); // a outra aba gastou o token antes da resposta chegar
+        return new Response(null, { status: 400 });
+      }) as unknown as typeof fetch);
+      await nuvem.buscar(null).catch(() => {});
+      expect(guarda.valor?.renovacao).toBe('r9');
+      expect(nuvem.email()).toBe('dono@mb2');
+    });
+
+    it('400 no refresh com a guarda igual: apaga mesmo (sessão revogada)', async () => {
+      const guarda = guardaMemoria(vencida());
+      const nuvem = criarNuvem(config, guarda, webFalsa([{ status: 400 }]).buscar);
+      await nuvem.buscar(null).catch(() => {});
+      expect(guarda.valor).toBeNull();
+      expect(nuvem.email()).toBeNull();
+    });
+  });
+
   it('avisa quem ouve quando a sessão muda (entrar e sair)', async () => {
     const nuvem = criarNuvem(config, guardaMemoria(), webFalsa([{ status: 200, corpo: token }, { status: 204 }]).buscar);
     let avisos = 0;

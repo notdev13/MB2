@@ -14,4 +14,4 @@ function assinar(avisar: () => void) {
 
 const atual = (): Casca => (window.matchMedia(CONSULTA).matches ? 'desktop' : 'celular');
 
-export const useCasca = () => useSyncExternalStore(assinar, atual);
+export const useCasca = () => useSyncExternalStore(assinar, atual, atual);
