@@ -3,6 +3,7 @@ import { AvisoProvider } from './componentes/Aviso';
 import { ConfirmarProvider } from './componentes/Confirmar';
 import { FormCusto } from './componentes/FormCusto';
 import { FormConta } from './componentes/FormConta';
+import { FormImportar } from './componentes/FormImportar';
 import { FormObra } from './componentes/FormObra';
 import { FormSaldo } from './componentes/FormSaldo';
 import { Icone, type NomeIcone } from './componentes/Icone';
@@ -20,6 +21,7 @@ type FolhaAberta =
   | { tipo: 'obra'; obra?: Obra }
   | { tipo: 'saldo' }
   | { tipo: 'conta' }
+  | { tipo: 'importar' }
   | null;
 
 const TITULOS: Record<Exclude<Rota['tela'], 'obra'>, string> = {
@@ -77,7 +79,8 @@ function Conteudo() {
         {!carregando && !erro && (
           <main>
             {rota.tela === 'visao' && <Visao aoNovaObra={novaObra} aoAbrirCusto={abrirCusto} aoLancar={() => setFolha({ tipo: 'custo' })}
-              aoAtualizarSaldo={() => setFolha({ tipo: 'saldo' })} aoNovaConta={() => setFolha({ tipo: 'conta' })} />}
+              aoAtualizarSaldo={() => setFolha({ tipo: 'saldo' })} aoNovaConta={() => setFolha({ tipo: 'conta' })}
+              aoImportarExtrato={() => setFolha({ tipo: 'importar' })} />}
             {rota.tela === 'obras' && <Obras aoNovaObra={novaObra} />}
             {rota.tela === 'obra' && (
               <ObraDetalhe id={rota.id} aoAbrirCusto={abrirCusto}
@@ -104,6 +107,7 @@ function Conteudo() {
 
       {folha?.tipo === 'saldo' && <FormSaldo aoFechar={fechar} />}
       {folha?.tipo === 'conta' && <FormConta aoFechar={fechar} />}
+      {folha?.tipo === 'importar' && <FormImportar aoFechar={fechar} />}
       {folha?.tipo === 'custo' && <FormCusto custo={folha.custo} obraId={folha.obraId} aoFechar={fechar} />}
       {folha?.tipo === 'obra' && (
         <FormObra obra={folha.obra} aoFechar={fechar}

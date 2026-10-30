@@ -71,6 +71,29 @@ ignorado. E um `Disallow` seria pior: se o buscador é proibido de visitar a pá
 noindex**, e pode listar o endereço mesmo assim. Para sumir de verdade, a página precisa ser
 visitável e dizer "noindex".
 
+## Importar extrato
+
+**Visão geral › Importar extrato** atualiza o saldo de uma conta a partir de um arquivo OFX do banco.
+
+- **O arquivo é lido só no aparelho.** Nada é enviado a lugar nenhum e o arquivo não é guardado: o
+  painel lê, mostra o resultado para conferência e descarta o conteúdo.
+- **O que é gravado:** só o valor do saldo, a data, a origem "extrato" e os **4 últimos dígitos** da
+  conta (para reconhecer a conta nas próximas vezes). Não é gravado número de conta completo, nome,
+  descrição de lançamento, CPF ou CNPJ. Com a nuvem ligada, esses mesmos dados sincronizam como
+  qualquer saldo ([nuvem.md](nuvem.md)). Aparelho com versão antiga do painel pode ignorar os saldos
+  "extrato" que chegarem da nuvem: atualize o painel em todos os aparelhos.
+- **Regra de ouro:** nunca é aceito um extrato com data mais antiga que o último saldo da conta, e não
+  existe botão para forçar. Também são recusados: extrato repetido (mesma data e valor), de data no
+  futuro, e de outra conta (final diferente do já guardado). Saldo digitado por engano com data no
+  futuro é ignorado nessa conferência e o painel avisa. Mudança de mais de 30% pede confirmação.
+- **Limites:** só OFX; só conta corrente e poupança em reais; um arquivo por conta; até 5 MB. Muitos
+  aplicativos de banco no iPhone não exportam OFX: em geral o arquivo é baixado no internet banking,
+  pelo computador.
+- **Pendências (não feito):** importar as movimentações para conciliar com os custos; CSV; PDF; cartão
+  de crédito; Open Finance.
+- Não testado com extratos reais: cada banco escreve o OFX de um jeito. Se um arquivo real for
+  recusado sem motivo, é um formato novo a tratar (nunca mande o arquivo real para o repositório).
+
 ## Checklist do dono
 
 - [ ] Supabase: **cadastro aberto desligado** (Authentication › Sign In / Providers › Allow new users to sign up, passo 3 do [nuvem.md](nuvem.md)).

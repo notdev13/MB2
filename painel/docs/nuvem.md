@@ -34,6 +34,9 @@ Mais em [privacidade.md](privacidade.md).
   é marcar). Excluir uma conta leva os saldos dela; um saldo que chega antes da conta espera por ela.
 - Mesma segurança: só os e-mails autorizados (`painel_membros`) leem e gravam. O chefe e o dono veem
   os mesmos saldos; não existe papel "somente leitura".
+- Saldo importado de extrato (`fonte: "extrato"`) e o campo opcional `finalConta` da conta (4 dígitos)
+  seguem no mesmo JSON, sem mudar o banco. Um aparelho com versão antiga do painel ignora os saldos
+  "extrato" que chegarem (a validação dele só conhece `manual`); atualize todos os aparelhos.
 - Saldo é dado sensível: no Git, em testes e em exemplos use só valores inventados.
 
 ## Limites conhecidos dos saldos

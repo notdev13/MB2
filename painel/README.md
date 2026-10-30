@@ -22,6 +22,15 @@ com 12 meses de gasto, tabela de obras, ficha da obra com maiores fornecedores, 
 Atalhos: `N` lança um custo, `/` busca. Os dados e as regras são os mesmos do celular; a versão de
 celular não muda. Arquitetura e design system em [docs/desktop.md](docs/desktop.md).
 
+## Importar extrato do banco (OFX)
+Em **Visão geral › Importar extrato** (celular e computador), escolha o arquivo OFX baixado do banco: o
+painel mostra o banco, o final da conta, a data e o saldo, compara com o último saldo e só grava depois
+que você confere. O arquivo é lido só no aparelho e não é guardado nem enviado. **Regra de ouro:** um
+extrato mais antigo que o último saldo da conta nunca é aceito (e não há botão para forçar). Regras em
+`src/dominio/ofx.ts` e `src/dominio/importacao.ts`; limites e pendências em
+[docs/privacidade.md](docs/privacidade.md). No computador, a Visão geral ganhou o painel **Contas e
+saldos** (saldo de cada conta, totais, atualizar saldo, importar extrato, nova conta).
+
 ## Lançar falando
 Em **Lançar custo**, toque no microfone e fale, por exemplo: "paguei 5.800 pro Adriano no Lote 39
 dia 24, no pix". O painel preenche valor, obra, data, categoria, descrição, fornecedor e pagamento

@@ -17,13 +17,14 @@ export function obraValida(o: Record<string, unknown>): boolean {
 export function contaValida(c: Record<string, unknown>, obras?: Set<string>): boolean {
   return texto(c.id) && texto(c.nome) && texto(c.banco) && typeof c.ativa === 'boolean' &&
     (c.obraId === null || (texto(c.obraId) && (!obras || obras.has(c.obraId as string)))) &&
+    (c.finalConta === undefined || (typeof c.finalConta === 'string' && /^\d{4}$/.test(c.finalConta))) &&
     texto(c.criadoEm) && texto(c.atualizadoEm);
 }
 
 // Saldo da conta pode ser negativo (conta no vermelho); o custo continua só >= 0.
 export function saldoValido(s: Record<string, unknown>, contas?: Set<string>): boolean {
   return texto(s.id) && texto(s.contaId) && (!contas || contas.has(s.contaId as string)) && data(s.data) &&
-    Number.isSafeInteger(s.valor) && s.fonte === 'manual' && texto(s.obs) && texto(s.criadoEm);
+    Number.isSafeInteger(s.valor) && (s.fonte === 'manual' || s.fonte === 'extrato') && texto(s.obs) && texto(s.criadoEm);
 }
 
 // Sem a lista de obras, não confere se a obra do custo existe (ela pode chegar da nuvem depois).

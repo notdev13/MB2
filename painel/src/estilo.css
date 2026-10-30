@@ -253,3 +253,13 @@ h2 { font-size: 13px; font-weight: 600; letter-spacing: -0.02em; color: var(--fo
 .conta-lista { margin-top: 12px; gap: 14px; }
 .conta-item { border-top: 1px solid var(--graphite); padding-top: 12px; }
 .conta-historico .botao.pequeno { min-height: 44px; min-width: 44px; }
+/* Importar extrato (celular e gaveta do computador) */
+.imp-zona { border: 1px dashed var(--slate); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.imp-zona.sobre { border-color: var(--white); border-style: solid; }
+.imp-zona p { margin: 0; color: var(--bone); font-size: 14px; line-height: 1.5; }
+.imp-arraste { display: none; }
+.imp-dados { margin: 0 0 12px; display: flex; flex-direction: column; border: 1px solid var(--graphite); border-radius: 10px; }
+.imp-dados > div { display: flex; justify-content: space-between; gap: 12px; padding: 10px 14px; min-height: 44px; align-items: center; border-top: 1px solid var(--graphite); }
+.imp-dados > div:first-child { border-top: 0; }
+.imp-dados dt { color: var(--fog); font-size: 13px; }
+.imp-dados dd { margin: 0; font-weight: 500; text-align: right; }

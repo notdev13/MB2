@@ -10,9 +10,9 @@ import { ir } from '../navegacao';
 
 const DIAS_PARA_CONFERIR = 7;
 
-export function Visao({ aoNovaObra, aoLancar, aoAbrirCusto, aoAtualizarSaldo, aoNovaConta }: {
+export function Visao({ aoNovaObra, aoLancar, aoAbrirCusto, aoAtualizarSaldo, aoNovaConta, aoImportarExtrato }: {
   aoNovaObra: () => void; aoLancar: () => void; aoAbrirCusto: (c: Custo) => void;
-  aoAtualizarSaldo: () => void; aoNovaConta: () => void;
+  aoAtualizarSaldo: () => void; aoNovaConta: () => void; aoImportarExtrato: () => void;
 }) {
   const { obras, custos, contas, saldos } = useDados();
   const ref = hoje();
@@ -76,6 +76,7 @@ export function Visao({ aoNovaObra, aoLancar, aoAbrirCusto, aoAtualizarSaldo, ao
         <EstadoVazio icone="recibo" titulo="Dinheiro em conta"
           texto="Ainda não sei quanto tem em conta. Digite o saldo de hoje.">
           <button className="botao" onClick={itensConta.length === 0 ? aoNovaConta : aoAtualizarSaldo}>Atualizar saldo</button>
+          {itensConta.length > 0 && <button className="botao secundario" onClick={aoImportarExtrato}>Importar extrato</button>}
           <button className="botao secundario" onClick={aoNovaConta}>Nova conta</button>
         </EstadoVazio>
       ) : (
@@ -121,6 +122,7 @@ export function Visao({ aoNovaObra, aoLancar, aoAbrirCusto, aoAtualizarSaldo, ao
           </div>
           <div className="acoes">
             <button className="botao cheio" onClick={aoAtualizarSaldo}>Atualizar saldo</button>
+            <button className="botao secundario cheio" onClick={aoImportarExtrato}>Importar extrato</button>
             <button className="botao secundario cheio" onClick={aoNovaConta}>Nova conta</button>
           </div>
         </div>
