@@ -249,3 +249,7 @@ h2 { font-size: 13px; font-weight: 600; letter-spacing: -0.02em; color: var(--fo
   background: transparent; border: 0; color: var(--bone); font-size: 15px; font-weight: 500; border-radius: 9999px; text-decoration: underline; }
 .porteiro-erro { margin: 0 0 14px; padding: 12px 16px; border: 1px solid var(--alerta-borda); border-radius: 10px; color: var(--alerta); font-size: 15px; font-weight: 500; }
 .porteiro-nota { color: var(--fog); font-size: 14px; margin: 16px 0 0; text-align: center; }
+/* Dinheiro em conta (celular) */
+.conta-lista { margin-top: 12px; gap: 14px; }
+.conta-item { border-top: 1px solid var(--graphite); padding-top: 12px; }
+.conta-historico .botao.pequeno { min-height: 44px; min-width: 44px; }

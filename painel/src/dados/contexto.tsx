@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import type { Custo, NovaObra, NovoCusto, Obra } from '../dominio/tipos';
+import type { Conta, Custo, NovaConta, NovaObra, NovoCusto, NovoSaldo, Obra, SaldoConta } from '../dominio/tipos';
 import { validarBackup } from './backup';
 import { criarRepositorioLocal, type RepositorioLocal } from './indexeddb';
 import { ErroNuvem, nuvemDoBuild, type Nuvem } from './nuvem';
@@ -24,10 +24,16 @@ interface Dados {
   erro: string | null;
   obras: Obra[];
   custos: Custo[];
+  contas: Conta[];
+  saldos: SaldoConta[];
   salvarObra(dados: NovaObra, id?: string): Promise<Obra>;
   excluirObra(id: string): Promise<void>;
   salvarCusto(dados: NovoCusto, id?: string): Promise<Custo>;
   excluirCusto(id: string): Promise<void>;
+  // Contas e saldos ficam só no aparelho e no backup (ainda não sincronizam com a nuvem).
+  salvarConta(dados: NovaConta, id?: string): Promise<Conta>;
+  salvarSaldo(dados: NovoSaldo): Promise<SaldoConta>;
+  excluirSaldo(id: string): Promise<void>;
   exportar(): Promise<Backup>;
   restaurar(backup: Backup): Promise<void>;
   copiaAnterior(): Promise<Backup | null>;
@@ -52,12 +58,18 @@ export function DadosProvider({ children, repo, nuvem: nuvemDada }: {
   }, [nuvemDada]);
   const [obras, setObras] = useState<Obra[]>([]);
   const [custos, setCustos] = useState<Custo[]>([]);
+  const [contas, setContas] = useState<Conta[]>([]);
+  const [saldos, setSaldos] = useState<SaldoConta[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
   const recarregar = useCallback(async () => {
     try {
-      const [o, c] = await Promise.all([repositorio.listarObras(), repositorio.listarCustos()]);
+      const [o, c, ct, sd] = await Promise.all([
+        repositorio.listarObras(), repositorio.listarCustos(), repositorio.listarContas(), repositorio.listarSaldos(),
+      ]);
+      setContas(ct);
+      setSaldos(sd);
       setObras(o.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')));
       setCustos(c.sort((a, b) => b.data.localeCompare(a.data) || b.criadoEm.localeCompare(a.criadoEm)));
       setErro(null);
@@ -168,6 +180,8 @@ export function DadosProvider({ children, repo, nuvem: nuvemDada }: {
     erro,
     obras,
     custos,
+    contas,
+    saldos,
     async salvarObra(d, id) {
       const r = await repositorio.salvarObra(d, id);
       await recarregar();
@@ -189,6 +203,20 @@ export function DadosProvider({ children, repo, nuvem: nuvemDada }: {
       await repositorio.excluirCusto(id);
       await recarregar();
       agendar();
+    },
+    async salvarConta(d, id) {
+      const r = await repositorio.salvarConta(d, id);
+      await recarregar();
+      return r;
+    },
+    async salvarSaldo(d) {
+      const r = await repositorio.salvarSaldo(d);
+      await recarregar();
+      return r;
+    },
+    async excluirSaldo(id) {
+      await repositorio.excluirSaldo(id);
+      await recarregar();
     },
     exportar: () => repositorio.exportar(),
     async restaurar(b) {

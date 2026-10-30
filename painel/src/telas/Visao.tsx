@@ -4,13 +4,17 @@ import { Lancamentos } from '../componentes/Lancamentos';
 import { useDados } from '../dados/contexto';
 import { gastoComOrcamento, porCategoria, porMes, resumirObra, resumoGeral, situacaoOrcamento } from '../dominio/calculos';
 import { hoje, porcentagem, reais, reaisCurto } from '../dominio/formato';
+import { contasComSaldo, sobraSePagarTudo, totalConsolidado, totalMB2 } from '../dominio/saldos';
 import type { Custo } from '../dominio/tipos';
 import { ir } from '../navegacao';
 
-export function Visao({ aoNovaObra, aoLancar, aoAbrirCusto }: {
+const DIAS_PARA_CONFERIR = 7;
+
+export function Visao({ aoNovaObra, aoLancar, aoAbrirCusto, aoAtualizarSaldo, aoNovaConta }: {
   aoNovaObra: () => void; aoLancar: () => void; aoAbrirCusto: (c: Custo) => void;
+  aoAtualizarSaldo: () => void; aoNovaConta: () => void;
 }) {
-  const { obras, custos } = useDados();
+  const { obras, custos, contas, saldos } = useDados();
   const ref = hoje();
 
   if (obras.length === 0) {
@@ -30,6 +34,7 @@ export function Visao({ aoNovaObra, aoLancar, aoAbrirCusto }: {
     const f = situacaoOrcamento(r.gasto, r.obra.orcamento);
     return f === 'atencao' || f === 'limite';
   }).length;
+  const itensConta = contasComSaldo(contas, saldos, ref);
   const nomeObra = (id: string) => obras.find((o) => o.id === id)?.nome ?? '—';
 
   return (
@@ -63,6 +68,61 @@ export function Visao({ aoNovaObra, aoLancar, aoAbrirCusto }: {
       {perto > 0 && (
         <div className="aviso atencao" role="status">
           Atenção: {perto} obra{perto === 1 ? ' está' : 's estão'} perto do limite do orçamento.
+        </div>
+      )}
+
+      <h2>Dinheiro em conta</h2>
+      {itensConta.every((i) => !i.saldo) ? (
+        <EstadoVazio icone="recibo" titulo="Dinheiro em conta"
+          texto="Ainda não sei quanto tem em conta. Digite o saldo de hoje.">
+          <button className="botao" onClick={itensConta.length === 0 ? aoNovaConta : aoAtualizarSaldo}>Atualizar saldo</button>
+          <button className="botao secundario" onClick={aoNovaConta}>Nova conta</button>
+        </EstadoVazio>
+      ) : (
+        <div className="cartao">
+          <div className="rotulo">Total em todas as contas</div>
+          <div className="numero menor">
+            {totalConsolidado(itensConta) < 0 && <>⚠ Negativo: </>}{reaisCurto(totalConsolidado(itensConta))}
+          </div>
+          <div className="nota">MB2 (empresa): {reaisCurto(totalMB2(itensConta))}</div>
+          <div className="lista conta-lista">
+            {itensConta.map(({ conta, saldo, dias }) => {
+              const obra = conta.obraId ? obras.find((o) => o.id === conta.obraId) : undefined;
+              const r = obra ? resumirObra(obra, custos) : null;
+              const sobra = obra ? sobraSePagarTudo(obra, itensConta, custos) : null;
+              return (
+                <div key={conta.id} className="conta-item">
+                  <div className="linha">
+                    <strong>{conta.obraId === null ? `MB2 · ${conta.nome}` : conta.nome}</strong>
+                    <span className="valor">
+                      {saldo ? <>{saldo.valor < 0 && '⚠ Negativo: '}{reais(saldo.valor)}</> : 'Sem saldo digitado'}
+                    </span>
+                  </div>
+                  <div className="nota">
+                    {dias === null
+                      ? 'Digite o saldo para acompanhar.'
+                      : <>{dias > DIAS_PARA_CONFERIR && '⚠ '}conferido {dias === 0 ? 'hoje' : `há ${dias} dia${dias === 1 ? '' : 's'}`}
+                        {dias > DIAS_PARA_CONFERIR && ' · atualize o saldo'}</>}
+                    {conta.banco && ` · ${conta.banco}`}
+                  </div>
+                  {r && obra && obra.orcamento > 0 && (
+                    <div className="nota">Resta do orçamento: {r.saldo < 0 ? '⚠ ' : ''}{reais(r.saldo)}</div>
+                  )}
+                  {sobra && (
+                    <div className="nota">
+                      {sobra.sobra < 0
+                        ? <>⚠ Falta {reais(-sobra.sobra)} para pagar tudo ({reais(sobra.aPagar)} a pagar)</>
+                        : <>Sobra {reais(sobra.sobra)} se pagar tudo ({reais(sobra.aPagar)} a pagar)</>}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <div className="acoes">
+            <button className="botao cheio" onClick={aoAtualizarSaldo}>Atualizar saldo</button>
+            <button className="botao secundario cheio" onClick={aoNovaConta}>Nova conta</button>
+          </div>
         </div>
       )}
 

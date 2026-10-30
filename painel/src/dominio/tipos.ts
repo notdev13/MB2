@@ -66,3 +66,28 @@ export interface Custo {
 
 export type NovaObra = Omit<Obra, 'id' | 'criadoEm' | 'atualizadoEm'>;
 export type NovoCusto = Omit<Custo, 'id' | 'criadoEm' | 'atualizadoEm'>;
+
+// Dinheiro em conta. Cada obra (SPE) tem a sua conta; obraId null = conta da MB2 (empresa).
+export interface Conta {
+  id: string;
+  nome: string;
+  banco: string;
+  obraId: string | null;
+  ativa: boolean;
+  criadoEm: string;
+  atualizadoEm: string;
+}
+
+// Saldo digitado numa data. Cada conferência é uma linha nova; nunca se sobrescreve.
+export interface SaldoConta {
+  id: string;
+  contaId: string;
+  data: string; // AAAA-MM-DD
+  valor: number; // centavos, pode ser negativo
+  fonte: 'manual';
+  obs: string;
+  criadoEm: string;
+}
+
+export type NovaConta = Omit<Conta, 'id' | 'criadoEm' | 'atualizadoEm'>;
+export type NovoSaldo = Omit<SaldoConta, 'id' | 'criadoEm'>;
