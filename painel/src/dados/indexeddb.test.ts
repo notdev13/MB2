@@ -424,3 +424,105 @@ describe('contas e saldos na fila da nuvem', () => {
     expect(await chaves(repo)).toEqual([`obra:${o.id}:x`, `conta:${c.id}:x`, `saldo:${s.id}:x`].sort());
   });
 });
+
+// ---- Cascata de exclusões e fila de adiados ----
+describe('cascata da nuvem e fila de adiados', () => {
+  const DIA = 86_400_000;
+  const T0 = Date.parse('2026-11-01T12:00:00Z');
+  const relogioFalso = () => { const r = { t: T0 }; return { r, f: () => r.t }; };
+  const daNuvem = (tipo: 'obra' | 'conta' | 'saldo', dados: any, alteradoEm = '2099-01-01T00:00:00.000Z', excluido = false) =>
+    ({ tipo, id: dados.id, dados: excluido ? null : dados, excluido, alteradoEm }) as never;
+  const obraN = (id = 'o1') => ({ ...novaObra, id, criadoEm: '2026-10-01T00:00:00.000Z', atualizadoEm: '2026-10-01T00:00:00.000Z' });
+  const contaN = (id = 'c1', obraId: string | null = null) =>
+    ({ id, nome: 'Conta N', banco: 'Banco Y', obraId, ativa: true, criadoEm: '2026-10-01T00:00:00.000Z', atualizadoEm: '2026-10-01T00:00:00.000Z' });
+  const saldoN = (id = 's1', contaId = 'c1') =>
+    ({ id, contaId, data: '2026-10-29', valor: 12_34, fonte: 'manual', obs: '', criadoEm: '2026-10-29T00:00:00.000Z' });
+  const chaves = async (r: ReturnType<typeof criarRepositorioLocal>) => (await r.pendentes()).map((p) => `${p.tipo}:${p.id}${p.excluido ? ':x' : ''}`).sort();
+
+  it('A: obra que chega excluída da nuvem leva a conta dela e os saldos, e a exclusão vai para a fila', async () => {
+    const repo = criarRepositorioLocal(new IDBFactory());
+    await repo.aplicarDaNuvem([daNuvem('obra', obraN()), daNuvem('conta', contaN('c1', 'o1')), daNuvem('saldo', saldoN()), daNuvem('conta', contaN('c2')), daNuvem('saldo', saldoN('s2', 'c2'))]);
+    expect(await repo.listarSaldos()).toHaveLength(2);
+    await repo.aplicarDaNuvem([daNuvem('obra', obraN(), '2099-02-01T00:00:00.000Z', true)]);
+    expect(await repo.listarObras()).toEqual([]);
+    expect((await repo.listarContas()).map((c) => c.id)).toEqual(['c2']);
+    expect((await repo.listarSaldos()).map((s) => s.id)).toEqual(['s2']);
+    expect(await chaves(repo)).toEqual(['conta:c1:x', 'saldo:s1:x']);
+    expect(validarBackup(await repo.exportar()).ok).toBe(true);
+  });
+
+  it('A: conta que chega excluída leva os saldos, inclusive o ainda não enviado, sem deixar pendência dele', async () => {
+    const repo = criarRepositorioLocal(new IDBFactory());
+    await repo.aplicarDaNuvem([daNuvem('conta', contaN()), daNuvem('saldo', saldoN())]);
+    const novo = await repo.salvarSaldo({ contaId: 'c1', data: '2026-10-30', valor: 1_00, fonte: 'manual', obs: '' });
+    await repo.aplicarDaNuvem([daNuvem('conta', contaN(), '2099-02-01T00:00:00.000Z', true)]);
+    expect(await repo.listarContas()).toEqual([]);
+    expect(await repo.listarSaldos()).toEqual([]);
+    expect(await chaves(repo)).not.toContain(`saldo:${novo.id}`);
+  });
+
+  it('B1: adiado com mais de 30 dias é descartado; com menos, ainda entra', async () => {
+    for (const [dias, esperado] of [[29, 1], [31, 0]] as const) {
+      const { r, f } = relogioFalso();
+      const repo = criarRepositorioLocal(new IDBFactory(), f);
+      await repo.aplicarDaNuvem([daNuvem('saldo', saldoN())]);
+      r.t = T0 + dias * DIA;
+      await repo.aplicarDaNuvem([daNuvem('conta', contaN())]);
+      expect(await repo.listarSaldos()).toHaveLength(esperado);
+    }
+  });
+
+  it('B2: no máximo 200 adiados; os mais antigos saem', async () => {
+    const { r, f } = relogioFalso();
+    const repo = criarRepositorioLocal(new IDBFactory(), f);
+    for (let i = 0; i < 205; i++) {
+      r.t = T0 + i * 1000;
+      await repo.aplicarDaNuvem([daNuvem('saldo', saldoN(`s${String(i).padStart(3, '0')}`))]);
+    }
+    await repo.aplicarDaNuvem([daNuvem('conta', contaN())]);
+    const ids = (await repo.listarSaldos()).map((s) => s.id);
+    expect(ids).toHaveLength(200);
+    expect(ids).not.toContain('s004');
+    expect(ids).toContain('s005');
+    expect(ids).toContain('s204');
+  });
+
+  it('B3: exclusão de obra descarta a conta adiada que esperava por ela (e a de conta, os saldos)', async () => {
+    const repo = criarRepositorioLocal(new IDBFactory());
+    await repo.aplicarDaNuvem([daNuvem('conta', contaN('c1', 'o1'))]); // espera a obra o1
+    await repo.aplicarDaNuvem([daNuvem('obra', obraN(), '2099-02-01T00:00:00.000Z', true)]);
+    await repo.aplicarDaNuvem([daNuvem('obra', obraN(), '2099-03-01T00:00:00.000Z')]); // obra volta viva
+    expect(await repo.listarObras()).toHaveLength(1);
+    expect(await repo.listarContas()).toEqual([]);
+
+    await repo.aplicarDaNuvem([daNuvem('saldo', saldoN('s9', 'c9'))]); // espera a conta c9
+    await repo.aplicarDaNuvem([daNuvem('conta', contaN('c9'), '2099-02-01T00:00:00.000Z', true)]);
+    await repo.aplicarDaNuvem([daNuvem('conta', contaN('c9'), '2099-03-01T00:00:00.000Z')]);
+    expect(await repo.listarSaldos()).toEqual([]);
+  });
+
+  it('B4: restaurar backup limpa os adiados', async () => {
+    const repo = criarRepositorioLocal(new IDBFactory());
+    await repo.aplicarDaNuvem([daNuvem('saldo', saldoN())]);
+    await repo.substituirTudo({ app: 'mb2-painel', versao: 2, geradoEm: '2026-10-30T00:00:00.000Z', obras: [], custos: [], contas: [], saldos: [] });
+    await repo.aplicarDaNuvem([daNuvem('conta', contaN())]);
+    expect(await repo.listarSaldos()).toEqual([]);
+  });
+
+  it('B5: não adia registro cujo dono este aparelho já excluiu (conta e obra)', async () => {
+    const repo = criarRepositorioLocal(new IDBFactory());
+    const c = await repo.salvarConta({ nome: 'X', banco: 'B', obraId: null, ativa: true });
+    await repo.excluirConta(c.id);
+    await repo.confirmarEnvio(await repo.pendentes()); // a exclusão já foi para a nuvem
+    await repo.aplicarDaNuvem([daNuvem('saldo', saldoN('s1', c.id))]);
+    await repo.aplicarDaNuvem([daNuvem('conta', contaN(c.id), '2099-03-01T00:00:00.000Z')]);
+    expect(await repo.listarSaldos()).toEqual([]);
+
+    const o = await repo.salvarObra(novaObra);
+    await repo.excluirObra(o.id);
+    await repo.confirmarEnvio(await repo.pendentes());
+    await repo.aplicarDaNuvem([daNuvem('conta', contaN('c7', o.id))]);
+    await repo.aplicarDaNuvem([daNuvem('obra', obraN(o.id), '2099-03-01T00:00:00.000Z')]);
+    expect((await repo.listarContas()).map((x) => x.id)).not.toContain('c7');
+  });
+});

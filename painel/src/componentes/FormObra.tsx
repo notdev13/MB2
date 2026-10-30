@@ -59,9 +59,10 @@ export function FormObra({ obra, aoFechar, aoSalvar, aoExcluir }: {
     const qtd = custos.filter((c) => c.obraId === obra.id).length;
     const nContas = contas.filter((c) => c.obraId === obra.id).length;
     const extra = nContas > 0 ? ` e ${nContas === 1 ? 'a conta' : `as ${nContas} contas`} com os saldos` : '';
+    const aviso = ' Some em todos os aparelhos que sincronizam e não dá para desfazer. Se tiver dúvida, exporte um backup antes.';
     const msg = qtd > 0
-      ? `Excluir "${obra.nome}", os ${qtd} lançamento(s) de custo dela${extra}? Não dá para desfazer.`
-      : nContas > 0 ? `Excluir "${obra.nome}"${extra}? Não dá para desfazer.` : `Excluir "${obra.nome}"?`;
+      ? `Excluir "${obra.nome}", os ${qtd} lançamento(s) de custo dela${extra}?${aviso}`
+      : nContas > 0 ? `Excluir "${obra.nome}"${extra}?${aviso}` : `Excluir "${obra.nome}"?`;
     if (!(await confirmar({ texto: msg, acao: 'Excluir obra', perigo: true }))) return;
     setSalvando(true);
     try {

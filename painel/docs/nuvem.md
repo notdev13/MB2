@@ -36,6 +36,18 @@ Mais em [privacidade.md](privacidade.md).
   os mesmos saldos; não existe papel "somente leitura".
 - Saldo é dado sensível: no Git, em testes e em exemplos use só valores inventados.
 
+## Limites conhecidos dos saldos
+- Se um aparelho digita um saldo antes de saber que a conta foi excluída em outro, o saldo digitado
+  some sem aviso quando os dois sincronizam (a exclusão da conta vale).
+- Aparelho com o relógio no futuro pode travar edições de uma conta ou obra: a mudança "mais recente"
+  vence, e a dele parece sempre mais nova. Já valia para obras e agora vale para contas. Acerte o relógio.
+- Registros que chegam antes do que dependem (saldo antes da conta, conta antes da obra) esperam no
+  aparelho e entram quando o dono chegar. A espera é descartada depois de 30 dias, fica limitada a 200
+  itens (os mais antigos saem), some se o dono for excluído e é limpa ao restaurar um backup.
+  Pendência: limpar também em Sair / "Outra conta" (depende do login em revisão).
+- Recomendação: exporte um backup (Ajustes) antes de excluir uma obra que tenha contas; a exclusão
+  leva as contas e os saldos em todos os aparelhos e não dá para desfazer.
+
 ## Ligar (uma vez)
 1. Em supabase.com, crie uma conta e um projeto novo (ex.: `mb2-painel`, região São Paulo).
    Guarde a senha do banco num lugar seguro; ela não é usada pelo painel.
