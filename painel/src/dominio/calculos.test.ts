@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { porCategoria, porMes, resumirObra, gastoComOrcamento, resumoGeral, situacaoOrcamento, textoSituacao } from './calculos';
+import { gastoComOrcamento, impactoNoOrcamento, porCategoria, porMes, resumirObra, resumoGeral, situacaoOrcamento, textoSituacao } from './calculos';
 import type { Custo, Obra } from './tipos';
 
 const obra = (id: string, orcamento: number, extra: Partial<Obra> = {}): Obra => ({
@@ -122,5 +122,57 @@ describe('gastoComOrcamento', () => {
     const custos = [custo('a', 50_000_00, '2026-10-01'), custo('b', 60_000_00, '2026-10-01'), custo('c', 1_000_00, '2026-10-01')];
     expect(gastoComOrcamento(obras, custos)).toBe(50_000_00);
     expect(resumoGeral(obras, custos, '2026-10-26').estouradas).toBe(0);
+  });
+});
+
+describe('impactoNoOrcamento', () => {
+  const o = obra('a', 100_000_00);
+
+  it('mostra antes e depois em % do orçamento', () => {
+    const r = impactoNoOrcamento(o, [custo('a', 62_000_00, '2026-10-01'), custo('b', 50_000_00, '2026-10-01')], 3_000_00)!;
+    expect(r.percAntes).toBe(62);
+    expect(r.percDepois).toBe(65);
+    expect(r.gastoDepois).toBe(65_000_00);
+    expect(r.estoura).toBe(false);
+    expect(r.excedente).toBe(0);
+  });
+
+  it('não mostra nada sem orçamento ou sem valor válido', () => {
+    expect(impactoNoOrcamento(obra('a', 0), [], 1_000_00)).toBeNull();
+    expect(impactoNoOrcamento(o, [], null)).toBeNull();
+    expect(impactoNoOrcamento(o, [], 0)).toBeNull();
+    expect(impactoNoOrcamento(o, [], -5_00)).toBeNull();
+    expect(impactoNoOrcamento(o, [], 10.5)).toBeNull();
+  });
+
+  it('na edição desconta o valor original do próprio lançamento', () => {
+    const editado = custo('a', 10_000_00, '2026-10-01', { id: 'x' });
+    const r = impactoNoOrcamento(o, [editado, custo('a', 50_000_00, '2026-10-02')], 12_000_00, 'x')!;
+    expect(r.gastoAntes).toBe(50_000_00);
+    expect(r.percAntes).toBe(50);
+    expect(r.percDepois).toBe(62);
+  });
+
+  it('avisa o estouro e o excedente em centavos inteiros', () => {
+    const r = impactoNoOrcamento(o, [custo('a', 95_000_00, '2026-10-01')], 5_000_01)!;
+    expect(r.estoura).toBe(true);
+    expect(r.excedente).toBe(1);
+    expect(Number.isInteger(r.excedente)).toBe(true);
+    expect(impactoNoOrcamento(o, [custo('a', 95_000_00, '2026-10-01')], 5_000_00)!.estoura).toBe(false);
+  });
+
+  it('troca de obra na edição não conta o lançamento editado na obra nova', () => {
+    const editado = custo('b', 10_000_00, '2026-10-01', { id: 'x' });
+    const r = impactoNoOrcamento(o, [editado, custo('a', 20_000_00, '2026-10-02')], 5_000_00, 'x')!;
+    expect(r.gastoAntes).toBe(20_000_00);
+  });
+
+  it('arredonda só a porcentagem mostrada e passa de 100% sem perder precisão', () => {
+    const r = impactoNoOrcamento(o, [custo('a', 99_000_00, '2026-10-01')], 600_00)!;
+    expect(r.percDepois).toBe(100);
+    expect(r.estoura).toBe(false);
+    const e = impactoNoOrcamento(o, [custo('a', 99_000_00, '2026-10-01')], 51_000_00)!;
+    expect(e.usoDepois).toBe(1.5);
+    expect(e.estoura).toBe(true);
   });
 });
