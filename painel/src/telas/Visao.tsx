@@ -2,7 +2,7 @@ import { BarraOrcamento, GastoPorMes, PorCategoria } from '../componentes/Grafic
 import { EstadoVazio } from '../componentes/EstadoVazio';
 import { Lancamentos } from '../componentes/Lancamentos';
 import { useDados } from '../dados/contexto';
-import { gastoComOrcamento, porCategoria, porMes, resumirObra, resumoGeral, situacaoOrcamento } from '../dominio/calculos';
+import { gastoComOrcamento, porCategoria, porMes, resumirObra, resumoContas, resumoGeral, situacaoOrcamento } from '../dominio/calculos';
 import { hoje, porcentagem, reais, reaisCurto } from '../dominio/formato';
 import type { Custo } from '../dominio/tipos';
 import { ir } from '../navegacao';
@@ -10,7 +10,7 @@ import { ir } from '../navegacao';
 export function Visao({ aoNovaObra, aoLancar, aoAbrirCusto }: {
   aoNovaObra: () => void; aoLancar: () => void; aoAbrirCusto: (c: Custo) => void;
 }) {
-  const { obras, custos } = useDados();
+  const { obras, custos, contas } = useDados();
   const ref = hoje();
 
   if (obras.length === 0) {
@@ -30,6 +30,7 @@ export function Visao({ aoNovaObra, aoLancar, aoAbrirCusto }: {
     const f = situacaoOrcamento(r.gasto, r.obra.orcamento);
     return f === 'atencao' || f === 'limite';
   }).length;
+  const rc = resumoContas(obras, custos, contas, ref);
   const nomeObra = (id: string) => obras.find((o) => o.id === id)?.nome ?? '—';
 
   return (
@@ -55,6 +56,17 @@ export function Visao({ aoNovaObra, aoLancar, aoAbrirCusto }: {
           <div className="numero menor">{reaisCurto(geral.aPagar)}</div>
         </div>
       </div>
+      <button className="cartao clicavel" onClick={() => ir({ tela: 'contas' })}>
+        <div className="linha">
+          <strong>Dinheiro em conta</strong>
+          <span className="valor">{contas.length > 0 ? reais(rc.totalEmConta) : 'Cadastrar'}</span>
+        </div>
+        <div className="nota">
+          {contas.length === 0 ? 'Cadastre as contas da empresa e das obras para ver os saldos.'
+            : rc.obrasSemConta > 0 ? `${rc.obrasSemConta} obra${rc.obrasSemConta === 1 ? '' : 's'} sem conta cadastrada`
+            : 'Todas as obras com conta'}
+        </div>
+      </button>
       {geral.estouradas > 0 && (
         <div className="aviso" role="alert">
           ⚠ {geral.estouradas} obra{geral.estouradas === 1 ? ' passou' : 's passaram'} do orçamento.

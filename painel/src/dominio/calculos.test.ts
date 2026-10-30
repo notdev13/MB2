@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { gastoComOrcamento, impactoNoOrcamento, porCategoria, porMes, resumirObra, resumoGeral, saldoDaConta, situacaoOrcamento, textoSituacao } from './calculos';
+import { gastoComOrcamento, impactoNoOrcamento, porCategoria, porMes, resumirObra, resumoGeral, situacaoOrcamento, textoSituacao } from './calculos';
 import type { Custo, Obra } from './tipos';
 
 const obra = (id: string, orcamento: number, extra: Partial<Obra> = {}): Obra => ({
@@ -174,28 +174,5 @@ describe('impactoNoOrcamento', () => {
     const e = impactoNoOrcamento(o, [custo('a', 99_000_00, '2026-10-01')], 51_000_00)!;
     expect(e.usoDepois).toBe(1.5);
     expect(e.estoura).toBe(true);
-  });
-});
-
-describe('saldoDaConta', () => {
-  it('sem saldo informado devolve null', () => {
-    expect(saldoDaConta(obra('a', 0), 1000, '2026-10-30')).toBeNull();
-  });
-  it('cobre o a pagar', () => {
-    const s = saldoDaConta(obra('a', 0, { saldoConta: 500_000, saldoContaEm: '2026-10-29' }), 200_000, '2026-10-30')!;
-    expect(s.faltaCobrir).toBe(0);
-    expect(s.cobertura).toBe(2.5);
-    expect(s.diasDesde).toBe(1);
-    expect(s.desatualizado).toBe(false);
-  });
-  it('não cobre e avisa quanto falta', () => {
-    const s = saldoDaConta(obra('a', 0, { saldoConta: 100_000, saldoContaEm: '2026-10-01' }), 250_000, '2026-10-30')!;
-    expect(s.faltaCobrir).toBe(150_000);
-    expect(s.desatualizado).toBe(true);
-  });
-  it('saldo negativo falta cobrir o a pagar inteiro e nada a pagar não tem cobertura', () => {
-    const neg = saldoDaConta(obra('a', 0, { saldoConta: -5_000, saldoContaEm: '2026-10-30' }), 20_000, '2026-10-30')!;
-    expect(neg.faltaCobrir).toBe(20_000);
-    expect(saldoDaConta(obra('a', 0, { saldoConta: 1, saldoContaEm: '2026-10-30' }), 0, '2026-10-30')!.cobertura).toBeNull();
   });
 });

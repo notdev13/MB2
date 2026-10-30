@@ -106,3 +106,51 @@ it('substituirTudo com semCopia não guarda cópia', async () => {
   await repo.substituirTudo({ app: 'mb2-painel', versao: 1, geradoEm: '', obras: [], custos: [] }, { semCopia: true });
   expect(await repo.copiaAnterior()).toBeNull();
 });
+
+describe('contas', () => {
+  const conta = (obraId: string | null) => ({
+    nome: 'Itaú PJ · final 1234', tipo: obraId ? 'obra' as const : 'principal' as const, obraId,
+    saldo: 96_400_00, saldoEm: '2026-10-30', historico: [{ data: '2026-10-20', saldo: 80_000_00 }],
+  });
+
+  it('cria, edita, lista e entra na fila da nuvem', async () => {
+    const repo = criarRepositorioLocal(new IDBFactory());
+    const o = await repo.salvarObra(novaObra);
+    const c = await repo.salvarConta(conta(o.id));
+    const e = await repo.salvarConta({ ...conta(o.id), saldo: 1 }, c.id);
+    expect(e.criadoEm).toBe(c.criadoEm);
+    expect(await repo.listarContas()).toEqual([e]);
+    expect((await repo.pendentes()).some((p) => p.tipo === 'conta' && p.id === c.id)).toBe(true);
+  });
+
+  it('excluir obra leva a conta dela e deixa a principal', async () => {
+    const repo = criarRepositorioLocal(new IDBFactory());
+    const a = await repo.salvarObra(novaObra);
+    await repo.salvarConta(conta(a.id));
+    const principal = await repo.salvarConta(conta(null));
+    await repo.excluirObra(a.id);
+    expect(await repo.listarContas()).toEqual([principal]);
+  });
+
+  it('backup com contas valida e restaura; backup sem contas (antigo) também vale', async () => {
+    const origem = criarRepositorioLocal(new IDBFactory());
+    const o = await origem.salvarObra(novaObra);
+    await origem.salvarConta(conta(o.id));
+    const backup = await origem.exportar();
+    const v = validarBackup(JSON.parse(JSON.stringify(backup)));
+    expect(v.ok).toBe(true);
+    const destino = criarRepositorioLocal(new IDBFactory());
+    if (v.ok) await destino.substituirTudo(v.backup);
+    expect(await destino.listarContas()).toEqual(backup.contas);
+    const { contas: _c, ...antigo } = backup;
+    expect(validarBackup(antigo).ok).toBe(true);
+  });
+
+  it('rejeita conta de obra que não existe no backup', async () => {
+    const origem = criarRepositorioLocal(new IDBFactory());
+    const o = await origem.salvarObra(novaObra);
+    await origem.salvarConta(conta(o.id));
+    const backup = await origem.exportar();
+    expect(validarBackup({ ...backup, obras: [] , custos: [] }).ok).toBe(false);
+  });
+});

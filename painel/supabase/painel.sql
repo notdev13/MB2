@@ -3,7 +3,7 @@
 -- Guia: painel/docs/nuvem.md
 
 create table if not exists public.painel_registros (
-  tipo text not null check (tipo in ('obra', 'custo')),
+  tipo text not null check (tipo in ('obra', 'custo', 'conta')),
   id text not null,
   dados jsonb,                                  -- a obra ou o custo, como o painel guarda
   excluido boolean not null default false,      -- apagado em algum aparelho
@@ -11,6 +11,10 @@ create table if not exists public.painel_registros (
   servidor_em timestamptz not null default clock_timestamp(), -- quando chegou aqui
   primary key (tipo, id)
 );
+
+-- Quem criou a tabela antes das contas: libera o tipo 'conta' (não faz mal rodar de novo).
+alter table public.painel_registros drop constraint if exists painel_registros_tipo_check;
+alter table public.painel_registros add constraint painel_registros_tipo_check check (tipo in ('obra', 'custo', 'conta'));
 
 create index if not exists painel_registros_servidor_em on public.painel_registros (servidor_em);
 

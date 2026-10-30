@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { AvisoProvider } from '../componentes/Aviso';
 import { ConfirmarProvider } from '../componentes/Confirmar';
 import { FormCusto } from '../componentes/FormCusto';
+import { FormConta } from '../componentes/FormConta';
 import { FormObra } from '../componentes/FormObra';
 import { useDados } from '../dados/contexto';
 import type { Custo, Obra } from '../dominio/tipos';
@@ -9,6 +10,7 @@ import { useTema } from '../tema';
 import { Ajustes } from '../telas/Ajustes';
 import { IconeD, SeloStatus, type NomeIconeD } from './componentes/Base';
 import { irD, linkD, useRotaD, type RotaD } from './rotas';
+import { ContasD, type PedidoContaD } from './telas/ContasD';
 import { ID_BUSCA, LancamentosD } from './telas/LancamentosD';
 import { ObraD } from './telas/ObraD';
 import { ObrasD } from './telas/ObrasD';
@@ -21,12 +23,14 @@ import './desktop.css';
 type Gaveta =
   | { tipo: 'custo'; custo?: Custo; obraId?: string }
   | { tipo: 'obra'; obra?: Obra }
+  | ({ tipo: 'conta' } & PedidoContaD)
   | null;
 
 const MENU: { rota: RotaD; rotulo: string; icone: NomeIconeD }[] = [
   { rota: { tela: 'visao' }, rotulo: 'Visão geral', icone: 'visao' },
   { rota: { tela: 'obras' }, rotulo: 'Obras', icone: 'obras' },
   { rota: { tela: 'lancamentos' }, rotulo: 'Lançamentos', icone: 'lancamentos' },
+  { rota: { tela: 'contas' }, rotulo: 'Contas e saldos', icone: 'contas' },
   { rota: { tela: 'ajustes' }, rotulo: 'Ajustes', icone: 'ajustes' },
 ];
 
@@ -34,6 +38,7 @@ const TITULOS: Record<Exclude<RotaD['tela'], 'obra'>, [string, string]> = {
   visao: ['Visão geral', 'Como estão as obras e o caixa de cada uma.'],
   obras: ['Obras', 'Todas as obras, com orçamento e gasto.'],
   lancamentos: ['Lançamentos', 'Todos os custos lançados, com filtros e busca.'],
+  contas: ['Contas e saldos', 'Saldo de cada conta, da empresa e das obras, e o que falta pagar.'],
   ajustes: ['Ajustes', 'Tema, sincronização e backup dos dados.'],
 };
 
@@ -171,8 +176,9 @@ function Casca() {
             <main className="d-pagina">
               {rota.tela === 'visao' && <VisaoD aoNovaObra={novaObra} aoLancar={lancar} aoAbrirCusto={abrirCusto} />}
               {rota.tela === 'obras' && <ObrasD aoNovaObra={novaObra} />}
-              {rota.tela === 'obra' && <ObraD id={rota.id} aoLancar={lancar} aoAbrirCusto={abrirCusto} />}
+              {rota.tela === 'obra' && <ObraD id={rota.id} aoLancar={lancar} aoAbrirCusto={abrirCusto} aoConta={(p) => setGaveta({ tipo: 'conta', ...p })} />}
               {rota.tela === 'lancamentos' && <LancamentosD aoAbrirCusto={abrirCusto} />}
+              {rota.tela === 'contas' && <ContasD aoConta={(p) => setGaveta({ tipo: 'conta', ...p })} />}
               {rota.tela === 'ajustes' && (
                 <div className="d-coluna-estreita">
                   <Ajustes tema={tema} alternarTema={alternarTema} />
@@ -184,6 +190,7 @@ function Casca() {
       </div>
 
       {gaveta?.tipo === 'custo' && <FormCusto custo={gaveta.custo} obraId={gaveta.obraId} aoFechar={fechar} />}
+      {gaveta?.tipo === 'conta' && <FormConta conta={gaveta.conta} obraId={gaveta.obraId} soSaldo={gaveta.soSaldo} aoFechar={fechar} />}
       {gaveta?.tipo === 'obra' && (
         <FormObra obra={gaveta.obra} aoFechar={fechar}
           aoSalvar={(o) => !gaveta.obra && irD({ tela: 'obra', id: o.id })}

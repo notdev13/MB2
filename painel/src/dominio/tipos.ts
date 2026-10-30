@@ -21,10 +21,6 @@ export interface Obra {
   previsaoFim: string | null;
   status: StatusObra;
   observacoes: string;
-  // Conta bancária (PJ) da obra. Opcionais: obras antigas e backups antigos não têm.
-  contaBancaria?: string; // só um apelido, ex.: "Itaú PJ · final 1234"; nunca agência/conta completas
-  saldoConta?: number | null; // centavos, como informado em saldoContaEm
-  saldoContaEm?: string | null; // AAAA-MM-DD da última atualização do saldo
   criadoEm: string; // ISO
   atualizadoEm: string; // ISO
 }
@@ -70,3 +66,26 @@ export interface Custo {
 
 export type NovaObra = Omit<Obra, 'id' | 'criadoEm' | 'atualizadoEm'>;
 export type NovoCusto = Omit<Custo, 'id' | 'criadoEm' | 'atualizadoEm'>;
+
+// Conta bancária com o saldo informado pelo dono. Cada obra tem uma conta PJ; a conta principal da
+// empresa não tem obra. Só o apelido da conta é guardado, nunca agência e número.
+export type TipoConta = 'principal' | 'obra';
+
+export interface SaldoRegistrado {
+  data: string; // AAAA-MM-DD
+  saldo: number; // centavos
+}
+
+export interface Conta {
+  id: string;
+  nome: string; // ex.: "Itaú PJ · final 1234"
+  tipo: TipoConta;
+  obraId: string | null; // preenchido só quando tipo = 'obra'
+  saldo: number; // centavos, o saldo mais recente
+  saldoEm: string; // AAAA-MM-DD do saldo mais recente
+  historico: SaldoRegistrado[]; // saldos anteriores, do mais antigo para o mais novo
+  criadoEm: string;
+  atualizadoEm: string;
+}
+
+export type NovaConta = Omit<Conta, 'id' | 'criadoEm' | 'atualizadoEm'>;

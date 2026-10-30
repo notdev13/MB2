@@ -8,6 +8,7 @@ const caminhos = {
   obras: 'M3 21h18M5 21V10l7-5 7 5v11M9 21v-6h6v6',
   lancamentos: 'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01',
   ajustes: 'M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0M14 4v4M8 10v4M16 16v4',
+  contas: 'M3 7h18v12H3zM3 7l2-3h14l2 3M16 13h2',
   mais: 'M12 5v14M5 12h14',
   busca: 'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4',
   sol: 'M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4',

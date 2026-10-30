@@ -5,6 +5,7 @@ export type Rota =
   | { tela: 'visao' }
   | { tela: 'obras' }
   | { tela: 'obra'; id: string }
+  | { tela: 'contas' }
   | { tela: 'ajustes' };
 
 export function lerRota(hash: string): Rota {
@@ -12,6 +13,7 @@ export function lerRota(hash: string): Rota {
   const [tela, id] = caminho.split('/');
   if (tela === 'obras') return { tela: 'obras' };
   if (tela === 'obra' && id) return { tela: 'obra', id: decodeURIComponent(id) };
+  if (tela === 'contas') return { tela: 'contas' };
   if (tela === 'ajustes') return { tela: 'ajustes' };
   return { tela: 'visao' };
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useDados } from '../dados/contexto';
-import { hoje, lerNumero, lerReais, reaisParaCampo } from '../dominio/formato';
+import { lerNumero, lerReais, reaisParaCampo } from '../dominio/formato';
 import { STATUS_OBRA, type Obra, type StatusObra } from '../dominio/tipos';
 import { useAviso } from './Aviso';
 import { useConfirmar } from './Confirmar';
@@ -12,7 +12,7 @@ export function FormObra({ obra, aoFechar, aoSalvar, aoExcluir }: {
   aoSalvar?: (o: Obra) => void;
   aoExcluir?: () => void;
 }) {
-  const { custos, salvarObra, excluirObra } = useDados();
+  const { custos, contas, salvarObra, excluirObra } = useDados();
   const avisar = useAviso();
   const confirmar = useConfirmar();
   const [nome, setNome] = useState(obra?.nome ?? '');
@@ -24,16 +24,12 @@ export function FormObra({ obra, aoFechar, aoSalvar, aoExcluir }: {
   const [previsaoFim, setPrevisaoFim] = useState(obra?.previsaoFim ?? '');
   const [status, setStatus] = useState<StatusObra>(obra?.status ?? 'em_andamento');
   const [observacoes, setObservacoes] = useState(obra?.observacoes ?? '');
-  const [conta, setConta] = useState(obra?.contaBancaria ?? '');
-  const [saldo, setSaldo] = useState(obra?.saldoConta != null ? reaisParaCampo(obra.saldoConta) : '');
   const [tentou, setTentou] = useState(false);
   const [salvando, setSalvando] = useState(false);
 
   const centavos = orcamento.trim() ? lerReais(orcamento) : 0;
   const areaNum = area.trim() ? lerNumero(area) : null;
-  const saldoCentavos = saldo.trim() ? lerReais(saldo) : null;
   const erros = {
-    saldo: saldo.trim() && saldoCentavos === null ? 'Valor inválido.' : null,
     nome: nome.trim() ? null : 'Dê um nome para a obra.',
     orcamento: centavos === null || centavos < 0 ? 'Valor inválido.' : null,
     area: area.trim() && !(areaNum !== null && areaNum > 0) ? 'Área inválida.' : null,
@@ -48,10 +44,6 @@ export function FormObra({ obra, aoFechar, aoSalvar, aoExcluir }: {
       const salva = await salvarObra({
         nome: nome.trim(), endereco: endereco.trim(), cliente: cliente.trim(), orcamento: centavos ?? 0,
         areaM2: areaNum, inicio: inicio || null, previsaoFim: previsaoFim || null, status, observacoes: observacoes.trim(),
-        contaBancaria: conta.trim(),
-        saldoConta: saldoCentavos,
-        // Só muda a data quando o saldo muda; apagar o saldo apaga a data.
-        saldoContaEm: saldoCentavos === null ? null : saldoCentavos === (obra?.saldoConta ?? null) ? obra?.saldoContaEm ?? hoje() : hoje(),
       }, obra?.id);
       avisar(obra ? 'Obra atualizada' : 'Obra cadastrada');
       aoSalvar?.(salva);
@@ -65,9 +57,12 @@ export function FormObra({ obra, aoFechar, aoSalvar, aoExcluir }: {
   async function excluir() {
     if (!obra) return;
     const qtd = custos.filter((c) => c.obraId === obra.id).length;
+    const nContas = contas.filter((c) => c.obraId === obra.id).length;
+    const extra = nContas > 0 ? ` e ${nContas === 1 ? 'a conta' : `as ${nContas} contas`} com os saldos` : '';
+    const aviso = ' Some em todos os aparelhos que sincronizam e não dá para desfazer. Se tiver dúvida, exporte um backup antes.';
     const msg = qtd > 0
-      ? `Excluir "${obra.nome}" e os ${qtd} lançamento(s) de custo dela? Não dá para desfazer.`
-      : `Excluir "${obra.nome}"?`;
+      ? `Excluir "${obra.nome}", os ${qtd} lançamento(s) de custo dela${extra}?${aviso}`
+      : nContas > 0 ? `Excluir "${obra.nome}"${extra}?${aviso}` : `Excluir "${obra.nome}"?`;
     if (!(await confirmar({ texto: msg, acao: 'Excluir obra', perigo: true }))) return;
     setSalvando(true);
     try {
@@ -126,17 +121,6 @@ export function FormObra({ obra, aoFechar, aoSalvar, aoExcluir }: {
             {Object.entries(STATUS_OBRA).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
         </label>
-        <div className="dupla">
-          <label className="campo">
-            <span>Conta bancária da obra</span>
-            <input value={conta} onChange={(e) => setConta(e.target.value)} placeholder="Ex.: Itaú PJ · final 1234" />
-          </label>
-          <label className="campo">
-            <span>Saldo atual da conta (R$)</span>
-            <input inputMode="decimal" value={saldo} onChange={(e) => setSaldo(e.target.value)} placeholder="0,00" />
-            {tentou && erros.saldo && <span className="erro">{erros.saldo}</span>}
-          </label>
-        </div>
         <label className="campo">
           <span>Observações</span>
           <textarea rows={3} value={observacoes} onChange={(e) => setObservacoes(e.target.value)} />

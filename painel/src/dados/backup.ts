@@ -11,10 +11,17 @@ export function obraValida(o: Record<string, unknown>): boolean {
   return texto(o.id) && texto(o.nome) && texto(o.endereco) && texto(o.cliente) && texto(o.observacoes) &&
     centavos(o.orcamento) && (o.areaM2 === null || (typeof o.areaM2 === 'number' && o.areaM2 > 0)) &&
     dataOuNada(o.inicio) && dataOuNada(o.previsaoFim) && texto(o.status) && Object.hasOwn(STATUS_OBRA, o.status as string) &&
-    (o.contaBancaria === undefined || texto(o.contaBancaria)) &&
-    (o.saldoConta == null || Number.isSafeInteger(o.saldoConta)) &&
-    (o.saldoContaEm == null || data(o.saldoContaEm)) &&
     texto(o.criadoEm) && texto(o.atualizadoEm);
+}
+
+export function contaValida(c: Record<string, unknown>, obras?: Set<string>): boolean {
+  const hist = c.historico;
+  return texto(c.id) && texto(c.nome) && (c.tipo === 'principal' || c.tipo === 'obra') &&
+    (c.tipo === 'principal' ? c.obraId === null : texto(c.obraId) && (!obras || obras.has(c.obraId as string))) &&
+    Number.isSafeInteger(c.saldo) && data(c.saldoEm) &&
+    Array.isArray(hist) && hist.every((h) => !!h && typeof h === 'object' && data((h as { data?: unknown }).data) &&
+      Number.isSafeInteger((h as { saldo?: unknown }).saldo)) &&
+    texto(c.criadoEm) && texto(c.atualizadoEm);
 }
 
 // Sem a lista de obras, não confere se a obra do custo existe (ela pode chegar da nuvem depois).
@@ -48,6 +55,20 @@ export function validarBackup(bruto: unknown): { ok: true; backup: Backup } | { 
       return { ok: false, erro: 'Há um lançamento de custo com dados inválidos no backup.' };
     }
     idsCustos.add(c.id);
+  }
+  // "contas" é opcional: backups feitos antes das contas não têm.
+  if (b.contas !== undefined) {
+    if (!Array.isArray(b.contas)) return { ok: false, erro: 'Há contas com dados inválidos no backup.' };
+    const idsContas = new Set<string>();
+    const obrasComConta = new Set<string>();
+    for (const c of b.contas) {
+      if (!c || typeof c !== 'object' || !contaValida(c as never, idsObras) || idsContas.has(c.id) ||
+        (c.obraId && obrasComConta.has(c.obraId))) {
+        return { ok: false, erro: 'Há uma conta com dados inválidos no backup.' };
+      }
+      idsContas.add(c.id);
+      if (c.obraId) obrasComConta.add(c.obraId);
+    }
   }
   return { ok: true, backup: b as Backup };
 }

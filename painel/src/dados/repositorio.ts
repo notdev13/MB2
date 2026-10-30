@@ -1,4 +1,4 @@
-import type { Custo, NovaObra, NovoCusto, Obra } from '../dominio/tipos';
+import type { Conta, Custo, NovaConta, NovaObra, NovoCusto, Obra } from '../dominio/tipos';
 
 // Contrato do armazenamento. Os dados ficam no próprio aparelho (IndexedDB) e, se a nuvem
 // estiver ligada, a sincronização troca com ela só o que mudou (ver sincronizacao.ts).
@@ -10,6 +10,10 @@ export interface Repositorio {
   listarCustos(): Promise<Custo[]>;
   salvarCusto(dados: NovoCusto, id?: string): Promise<Custo>;
   excluirCusto(id: string): Promise<void>;
+
+  listarContas(): Promise<Conta[]>;
+  salvarConta(dados: NovaConta, id?: string): Promise<Conta>;
+  excluirConta(id: string): Promise<void>;
 
   exportar(): Promise<Backup>;
   // Guarda uma cópia do que havia antes (para desfazer), salvo com semCopia.
@@ -24,11 +28,12 @@ export interface Backup {
   geradoEm: string;
   obras: Obra[];
   custos: Custo[];
+  contas?: Conta[]; // opcional: backups antigos não têm
 }
 
 // ---- Sincronização com a nuvem ----
 
-export type TipoRegistro = 'obra' | 'custo';
+export type TipoRegistro = 'obra' | 'custo' | 'conta';
 
 // Uma mudança feita neste aparelho que ainda não chegou à nuvem.
 export interface Pendente {
@@ -38,11 +43,11 @@ export interface Pendente {
   alteradoEm: string; // ISO, quando a mudança foi feita
 }
 
-// Uma obra ou um custo como fica guardado na nuvem.
+// Uma obra, um custo ou uma conta como fica guardado na nuvem.
 export interface RegistroNuvem {
   tipo: TipoRegistro;
   id: string;
-  dados: Obra | Custo | null; // null quando excluído
+  dados: Obra | Custo | Conta | null; // null quando excluído
   excluido: boolean;
   alteradoEm: string;
   servidorEm?: string; // quando chegou à nuvem (marca até onde já foi buscado)

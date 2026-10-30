@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { AvisoProvider } from './componentes/Aviso';
 import { ConfirmarProvider } from './componentes/Confirmar';
 import { FormCusto } from './componentes/FormCusto';
+import { FormConta } from './componentes/FormConta';
 import { FormObra } from './componentes/FormObra';
 import { Icone, type NomeIcone } from './componentes/Icone';
 import { useDados } from './dados/contexto';
@@ -9,6 +10,7 @@ import type { Custo, Obra } from './dominio/tipos';
 import { ir, linkPara, useRota, type Rota } from './navegacao';
 import { useTema } from './tema';
 import { Ajustes } from './telas/Ajustes';
+import { Contas, type PedidoConta } from './telas/Contas';
 import { ObraDetalhe } from './telas/ObraDetalhe';
 import { Obras } from './telas/Obras';
 import { Visao } from './telas/Visao';
@@ -16,11 +18,13 @@ import { Visao } from './telas/Visao';
 type FolhaAberta =
   | { tipo: 'custo'; custo?: Custo; obraId?: string }
   | { tipo: 'obra'; obra?: Obra }
+  | ({ tipo: 'conta' } & PedidoConta)
   | null;
 
 const TITULOS: Record<Exclude<Rota['tela'], 'obra'>, string> = {
   visao: 'Visão geral',
   obras: 'Obras',
+  contas: 'Contas e saldos',
   ajustes: 'Ajustes',
 };
 
@@ -77,8 +81,10 @@ function Conteudo() {
             {rota.tela === 'obra' && (
               <ObraDetalhe id={rota.id} aoAbrirCusto={abrirCusto}
                 aoEditar={(o) => setFolha({ tipo: 'obra', obra: o })}
+                aoConta={(p) => setFolha({ tipo: 'conta', ...p })}
                 aoLancar={(obraId) => setFolha({ tipo: 'custo', obraId })} />
             )}
+            {rota.tela === 'contas' && <Contas aoConta={(p) => setFolha({ tipo: 'conta', ...p })} />}
             {rota.tela === 'ajustes' && <Ajustes tema={tema} alternarTema={alternarTema} />}
           </main>
         )}
@@ -98,6 +104,7 @@ function Conteudo() {
       </div>
 
       {folha?.tipo === 'custo' && <FormCusto custo={folha.custo} obraId={folha.obraId} aoFechar={fechar} />}
+      {folha?.tipo === 'conta' && <FormConta conta={folha.conta} obraId={folha.obraId} soSaldo={folha.soSaldo} aoFechar={fechar} />}
       {folha?.tipo === 'obra' && (
         <FormObra obra={folha.obra} aoFechar={fechar}
           aoSalvar={(o) => !folha.obra && ir({ tela: 'obra', id: o.id })}

@@ -237,3 +237,14 @@
 .dk .ev p { margin: 0; max-width: 46ch; }
 .dk .ev-acoes { flex-direction: row; flex-wrap: wrap; align-items: center; margin-top: 18px; }
 .dk .ev-acoes .d-botao { height: 44px; }
+
+/* ---------- Contas e saldos ---------- */
+.d-conta { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.d-conta strong { display: block; color: var(--white); }
+.d-conta small { display: block; color: var(--fog); font-size: var(--d-apoio); margin-top: 2px; }
+.d-conta.cartao { flex-direction: column; align-items: flex-start; gap: 6px; }
+.d-conta-saldo { font-family: var(--serif); font-weight: 600; font-size: 34px; line-height: 1.05; color: var(--white); font-variant-numeric: tabular-nums; }
+.d-conta-saldo.alerta, .d-alerta { color: var(--alerta) !important; }
+.d-conta-acoes { display: flex; gap: 8px; margin-top: 8px; }
+.d-cabecalho-secao { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
+.d-cabecalho-secao h2 { margin: 0; font-size: 13px; font-weight: 600; color: var(--mist); }

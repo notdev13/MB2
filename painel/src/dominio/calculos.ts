@@ -1,4 +1,4 @@
-import type { Categoria, Custo, Obra } from './tipos';
+import type { Categoria, Conta, Custo, Obra } from './tipos';
 
 export interface ResumoObra {
   obra: Obra;
@@ -26,28 +26,61 @@ export function resumirObra(obra: Obra, custos: Custo[]): ResumoObra {
 }
 
 export interface SaldoConta {
-  saldo: number; // centavos
-  atualizadoEm: string | null;
-  diasDesde: number | null; // dias entre a atualização e a data de referência
+  conta: Conta;
+  diasDesde: number; // dias entre a atualização do saldo e a data de referência
   desatualizado: boolean; // mais de 7 dias sem atualizar
   cobertura: number | null; // saldo / a pagar (1 = cobre tudo); null se não há nada a pagar
   faltaCobrir: number; // centavos do a pagar que o saldo não cobre (0 se cobre)
 }
 
 const DIAS_DESATUALIZADO = 7;
+const DIA_MS = 86_400_000;
 
-// Saldo da conta bancária da obra comparado com o que falta pagar nela. null = saldo não informado.
-export function saldoDaConta(obra: Obra, aPagar: number, ref: string): SaldoConta | null {
-  if (obra.saldoConta == null) return null;
-  const em = obra.saldoContaEm ?? null;
-  const dias = em ? Math.round((Date.parse(ref) - Date.parse(em)) / 86_400_000) : null;
+// Saldo da conta comparado com o que falta pagar. Para a conta principal, passe o a pagar de todas as obras.
+export function situacaoDaConta(conta: Conta, aPagar: number, ref: string): SaldoConta {
+  const dias = Math.max(0, Math.round((Date.parse(ref) - Date.parse(conta.saldoEm)) / DIA_MS));
   return {
-    saldo: obra.saldoConta,
-    atualizadoEm: em,
+    conta,
     diasDesde: dias,
-    desatualizado: dias === null || dias > DIAS_DESATUALIZADO,
-    cobertura: aPagar > 0 ? obra.saldoConta / aPagar : null,
-    faltaCobrir: Math.max(0, aPagar - Math.max(0, obra.saldoConta)),
+    desatualizado: dias > DIAS_DESATUALIZADO,
+    cobertura: aPagar > 0 ? conta.saldo / aPagar : null,
+    faltaCobrir: Math.max(0, aPagar - Math.max(0, conta.saldo)),
+  };
+}
+
+export interface ContaDaObra {
+  obra: Obra;
+  aPagar: number;
+  situacao: SaldoConta | null; // null = a obra ainda não tem conta cadastrada
+}
+
+export interface ResumoContas {
+  principal: SaldoConta | null;
+  obras: ContaDaObra[]; // obras não concluídas, na ordem recebida
+  totalEmConta: number; // soma de todos os saldos cadastrados
+  totalNasObras: number;
+  aPagarTotal: number; // a pagar de todas as obras não concluídas
+  obrasSemConta: number;
+}
+
+export function resumoContas(obras: Obra[], custos: Custo[], contas: Conta[], ref: string): ResumoContas {
+  const ativas = obras.filter((o) => o.status !== 'concluida');
+  const daObra = new Map(contas.filter((c) => c.tipo === 'obra' && c.obraId).map((c) => [c.obraId as string, c]));
+  const linhas = ativas.map((obra): ContaDaObra => {
+    const aPagar = soma(custos.filter((c) => c.obraId === obra.id && !c.pago));
+    const conta = daObra.get(obra.id);
+    return { obra, aPagar, situacao: conta ? situacaoDaConta(conta, aPagar, ref) : null };
+  });
+  const aPagarTotal = linhas.reduce((t, l) => t + l.aPagar, 0);
+  const principal = contas.find((c) => c.tipo === 'principal');
+  const totalNasObras = contas.filter((c) => c.tipo === 'obra').reduce((t, c) => t + c.saldo, 0);
+  return {
+    principal: principal ? situacaoDaConta(principal, aPagarTotal, ref) : null,
+    obras: linhas,
+    totalEmConta: totalNasObras + (principal?.saldo ?? 0),
+    totalNasObras,
+    aPagarTotal,
+    obrasSemConta: linhas.filter((l) => !l.situacao).length,
   };
 }
 

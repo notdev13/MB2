@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import type { Custo, NovaObra, NovoCusto, Obra } from '../dominio/tipos';
+import type { Conta, Custo, NovaConta, NovaObra, NovoCusto, Obra } from '../dominio/tipos';
 import { validarBackup } from './backup';
 import { criarRepositorioLocal, type RepositorioLocal } from './indexeddb';
 import { configDoBuild, criarNuvem, ErroNuvem, type Nuvem } from './nuvem';
@@ -23,10 +23,13 @@ interface Dados {
   erro: string | null;
   obras: Obra[];
   custos: Custo[];
+  contas: Conta[];
   salvarObra(dados: NovaObra, id?: string): Promise<Obra>;
   excluirObra(id: string): Promise<void>;
   salvarCusto(dados: NovoCusto, id?: string): Promise<Custo>;
   excluirCusto(id: string): Promise<void>;
+  salvarConta(dados: NovaConta, id?: string): Promise<Conta>;
+  excluirConta(id: string): Promise<void>;
   exportar(): Promise<Backup>;
   restaurar(backup: Backup): Promise<void>;
   copiaAnterior(): Promise<Backup | null>;
@@ -54,14 +57,16 @@ export function DadosProvider({ children, repo, nuvem: nuvemDada }: {
   }, [nuvemDada]);
   const [obras, setObras] = useState<Obra[]>([]);
   const [custos, setCustos] = useState<Custo[]>([]);
+  const [contas, setContas] = useState<Conta[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
   const recarregar = useCallback(async () => {
     try {
-      const [o, c] = await Promise.all([repositorio.listarObras(), repositorio.listarCustos()]);
+      const [o, c, ct] = await Promise.all([repositorio.listarObras(), repositorio.listarCustos(), repositorio.listarContas()]);
       setObras(o.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')));
       setCustos(c.sort((a, b) => b.data.localeCompare(a.data) || b.criadoEm.localeCompare(a.criadoEm)));
+      setContas(ct.sort((a, b) => (a.tipo === b.tipo ? a.nome.localeCompare(b.nome, 'pt-BR') : a.tipo === 'principal' ? -1 : 1)));
       setErro(null);
     } catch (e) {
       setErro('Não foi possível abrir os dados deste aparelho. ' + String(e));
@@ -170,6 +175,7 @@ export function DadosProvider({ children, repo, nuvem: nuvemDada }: {
     erro,
     obras,
     custos,
+    contas,
     async salvarObra(d, id) {
       const r = await repositorio.salvarObra(d, id);
       await recarregar();
@@ -189,6 +195,17 @@ export function DadosProvider({ children, repo, nuvem: nuvemDada }: {
     },
     async excluirCusto(id) {
       await repositorio.excluirCusto(id);
+      await recarregar();
+      agendar();
+    },
+    async salvarConta(d, id) {
+      const r = await repositorio.salvarConta(d, id);
+      await recarregar();
+      agendar();
+      return r;
+    },
+    async excluirConta(id) {
+      await repositorio.excluirConta(id);
       await recarregar();
       agendar();
     },

@@ -1,9 +1,9 @@
-import type { Custo, NovaObra, NovoCusto, Obra } from '../dominio/tipos';
-import { custoValido, obraValida } from './backup';
+import type { Conta, Custo, NovaConta, NovaObra, NovoCusto, Obra } from '../dominio/tipos';
+import { contaValida, custoValido, obraValida } from './backup';
 import type { Backup, FilaLocal, Pendente, RegistroNuvem, Repositorio, TipoRegistro } from './repositorio';
 
 const NOME_BANCO = 'mb2-painel';
-const VERSAO = 2;
+const VERSAO = 3;
 
 function abrir(fabrica: IDBFactory): Promise<IDBDatabase> {
   return new Promise((ok, erro) => {
@@ -20,6 +20,8 @@ function abrir(fabrica: IDBFactory): Promise<IDBDatabase> {
       // Versão 2: fila de mudanças a enviar para a nuvem e marcas da sincronização.
       if (!db.objectStoreNames.contains('pendentes')) db.createObjectStore('pendentes');
       if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta');
+      // Versão 3: contas bancárias e seus saldos.
+      if (!db.objectStoreNames.contains('contas')) db.createObjectStore('contas', { keyPath: 'id' });
     };
     req.onsuccess = () => ok(req.result);
     req.onerror = () => erro(req.error);
@@ -43,10 +45,11 @@ const novoId = () => crypto.randomUUID();
 
 const CHAVE_COPIA = 'antes-da-restauracao';
 const CHAVE_MARCA = 'nuvem-buscado-ate';
-type Loja = 'obras' | 'custos' | 'copias' | 'pendentes' | 'meta';
-type LojaDados = 'obras' | 'custos';
+type Loja = 'obras' | 'custos' | 'contas' | 'copias' | 'pendentes' | 'meta';
+type LojaDados = 'obras' | 'custos' | 'contas';
 
-const LOJA: Record<TipoRegistro, LojaDados> = { obra: 'obras', custo: 'custos' };
+const LOJA: Record<TipoRegistro, LojaDados> = { obra: 'obras', custo: 'custos', conta: 'contas' };
+const TIPO: Record<LojaDados, TipoRegistro> = { obras: 'obra', custos: 'custo', contas: 'conta' };
 const chavePendente = (tipo: TipoRegistro, id: string) => `${tipo}:${id}`;
 const depois = (a: string, b: string) => Date.parse(a) > Date.parse(b);
 
@@ -103,7 +106,7 @@ export function criarRepositorioLocal(fabrica: IDBFactory = indexedDB): Reposito
       atualizadoEm: agora,
     } as unknown as T;
     store.put(registro);
-    enfileirar(tx, loja === 'obras' ? 'obra' : 'custo', registro.id, false, agora);
+    enfileirar(tx, TIPO[loja], registro.id, false, agora);
     await concluir(tx);
     return registro;
   }
@@ -112,16 +115,31 @@ export function criarRepositorioLocal(fabrica: IDBFactory = indexedDB): Reposito
     listarObras: () => listar<Obra>('obras'),
     salvarObra: (dados: NovaObra, id?: string) => gravar<Obra, NovaObra>('obras', dados, id),
     async excluirObra(id) {
-      const tx = await transacao(['obras', 'custos', 'pendentes'], 'readwrite');
+      const tx = await transacao(['obras', 'custos', 'contas', 'pendentes'], 'readwrite');
       const agora = new Date().toISOString();
       tx.objectStore('obras').delete(id);
       enfileirar(tx, 'obra', id, true, agora);
+      // A conta da obra sai junto com ela.
+      const contas = tx.objectStore('contas');
+      for (const c of (await pedido(contas.getAll() as IDBRequest<Conta[]>)).filter((x) => x.obraId === id)) {
+        contas.delete(c.id);
+        enfileirar(tx, 'conta', c.id, true, agora);
+      }
       const custos = tx.objectStore('custos');
       const chaves = await pedido(custos.index('obraId').getAllKeys(id));
       for (const k of chaves) {
         custos.delete(k);
         enfileirar(tx, 'custo', String(k), true, agora);
       }
+      await concluir(tx);
+    },
+
+    listarContas: () => listar<Conta>('contas'),
+    salvarConta: (dados: NovaConta, id?: string) => gravar<Conta, NovaConta>('contas', dados, id),
+    async excluirConta(id) {
+      const tx = await transacao(['contas', 'pendentes'], 'readwrite');
+      tx.objectStore('contas').delete(id);
+      enfileirar(tx, 'conta', id, true, new Date().toISOString());
       await concluir(tx);
     },
 
@@ -135,13 +153,13 @@ export function criarRepositorioLocal(fabrica: IDBFactory = indexedDB): Reposito
     },
 
     async exportar(): Promise<Backup> {
-      const [obras, custos] = await Promise.all([listar<Obra>('obras'), listar<Custo>('custos')]);
-      return { app: 'mb2-painel', versao: 1, geradoEm: new Date().toISOString(), obras, custos };
+      const [obras, custos, contas] = await Promise.all([listar<Obra>('obras'), listar<Custo>('custos'), listar<Conta>('contas')]);
+      return { app: 'mb2-painel', versao: 1, geradoEm: new Date().toISOString(), obras, custos, contas };
     },
     async substituirTudo(backup, opcoes) {
       // Guarda o que está no aparelho antes de apagar, na mesma transação.
       const atual = opcoes?.semCopia ? null : await this.exportar();
-      const tx = await transacao(['obras', 'custos', 'copias', 'pendentes'], 'readwrite');
+      const tx = await transacao(['obras', 'custos', 'contas', 'copias', 'pendentes'], 'readwrite');
       if (atual) tx.objectStore('copias').put(atual, CHAVE_COPIA);
       await gravarTudo(tx, backup);
       await concluir(tx);
@@ -153,7 +171,7 @@ export function criarRepositorioLocal(fabrica: IDBFactory = indexedDB): Reposito
     async desfazerRestauracao() {
       const copia = await this.copiaAnterior();
       if (!copia) return;
-      const tx = await transacao(['obras', 'custos', 'copias', 'pendentes'], 'readwrite');
+      const tx = await transacao(['obras', 'custos', 'contas', 'copias', 'pendentes'], 'readwrite');
       await gravarTudo(tx, copia);
       tx.objectStore('copias').delete(CHAVE_COPIA);
       await concluir(tx);
@@ -164,11 +182,11 @@ export function criarRepositorioLocal(fabrica: IDBFactory = indexedDB): Reposito
       return pedido(tx.objectStore('pendentes').getAll() as IDBRequest<Pendente[]>);
     },
     async paraEnviar(pendentes) {
-      const tx = await transacao(['obras', 'custos'], 'readonly');
+      const tx = await transacao(['obras', 'custos', 'contas'], 'readonly');
       return Promise.all(pendentes.map(async (p): Promise<RegistroNuvem> => {
         const dados = p.excluido
           ? undefined
-          : ((await pedido(tx.objectStore(LOJA[p.tipo]).get(p.id))) as Obra | Custo | undefined);
+          : ((await pedido(tx.objectStore(LOJA[p.tipo]).get(p.id))) as Obra | Custo | Conta | undefined);
         return { tipo: p.tipo, id: p.id, dados: dados ?? null, excluido: !dados, alteradoEm: p.alteradoEm };
       }));
     },
@@ -183,7 +201,7 @@ export function criarRepositorioLocal(fabrica: IDBFactory = indexedDB): Reposito
       await concluir(tx);
     },
     async aplicarDaNuvem(registros) {
-      const tx = await transacao(['obras', 'custos', 'pendentes'], 'readwrite');
+      const tx = await transacao(['obras', 'custos', 'contas', 'pendentes'], 'readwrite');
       const fila = tx.objectStore('pendentes');
       let mudou = 0;
       for (const r of registros) {
@@ -197,7 +215,8 @@ export function criarRepositorioLocal(fabrica: IDBFactory = indexedDB): Reposito
           if (atual) { loja.delete(r.id); mudou++; }
           continue;
         }
-        const valido = r.tipo === 'obra' ? obraValida(r.dados as never) : custoValido(r.dados as never);
+        const valido = r.tipo === 'obra' ? obraValida(r.dados as never)
+          : r.tipo === 'conta' ? contaValida(r.dados as never) : custoValido(r.dados as never);
         if (!valido || r.dados.id !== r.id) continue; // registro estranho: ignora
         if (JSON.stringify(atual) !== JSON.stringify(r.dados)) { loja.put(r.dados); mudou++; }
       }
@@ -205,16 +224,18 @@ export function criarRepositorioLocal(fabrica: IDBFactory = indexedDB): Reposito
       return mudou;
     },
     async enfileirarTudo() {
-      const tx = await transacao(['obras', 'custos', 'pendentes'], 'readwrite');
+      const tx = await transacao(['obras', 'custos', 'contas', 'pendentes'], 'readwrite');
       const fila = tx.objectStore('pendentes');
-      const [obras, custos] = await Promise.all([
+      const [obras, custos, contas] = await Promise.all([
         pedido(tx.objectStore('obras').getAll() as IDBRequest<Obra[]>),
         pedido(tx.objectStore('custos').getAll() as IDBRequest<Custo[]>),
+        pedido(tx.objectStore('contas').getAll() as IDBRequest<Conta[]>),
       ]);
       const ja = new Set((await pedido(fila.getAllKeys())).map(String));
       // Usa a data da última edição: se a nuvem tiver algo mais novo, ela vence.
       for (const o of obras) if (!ja.has(chavePendente('obra', o.id))) enfileirar(tx, 'obra', o.id, false, o.atualizadoEm);
       for (const c of custos) if (!ja.has(chavePendente('custo', c.id))) enfileirar(tx, 'custo', c.id, false, c.atualizadoEm);
+      for (const c of contas) if (!ja.has(chavePendente('conta', c.id))) enfileirar(tx, 'conta', c.id, false, c.atualizadoEm);
       await concluir(tx);
     },
     async lerMarca() {
@@ -234,14 +255,21 @@ export function criarRepositorioLocal(fabrica: IDBFactory = indexedDB): Reposito
 async function gravarTudo(tx: IDBTransaction, backup: Backup) {
   const obras = tx.objectStore('obras');
   const custos = tx.objectStore('custos');
+  const contas = tx.objectStore('contas');
   const agora = new Date().toISOString();
-  const [idsObras, idsCustos] = await Promise.all([pedido(obras.getAllKeys()), pedido(custos.getAllKeys())]);
+  const [idsObras, idsCustos, idsContas] = await Promise.all([
+    pedido(obras.getAllKeys()), pedido(custos.getAllKeys()), pedido(contas.getAllKeys()),
+  ]);
+  const novasContas = new Set((backup.contas ?? []).map((c) => c.id));
+  for (const k of idsContas) if (!novasContas.has(String(k))) enfileirar(tx, 'conta', String(k), true, agora);
   const novasObras = new Set(backup.obras.map((o) => o.id));
   const novosCustos = new Set(backup.custos.map((c) => c.id));
   for (const k of idsObras) if (!novasObras.has(String(k))) enfileirar(tx, 'obra', String(k), true, agora);
   for (const k of idsCustos) if (!novosCustos.has(String(k))) enfileirar(tx, 'custo', String(k), true, agora);
   obras.clear();
   custos.clear();
+  contas.clear();
+  for (const c of backup.contas ?? []) { contas.put(c); enfileirar(tx, 'conta', c.id, false, agora); }
   for (const o of backup.obras) { obras.put(o); enfileirar(tx, 'obra', o.id, false, agora); }
   for (const c of backup.custos) { custos.put(c); enfileirar(tx, 'custo', c.id, false, agora); }
 }
