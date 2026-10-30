@@ -1,0 +1,9 @@
+# Cabeçalhos de segurança e privacidade. Lido por Cloudflare Pages e Netlify; no GitHub Pages
+# este arquivo é só um arquivo estático inofensivo (lá valem as <meta> do index.html).
+# Ao trocar de hospedagem, leve este arquivo junto. Guia: docs/privacidade.md
+/*
+  X-Robots-Tag: noindex, nofollow, noarchive, nosnippet
+  Referrer-Policy: no-referrer
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Permissions-Policy: camera=(), geolocation=(), microphone=(self)

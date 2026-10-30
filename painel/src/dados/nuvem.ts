@@ -24,6 +24,8 @@ export interface Guarda {
 
 export interface Nuvem {
   email(): string | null;
+  // Avisa quando a sessão muda (entrou, saiu ou foi encerrada pela nuvem). Devolve como parar de ouvir.
+  ouvir(aviso: () => void): () => void;
   entrar(email: string, senha: string): Promise<void>;
   sair(): Promise<void>;
   enviar(registros: RegistroNuvem[]): Promise<void>;
@@ -33,7 +35,7 @@ export interface Nuvem {
 
 // Erros com mensagem pronta para mostrar na tela.
 export class ErroNuvem extends Error {
-  constructor(mensagem: string, readonly tipo: 'sessao' | 'rede' | 'servidor' | 'acesso') {
+  constructor(mensagem: string, readonly tipo: 'sessao' | 'rede' | 'servidor' | 'acesso' | 'limite') {
     super(mensagem);
   }
 }
@@ -71,7 +73,25 @@ const TABELA = 'painel_registros';
 
 export function criarNuvem(config: ConfigNuvem, guarda: Guarda = guardaLocal, buscarWeb: typeof fetch = fetch): Nuvem {
   let sessao = guarda.ler();
-  const definir = (s: Sessao | null) => { sessao = s; guarda.gravar(s); };
+  const ouvintes = new Set<() => void>();
+  const definir = (s: Sessao | null) => {
+    const mudou = (sessao?.email ?? null) !== (s?.email ?? null);
+    sessao = s;
+    guarda.gravar(s);
+    if (mudou) ouvintes.forEach((f) => f());
+  };
+  // Adota o que outra aba guardou, sem regravar (e avisa quem ouve se quem está dentro mudou).
+  const adotar = (s: Sessao | null) => {
+    const mudou = (sessao?.email ?? null) !== (s?.email ?? null);
+    sessao = s;
+    if (mudou) ouvintes.forEach((f) => f());
+  };
+  // Outra aba entrou, saiu ou renovou a sessão: este aparelho acompanha.
+  if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+    window.addEventListener('storage', (e) => {
+      if (e.key === null || e.key === CHAVE_SESSAO) adotar(guarda.ler());
+    });
+  }
 
   async function chamar(caminho: string, init: RequestInit = {}, token?: string): Promise<Response> {
     let r: Response;
@@ -97,13 +117,26 @@ export function criarNuvem(config: ConfigNuvem, guarda: Guarda = guardaLocal, bu
   }
 
   async function token(): Promise<string> {
+    // Outra aba pode já ter renovado: se a guarda tem uma sessão mais nova, usa essa em vez de renovar.
+    const guardada = guarda.ler();
+    if (guardada && (!sessao || guardada.renovacao !== sessao.renovacao || guardada.expiraEm > sessao.expiraEm)) adotar(guardada);
     if (!sessao) throw new ErroNuvem('Entre com seu e-mail para sincronizar.', 'sessao');
     if (sessao.expiraEm - Date.now() > 60_000) return sessao.acesso;
+    const usada = sessao.renovacao;
     const r = await chamar('/auth/v1/token?grant_type=refresh_token', {
       method: 'POST',
-      body: JSON.stringify({ refresh_token: sessao.renovacao }),
+      body: JSON.stringify({ refresh_token: usada }),
     });
-    if (r.status >= 400 && r.status < 500) {
+    // Só 400/401 significam sessão revogada ou vencida de verdade. Falha de rede, 429, 5xx
+    // e qualquer outro erro nunca derrubam a sessão: o dono continua dentro, mesmo sem internet.
+    if (r.status === 400 || r.status === 401) {
+      // Outra aba pode ter gasto este token e guardado um novo: nesse caso a sessão está boa.
+      const outra = guarda.ler();
+      if (outra && outra.renovacao !== usada) {
+        adotar(outra);
+        if (outra.expiraEm - Date.now() > 60_000) return outra.acesso;
+        throw new ErroNuvem('A nuvem não respondeu. Tente de novo daqui a pouco.', 'servidor');
+      }
       definir(null);
       throw new ErroNuvem('A sessão expirou. Entre de novo com seu e-mail.', 'sessao');
     }
@@ -124,6 +157,10 @@ export function criarNuvem(config: ConfigNuvem, guarda: Guarda = guardaLocal, bu
 
   return {
     email: () => sessao?.email ?? null,
+    ouvir(aviso) {
+      ouvintes.add(aviso);
+      return () => { ouvintes.delete(aviso); };
+    },
 
     async entrar(email, senha) {
       const r = await chamar('/auth/v1/token?grant_type=password', {
@@ -131,6 +168,7 @@ export function criarNuvem(config: ConfigNuvem, guarda: Guarda = guardaLocal, bu
         body: JSON.stringify({ email: email.trim(), password: senha }),
       });
       if (r.status === 400 || r.status === 401) throw new ErroNuvem('E-mail ou senha incorretos.', 'sessao');
+      if (r.status === 429) throw new ErroNuvem('Muitas tentativas. Aguarde um minuto e tente de novo.', 'limite');
       if (!r.ok) throw new ErroNuvem('A nuvem não respondeu. Tente de novo daqui a pouco.', 'servidor');
       guardarToken(email.trim().toLowerCase(), await r.json());
     },
@@ -174,4 +212,14 @@ export function criarNuvem(config: ConfigNuvem, guarda: Guarda = guardaLocal, bu
       }
     },
   };
+}
+
+// Uma só nuvem para o app inteiro (porteiro e sincronização enxergam a mesma sessão).
+let doBuild: Nuvem | null | undefined;
+export function nuvemDoBuild(): Nuvem | null {
+  if (doBuild === undefined) {
+    const config = configDoBuild();
+    doBuild = config ? criarNuvem(config) : null;
+  }
+  return doBuild;
 }

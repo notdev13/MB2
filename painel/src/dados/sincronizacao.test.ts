@@ -12,7 +12,8 @@ function nuvemFalsa(): Nuvem & { linhas: Map<string, RegistroNuvem> } {
   let relogio = Date.parse('2026-01-01T00:00:00Z');
   return {
     linhas,
-    email: () => 'dono@mb2',
+    ouvir: () => () => {},
+    email: () =>'dono@mb2',
     async entrar() {},
     async sair() {},
     async enviar(registros) {

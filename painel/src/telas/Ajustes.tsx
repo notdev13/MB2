@@ -116,11 +116,11 @@ function Sincronizacao() {
             ? ` Há ${nuvem.pendentes} mudança(s) que ainda não subiram: elas só vão para a nuvem quando você entrar de novo.`
             : '';
           if (await confirmar({
-            texto: `Desconectar este aparelho da nuvem? Os dados continuam aqui.${aviso}`,
-            acao: 'Desconectar',
+            texto: `Sair do painel? Os dados deste aparelho NÃO são apagados e a sincronização para. Para abrir o painel de novo, será preciso entrar com e-mail e senha, com internet.${aviso}`,
+            acao: 'Sair',
           })) await nuvem.sair();
         }}>
-          Desconectar este aparelho
+          Sair
         </button>
       </div>
     </div>

@@ -34,13 +34,22 @@ mesma obra até 7 dias antes ou depois, o formulário avisa (mas deixa salvar).
 
 ## Onde ficam os dados
 No próprio aparelho (IndexedDB do Safari), e funciona sem internet. Com a nuvem ligada
-(Supabase, ver [docs/nuvem.md](docs/nuvem.md)), quem entra em **Ajustes › Sincronizar aparelhos**
+(Supabase, ver [docs/nuvem.md](docs/nuvem.md)), quem entra no painel
 vê os mesmos dados no iPhone e no computador: cada mudança fica numa fila no aparelho e sobe
 quando houver internet; em conflito vale a mudança mais recente. Sem a nuvem ligada, cada
 aparelho guarda só os seus dados, como antes.
 - **Instale na tela de início** (Safari › Compartilhar › Adicionar à Tela de Início). Assim o iOS
   não apaga os dados do painel por falta de uso.
 - **Faça backup** em Ajustes de tempos em tempos e guarde o arquivo no iCloud Drive.
+
+## Login e privacidade
+Quando o build tem a nuvem configurada, o painel abre **só a tela de entrar** (e-mail e senha) até
+haver uma sessão no aparelho. A primeira entrada precisa de internet; depois abre direto, até sem
+internet. **Ajustes › Sair** volta ao login e **não apaga** os dados do aparelho. Sem nuvem
+configurada, abre direto. O painel pede aos buscadores para não aparecer (noindex) e não envia o
+endereço de origem a outros sites. O porteiro trava a tela; a proteção dos dados na nuvem é o
+login e o RLS do banco, e os dados no aparelho dependem do bloqueio do celular. Detalhes e
+checklist do dono em [docs/privacidade.md](docs/privacidade.md).
 
 ## Importar a planilha de despesas
 A planilha `PLANILHA DESPESAS OBRAS MB2.xlsx` (uma aba por obra e a aba RESUMO) vira um arquivo de
@@ -78,7 +87,7 @@ no terminal.
 
 ## Publicar
 A cada mudança na `main`, o workflow `.github/workflows/site.yml` testa, gera o painel e publica no
-GitHub Pages em **https://notdev13.github.io/MB2/painel/** (o site institucional fica na raiz).
+GitHub Pages do repositório (o endereço aparece em Settings › Pages; o site institucional fica na raiz do domínio).
 Uma vez só, no GitHub: Settings › Pages › Source = "GitHub Actions".
 `npm run build` gera a mesma pasta `dist/`, que serve em qualquer hospedagem estática com HTTPS.
 
@@ -90,6 +99,7 @@ Uma vez só, no GitHub: Settings › Pages › Source = "GitHub Actions".
 - `src/dados/`: armazenamento (contrato + IndexedDB), backup e planilha.
 - `src/telas/` e `src/componentes/`: interface do celular.
 - `src/desktop/`: interface do computador (casca, telas, componentes e `desktop.css`).
+- `src/componentes/Porteiro.tsx` e `src/dados/porteiro.ts`: tela de entrar e a regra que decide (antes das cascas).
 - `src/casca.ts`: escolhe celular ou desktop pelo tamanho da tela.
 - `apresentacao/`: página do iPhone para apresentar o painel.
 - `public/`: ícones e manifesto. `sw.js`: service worker (modo sem internet), preenchido no build.

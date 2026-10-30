@@ -77,4 +77,89 @@ describe('nuvem (Supabase)', () => {
     const buscar = (async () => { throw new TypeError('Load failed'); }) as unknown as typeof fetch;
     await expect(criarNuvem(config, guardaMemoria(valida()), buscar).buscar(null)).rejects.toThrow('Sem conexão');
   });
+
+  describe('renovação do acesso', () => {
+    const vencida = (): Sessao => ({ ...valida(), expiraEm: Date.now() - 1 });
+
+    it.each([400, 401])('refresh recusado com %i encerra a sessão', async (status) => {
+      const guarda = guardaMemoria(vencida());
+      const nuvem = criarNuvem(config, guarda, webFalsa([{ status }]).buscar);
+      const erro = await nuvem.buscar(null).catch((e) => e);
+      expect((erro as ErroNuvem).tipo).toBe('sessao');
+      expect(nuvem.email()).toBeNull();
+      expect(guarda.valor).toBeNull();
+    });
+
+    it.each([403, 404, 408, 429, 500, 502, 503])('refresh com %i mantém a sessão', async (status) => {
+      const guarda = guardaMemoria(vencida());
+      const nuvem = criarNuvem(config, guarda, webFalsa([{ status }]).buscar);
+      const erro = await nuvem.buscar(null).catch((e) => e);
+      expect((erro as ErroNuvem).tipo).toBe('servidor');
+      expect(nuvem.email()).toBe('dono@mb2');
+      expect(guarda.valor).not.toBeNull();
+    });
+
+    it('refresh sem internet mantém a sessão', async () => {
+      const guarda = guardaMemoria(vencida());
+      const buscar = (async () => { throw new TypeError('Load failed'); }) as unknown as typeof fetch;
+      const nuvem = criarNuvem(config, guarda, buscar);
+      const erro = await nuvem.buscar(null).catch((e) => e);
+      expect((erro as ErroNuvem).tipo).toBe('rede');
+      expect(nuvem.email()).toBe('dono@mb2');
+      expect(guarda.valor).not.toBeNull();
+    });
+  });
+
+  it('429 no login pede para aguardar', async () => {
+    const nuvem = criarNuvem(config, guardaMemoria(), webFalsa([{ status: 429 }]).buscar);
+    const erro = await nuvem.entrar('a@b', 'x').catch((e) => e);
+    expect(erro.message).toBe('Muitas tentativas. Aguarde um minuto e tente de novo.');
+    expect((erro as ErroNuvem).tipo).toBe('limite');
+  });
+
+  describe('duas abas', () => {
+    const vencida = (): Sessao => ({ ...valida(), expiraEm: Date.now() - 1, renovacao: 'r0' });
+    const novaDeOutraAba = (): Sessao => ({ email: 'dono@mb2', acesso: 'a9', renovacao: 'r9', expiraEm: Date.now() + 3_600_000 });
+
+    it('usa a sessão que outra aba já renovou, sem renovar de novo', async () => {
+      const guarda = guardaMemoria(vencida());
+      const web = webFalsa([{ status: 200, corpo: [] }]);
+      const nuvem = criarNuvem(config, guarda, web.buscar); // lê a sessão vencida
+      guarda.valor = novaDeOutraAba(); // outra aba renova e guarda
+      await nuvem.buscar(null);
+      expect(web.pedidos).toHaveLength(1);
+      expect(web.pedidos[0].url).toContain('/rest/v1/');
+      expect((web.pedidos[0].init.headers as Record<string, string>).Authorization).toBe('Bearer a9');
+    });
+
+    it('400 no refresh, mas outra aba já guardou token novo: adota e não apaga', async () => {
+      const guarda = guardaMemoria(vencida());
+      const nuvem = criarNuvem(config, guarda, (async () => {
+        guarda.valor = novaDeOutraAba(); // a outra aba gastou o token antes da resposta chegar
+        return new Response(null, { status: 400 });
+      }) as unknown as typeof fetch);
+      await nuvem.buscar(null).catch(() => {});
+      expect(guarda.valor?.renovacao).toBe('r9');
+      expect(nuvem.email()).toBe('dono@mb2');
+    });
+
+    it('400 no refresh com a guarda igual: apaga mesmo (sessão revogada)', async () => {
+      const guarda = guardaMemoria(vencida());
+      const nuvem = criarNuvem(config, guarda, webFalsa([{ status: 400 }]).buscar);
+      await nuvem.buscar(null).catch(() => {});
+      expect(guarda.valor).toBeNull();
+      expect(nuvem.email()).toBeNull();
+    });
+  });
+
+  it('avisa quem ouve quando a sessão muda (entrar e sair)', async () => {
+    const nuvem = criarNuvem(config, guardaMemoria(), webFalsa([{ status: 200, corpo: token }, { status: 204 }]).buscar);
+    let avisos = 0;
+    const parar = nuvem.ouvir(() => { avisos++; });
+    await nuvem.entrar('a@b', 'x');
+    expect(avisos).toBe(1);
+    await nuvem.sair();
+    expect(avisos).toBe(2);
+    parar();
+  });
 });
