@@ -47,15 +47,27 @@ function lerValor(bruto: string): number | null {
   return m[1] === '-' && centavos !== 0 ? -centavos : centavos;
 }
 
-// "20261030120000[-3:BRT]" -> "2026-10-30" (os 8 primeiros dígitos, como escritos). null se não for data real.
+// "20261030120000[-3:BRT]" -> "2026-10-30". null se não for data real.
+// Com hora E fuso informados ([0:GMT], [-3:BRT]...), o instante é convertido para a data local do
+// Brasil (UTC-3). Sem fuso ou sem hora, vale a data como está escrita.
+const DESLOCAMENTO_BRASIL_H = -3;
+
 function lerData(bruto: string | null): string | null {
-  const m = bruto ? /^(\d{4})(\d{2})(\d{2})/.exec(bruto) : null;
+  const m = bruto ? /^(\d{4})(\d{2})(\d{2})(\d{4}(?:\d{2})?)?(?:\.\d+)?\s*(?:\[\s*([+-]?\d+(?:[.,]\d+)?)\s*(?::[^\]]*)?\])?/.exec(bruto) : null;
   if (!m) return null;
   const [a, mes, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
   if (a < 1990 || mes < 1 || mes > 12 || d < 1) return null;
   const ultimo = new Date(Date.UTC(a, mes, 0)).getUTCDate();
   if (d > ultimo) return null;
-  return `${m[1]}-${m[2]}-${m[3]}`;
+  const escrita = `${m[1]}-${m[2]}-${m[3]}`;
+  if (!m[4] || m[5] === undefined) return escrita;
+  const hh = Number(m[4].slice(0, 2));
+  const mm = Number(m[4].slice(2, 4));
+  const ss = Number(m[4].slice(4, 6) || '0');
+  const fuso = Number(m[5].replace(',', '.'));
+  if (hh > 23 || mm > 59 || ss > 60 || !Number.isFinite(fuso) || Math.abs(fuso) > 14) return escrita;
+  const instante = Date.UTC(a, mes - 1, d, hh, mm, ss) + (DESLOCAMENTO_BRASIL_H - fuso) * 3_600_000;
+  return new Date(instante).toISOString().slice(0, 10);
 }
 
 const limparNome = (v: string | null): string | undefined => {

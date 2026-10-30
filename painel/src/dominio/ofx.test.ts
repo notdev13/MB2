@@ -66,8 +66,20 @@ describe('lerOfx · valor do saldo (texto, sem float)', () => {
 describe('lerOfx · data do saldo', () => {
   it('DTASOF com fuso [-3:BRT] vale pelos 8 primeiros dígitos, como escritos', () => {
     expect(ok(ofxSgml({ dtasof: '20261030235959[-3:BRT]' })).data).toBe('2026-10-30');
-    expect(ok(ofxSgml({ dtasof: '20261031010000[+5:XXX]' })).data).toBe('2026-10-31');
     expect(ok(ofxSgml({ dtasof: '20261030' })).data).toBe('2026-10-30');
+  });
+  it('DTASOF com fuso é convertido para a data local do Brasil (UTC-3)', () => {
+    expect(ok(ofxSgml({ dtasof: '20261031010000[0:GMT]' })).data).toBe('2026-10-30');
+    expect(ok(ofxSgml({ dtasof: '20261031030000[0:GMT]' })).data).toBe('2026-10-31'); // 03:00 GMT = 00:00 BRT
+    expect(ok(ofxSgml({ dtasof: '20261031025959[0:GMT]' })).data).toBe('2026-10-30');
+    expect(ok(ofxSgml({ dtasof: '20261031010000[+5:XXX]' })).data).toBe('2026-10-30'); // 20:00 GMT do dia 30 = 17:00 BRT
+    expect(ok(ofxSgml({ dtasof: '20261031230000[-3:BRT]' })).data).toBe('2026-10-31');
+    expect(ok(ofxSgml({ dtasof: '20261101010000[-5:EST]' })).data).toBe('2026-11-01'); // 06:00 GMT = 03:00 BRT
+    expect(ok(ofxSgml({ dtasof: '20260101010000[0:GMT]' })).data).toBe('2025-12-31'); // vira o ano
+  });
+  it('DTASOF sem fuso, ou sem hora, vale como escrito', () => {
+    expect(ok(ofxSgml({ dtasof: '20261031010000' })).data).toBe('2026-10-31');
+    expect(ok(ofxSgml({ dtasof: '20261031[0:GMT]' })).data).toBe('2026-10-31');
   });
   it('sem DTASOF usa o DTEND do período', () => {
     expect(ok(ofxSgml({ dtasof: null, dtend: '20261028' })).data).toBe('2026-10-28');
