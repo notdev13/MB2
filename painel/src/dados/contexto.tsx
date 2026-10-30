@@ -5,7 +5,8 @@ import { criarRepositorioLocal, type RepositorioLocal } from './indexeddb';
 import { ErroNuvem, nuvemDoBuild, type Nuvem } from './nuvem';
 import type { Backup, Repositorio } from './repositorio';
 import { sincronizar } from './sincronizacao';
-import { gravarUltima, lerUltima, limparUltima } from './ultimaSincronizacao';
+import { limparSessaoLocal } from './sessaoLocal';
+import { gravarUltima, lerUltima } from './ultimaSincronizacao';
 
 export interface EstadoNuvem {
   configurada: boolean; // o painel foi publicado com o endereço do banco na nuvem
@@ -164,10 +165,8 @@ export function DadosProvider({ children, repo, nuvem: nuvemDada }: {
     },
     async sair() {
       if (!nuvem) return;
-      await nuvem.sair();
       // Na próxima entrada, tudo o que estiver aqui é conferido com a nuvem de novo.
-      await repositorio.gravarMarca(null);
-      limparUltima();
+      await limparSessaoLocal({ nuvem, repo: repositorio });
       setEmail(null);
       setUltimaVez(null);
       setErroNuvem(null);

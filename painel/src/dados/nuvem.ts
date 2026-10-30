@@ -41,8 +41,8 @@ export class ErroNuvem extends Error {
 }
 
 export function configDoBuild(): ConfigNuvem | null {
-  const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-  const chave = import.meta.env.VITE_SUPABASE_CHAVE as string | undefined;
+  const url = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim();
+  const chave = (import.meta.env.VITE_SUPABASE_CHAVE as string | undefined)?.trim();
   return url && chave ? { url: url.replace(/\/+$/, ''), chave } : null;
 }
 
@@ -141,8 +141,11 @@ export function criarNuvem(config: ConfigNuvem, guarda: Guarda = guardaLocal, bu
       throw new ErroNuvem('A sessão expirou. Entre de novo com seu e-mail.', 'sessao');
     }
     if (!r.ok) throw new ErroNuvem('A nuvem não respondeu. Tente de novo daqui a pouco.', 'servidor');
-    guardarToken(sessao.email, await r.json());
-    return sessao!.acesso;
+    const corpo = await r.json();
+    // O dono pode ter saído enquanto a renovação estava a caminho: não recria a sessão.
+    if (!sessao) throw new ErroNuvem('Entre com seu e-mail para sincronizar.', 'sessao');
+    guardarToken(sessao.email, corpo);
+    return sessao.acesso;
   }
 
   async function conferir(r: Response) {

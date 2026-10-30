@@ -152,6 +152,24 @@ describe('nuvem (Supabase)', () => {
     });
   });
 
+  it('sair durante uma renovação não quebra nem regrava a sessão', async () => {
+    const guarda = guardaMemoria({ ...valida(), expiraEm: Date.now() - 1 });
+    let nuvem!: ReturnType<typeof criarNuvem>;
+    const buscar = (async (url: string) => {
+      if (url.includes('grant_type=refresh_token')) {
+        await nuvem.sair(); // o dono sai enquanto a renovação está a caminho
+        return new Response(JSON.stringify(token), { status: 200 });
+      }
+      return new Response(null, { status: 204 });
+    }) as unknown as typeof fetch;
+    nuvem = criarNuvem(config, guarda, buscar);
+    const erro = await nuvem.buscar(null).catch((e) => e);
+    expect(erro).toBeInstanceOf(ErroNuvem);
+    expect((erro as ErroNuvem).tipo).toBe('sessao');
+    expect(guarda.valor).toBeNull();
+    expect(nuvem.email()).toBeNull();
+  });
+
   it('avisa quem ouve quando a sessão muda (entrar e sair)', async () => {
     const nuvem = criarNuvem(config, guardaMemoria(), webFalsa([{ status: 200, corpo: token }, { status: 204 }]).buscar);
     let avisos = 0;
