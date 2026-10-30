@@ -236,3 +236,8 @@ h2 { font-size: 13px; font-weight: 600; letter-spacing: -0.02em; color: var(--fo
   .impacto, .campo input.tremer { animation: none; }
   .folha .botao:active:not(:disabled) { transform: none; }
 }
+
+/* Dinheiro em conta (celular) */
+.conta-lista { margin-top: 12px; gap: 14px; }
+.conta-item { border-top: 1px solid var(--graphite); padding-top: 12px; }
+.conta-historico .botao.pequeno { min-height: 44px; min-width: 44px; }
