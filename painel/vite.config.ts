@@ -1,8 +1,32 @@
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
+import { createRequire } from 'node:module';
 import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { exigirLogin, validarConfigNuvem } from './src/dados/validarConfig.ts';
+
+// Leitor de print (OCR): ~8 MB que só baixam na primeira vez que alguém usa "Ler do print". Fora da
+// lista, o celular não baixa isso à toa ao instalar o painel.
+const ARQUIVOS_PESADOS = /tesseract|traineddata|^ocr\/|^assets\/worker\.min/;
+
+// Idioma do leitor de print (OCR) num endereço fixo, ocr/eng.traineddata.gz: o tesseract.js monta o
+// endereço sozinho (langPath + nome), então o arquivo não pode ter hash no nome.
+const ARQUIVO_IDIOMA = createRequire(import.meta.url).resolve('@tesseract.js-data/eng/4.0.0_best_int/eng.traineddata.gz');
+function idiomaDoOcr(): Plugin {
+  return {
+    name: 'mb2-ocr-idioma',
+    generateBundle() {
+      this.emitFile({ type: 'asset', fileName: 'ocr/eng.traineddata.gz', source: readFileSync(ARQUIVO_IDIOMA) });
+    },
+    configureServer(servidor) {
+      servidor.middlewares.use((req, res, next) => {
+        if (!req.url?.split('?')[0].endsWith('/ocr/eng.traineddata.gz')) return next();
+        res.setHeader('Content-Type', 'application/gzip');
+        res.end(readFileSync(ARQUIVO_IDIOMA));
+      });
+    },
+  };
+}
 
 // Gera o service worker com a lista de todos os arquivos do build, para o painel abrir
 // sem internet já depois da primeira visita. O nome do cache muda a cada build.
@@ -14,7 +38,7 @@ function serviceWorker(): Plugin {
       const arquivos = [
         ...Object.keys(bundle),
         'manifest.webmanifest', 'icone.svg', 'icone-180.png', 'icone-192.png', 'icone-512.png',
-      ].filter((f) => !f.endsWith('.html') && !f.endsWith('.map') && !f.endsWith('.woff')).sort();
+      ].filter((f) => !f.endsWith('.html') && !f.endsWith('.map') && !f.endsWith('.woff') && !ARQUIVOS_PESADOS.test(f)).sort();
       const modelo = readFileSync(new URL('./sw.js', import.meta.url), 'utf8');
       const versao = createHash('sha256').update(modelo + arquivos.join('|')).digest('hex').slice(0, 10);
       this.emitFile({
@@ -36,7 +60,7 @@ function politicaDeConteudo(urlNuvem: string | undefined): Plugin {
   let origem = '';
   try { if (urlNuvem) origem = new URL(urlNuvem).origin; } catch { /* sem nuvem: só o próprio endereço */ }
   const politica = [
-    "default-src 'self'", "script-src 'self'", "style-src 'self' 'unsafe-inline'",
+    "default-src 'self'", "script-src 'self' 'wasm-unsafe-eval'", "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data:", "font-src 'self' data:", `connect-src 'self'${origem ? ' ' + origem : ''}`,
     "manifest-src 'self'", "worker-src 'self'", "base-uri 'none'", "form-action 'none'",
   ].join('; ');
@@ -67,6 +91,6 @@ export default defineConfig(({ mode, command }) => {
   return {
     base: './',
     build: { sourcemap: false }, // não publicar mapas do código
-    plugins: [react(), serviceWorker(), politicaDeConteudo(env.VITE_SUPABASE_URL)],
+    plugins: [react(), idiomaDoOcr(), serviceWorker(), politicaDeConteudo(env.VITE_SUPABASE_URL)],
   };
 });

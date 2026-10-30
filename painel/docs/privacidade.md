@@ -138,3 +138,22 @@ visitável e dizer "noindex".
 - [ ] **Não ligar analytics** nem scripts de terceiros da plataforma (o painel não carrega nenhum).
 - [ ] Conferir que o projeto da plataforma **não é listado** em diretório público, e que o repositório não aponta o endereço no README.
 - [ ] Depois de publicar, abrir o endereço sem entrar e conferir que só aparece o login; ver o código-fonte da página e achar o `noindex`.
+
+## Ler o saldo de um print (OCR no aparelho)
+
+Em **Atualizar saldo › Ler o saldo de um print**, o dono escolhe um print de tela só do saldo e o
+painel lê o valor **dentro do aparelho**:
+
+- **A imagem não sai do aparelho e não é guardada.** Ela fica na memória só durante a leitura; o que
+  aparece na tela é uma miniatura para conferir. Nada é enviado à nuvem, a nenhum serviço de IA nem
+  a terceiros.
+- O leitor (tesseract.js, ~8 MB: programa e idioma) vem do mesmo endereço do painel e só é baixado na
+  **primeira vez** que alguém usa o botão (precisa de internet nessa vez). Por isso a política de
+  conteúdo (CSP) ganhou `'wasm-unsafe-eval'` em `script-src`: é o que deixa o navegador rodar o
+  WebAssembly do leitor. Continua sem liberar `blob:`, `eval` nem endereços de fora.
+- **Nunca grava sozinho.** O painel coloca o valor no campo e mostra o recorte; o dono confere e toca
+  em Salvar (e a pergunta de "mudança grande" de saldo continua valendo).
+- **Não há garantia de 100%.** Se a leitura tem pouca confiança, ou há mais de um valor parecido, o
+  painel **não preenche**: lista os valores achados para o dono tocar no certo (ou digitar). Valor
+  sem centavos, data, hora e número de conta não são tratados como saldo.
+- Regras de leitura: `src/dominio/saldoPrint.ts` (com testes). Leitor: `src/componentes/lerPrint.ts`.
