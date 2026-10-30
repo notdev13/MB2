@@ -1,6 +1,6 @@
 // Guarda no aparelho quando a última sincronização completa terminou (e qual conta usou este aparelho).
 // O armazenamento vem por parâmetro para poder testar sem navegador.
-type Armazem = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
+export type Armazem =Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 
 export const CHAVE_ULTIMA = 'mb2-nuvem-ultima';
 export const CHAVE_CONTA = 'mb2-nuvem-conta';

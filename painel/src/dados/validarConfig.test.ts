@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validarConfigNuvem } from './validarConfig';
+import { exigirLogin, validarConfigNuvem } from './validarConfig';
 
 describe('validarConfigNuvem', () => {
   it('vazio: dois problemas', () => {
@@ -23,5 +23,31 @@ describe('validarConfigNuvem', () => {
   });
   it('tudo certo: nenhum problema', () => {
     expect(validarConfigNuvem('https://exemplo.invalid', 'k')).toEqual([]);
+  });
+
+  it('endereço mal formado ou com caminho é recusado com mensagem clara', () => {
+    expect(validarConfigNuvem('https://', 'k')[0]).toContain('SUPABASE_URL');
+    const caminho = validarConfigNuvem('https://abc.supabase.co/rest/v1', 'k');
+    expect(caminho).toHaveLength(1);
+    expect(caminho[0]).toContain('sem caminho');
+    expect(validarConfigNuvem('abc.supabase.co', 'k')).toHaveLength(1);
+  });
+  it('aceita espaços nas pontas, porta, barra final e protocolo em maiúsculas', () => {
+    expect(validarConfigNuvem('  https://abc.supabase.co  ', 'k')).toEqual([]);
+    expect(validarConfigNuvem('https://abc.supabase.co/', 'k')).toEqual([]);
+    expect(validarConfigNuvem('https://abc.supabase.co:8443', 'k')).toEqual([]);
+    expect(validarConfigNuvem('HTTPS://abc.supabase.co', 'k')).toEqual([]);
+  });
+  it('http (mesmo em maiúsculas) é recusado', () => {
+    expect(validarConfigNuvem('HTTP://abc.supabase.co', 'k')).toHaveLength(1);
+  });
+});
+
+describe('exigirLogin (VITE_EXIGIR_LOGIN)', () => {
+  it('qualquer valor definido, exceto vazio, 0 e false, liga a exigência', () => {
+    for (const v of ['1', 'true', 'TRUE', 'sim', 'yes', 'on', ' 1 ']) expect(exigirLogin(v)).toBe(true);
+  });
+  it('indefinido, vazio, 0 e false deixam livre', () => {
+    for (const v of [undefined, '', '  ', '0', 'false', 'FALSE', ' False ']) expect(exigirLogin(v)).toBe(false);
   });
 });

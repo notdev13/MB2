@@ -1,30 +1,46 @@
-import { useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { useCasca } from '../casca';
+import { criarRepositorioLocal } from '../dados/indexeddb';
 import { ErroNuvem, nuvemDoBuild, type Nuvem } from '../dados/nuvem';
 import { decidirPorteiro, esperaAposErro, precisaConfirmarConta } from '../dados/porteiro';
-import { gravarConta, lerConta } from '../dados/ultimaSincronizacao';
+import type { FilaLocal } from '../dados/repositorio';
+import { confirmarOutraConta } from '../dados/sessaoLocal';
+import { gravarConta, lerConta, type Armazem } from '../dados/ultimaSincronizacao';
 import { useTema } from '../tema';
 
 // Porteiro: com a nuvem configurada, só mostra a tela de entrar até existir uma sessão guardada.
 // Nada do painel (nem o DadosProvider) é montado antes disso. Sem nuvem, abre direto.
 // Com sessão guardada abre mesmo sem internet. Trava a TELA; a proteção dos dados na nuvem é o
 // login e as regras do banco (docs/privacidade.md).
-export function Porteiro({ children, nuvem = nuvemDoBuild() }: { children: ReactNode; nuvem?: Nuvem | null }) {
+export function Porteiro({ children, nuvem = nuvemDoBuild(), armazem, repo }: {
+  children: ReactNode;
+  nuvem?: Nuvem | null;
+  armazem?: Armazem | null; // onde fica a conta do aparelho (padrão: localStorage)
+  repo?: Pick<FilaLocal, 'gravarMarca'>; // para zerar a marca ao trocar de conta (padrão: o banco do aparelho)
+}) {
   const assinar = (f: () => void) => (nuvem ? nuvem.ouvir(f) : () => {});
   const ler = () => nuvem?.email() ?? null;
   const email = useSyncExternalStore(assinar, ler, ler);
   const [aceitou, setAceitou] = useState<string | null>(null);
   const decisao = decidirPorteiro({ configurada: !!nuvem, sessao: !!email });
-  const outraConta = decisao === 'abrir' && !!email && aceitou !== email && precisaConfirmarConta(lerConta(), email);
+  const outraConta = decisao === 'abrir' && !!email && aceitou !== email && precisaConfirmarConta(lerConta(armazem), email);
 
   // Lembra qual conta usa este aparelho (para avisar se outra conta entrar depois).
   useEffect(() => {
-    if (decisao === 'abrir' && email && !outraConta) gravarConta(email);
-  }, [decisao, email, outraConta]);
+    if (decisao === 'abrir' && email && !outraConta) gravarConta(email, armazem);
+  }, [decisao, email, outraConta, armazem]);
 
   if (decisao === 'login' && nuvem) return <Entrada nuvem={nuvem} />;
   if (outraConta && nuvem && email) {
-    return <OutraConta anterior={lerConta() ?? ''} nova={email} aceitar={() => setAceitou(email)} sair={() => { void nuvem.sair(); }} />;
+    return (
+      <OutraConta anterior={lerConta(armazem) ?? ''} nova={email}
+        aceitar={async () => {
+          // A marca é zerada ANTES de montar o painel: a primeira sincronização com a conta nova envia e busca tudo.
+          await confirmarOutraConta({ repo: repo ?? criarRepositorioLocal(), email, armazem });
+          setAceitou(email);
+        }}
+        sair={() => { void nuvem.sair(); }} />
+    );
   }
   return <>{children}</>;
 }
@@ -37,7 +53,8 @@ function Moldura({ children }: { children: ReactNode }) {
 }
 
 // Outra conta entrou num aparelho que já tinha dados: os dados daqui subiriam para a conta nova.
-function OutraConta({ anterior, nova, aceitar, sair }: { anterior: string; nova: string; aceitar(): void; sair(): void }) {
+function OutraConta({ anterior, nova, aceitar, sair }: { anterior: string; nova: string; aceitar(): Promise<void>; sair(): void }) {
+  const [ocupado, setOcupado] = useState(false);
   return (
     <Moldura>
       <div className="porteiro-cartao">
@@ -47,7 +64,8 @@ function OutraConta({ anterior, nova, aceitar, sair }: { anterior: string; nova:
           Este aparelho já foi usado com a conta <strong>{anterior}</strong>. Você entrou como <strong>{nova}</strong>.
           Se continuar, os dados que estão neste aparelho serão enviados para a conta {nova}.
         </p>
-        <button className="botao cheio" type="button" onClick={aceitar}>Continuar com {nova}</button>
+        <button className="botao cheio" type="button" disabled={ocupado}
+          onClick={() => { setOcupado(true); aceitar().catch(() => setOcupado(false)); }}>Continuar com {nova}</button>
         <button className="botao secundario cheio" type="button" onClick={sair} style={{ marginTop: 10 }}>Sair, não enviar</button>
       </div>
     </Moldura>
@@ -62,17 +80,25 @@ function Entrada({ nuvem }: { nuvem: Nuvem }) {
   const [entrando, setEntrando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [espera, setEspera] = useState(0);
+  const [aviso, setAviso] = useState<string | null>(null);
+  const mensagem = useRef<HTMLParagraphElement>(null);
 
   // Contagem curta depois de um erro; o botão volta sozinho.
   useEffect(() => {
-    if (espera <= 0) return;
+    if (espera <= 0) { setAviso(null); return; }
     const t = setTimeout(() => setEspera((s) => s - 1), 1000);
     return () => clearTimeout(t);
   }, [espera]);
 
+  // O foco vai para a mensagem quando ela aparece (leitor de tela e teclado).
+  useEffect(() => { if (erro || aviso) mensagem.current?.focus(); }, [erro, aviso]);
+
+  const esperar = () => setAviso(`Aguarde ${espera} segundo${espera === 1 ? '' : 's'} para tentar de novo.`);
+
   async function enviar(e: React.FormEvent) {
     e.preventDefault();
-    if (entrando || espera > 0) return;
+    if (espera > 0) return esperar();
+    if (entrando) return;
     setEntrando(true);
     setErro(null);
     try {
@@ -88,7 +114,8 @@ function Entrada({ nuvem }: { nuvem: Nuvem }) {
   const ligacao = erro ? 'porteiro-erro' : undefined;
   return (
     <Moldura>
-      <form className="porteiro-cartao" onSubmit={enviar}>
+      <form className="porteiro-cartao" onSubmit={enviar}
+        onKeyDown={(e) => { if (e.key === 'Enter' && espera > 0) { e.preventDefault(); esperar(); } }}>
         <p className="porteiro-marca">MB²</p>
         <h1>Entrar</h1>
         <p className="porteiro-sub">Painel de gestão de obras. Entre com seu e-mail e sua senha.</p>
@@ -106,13 +133,13 @@ function Entrada({ nuvem }: { nuvem: Nuvem }) {
               autoCapitalize="none" autoCorrect="off" spellCheck={false} autoComplete="current-password"
               enterKeyHint="go" aria-invalid={erro ? true : undefined} aria-describedby={ligacao}
               onChange={(e) => setSenha(e.target.value)} />
-            <button type="button" className="porteiro-ver" aria-pressed={ver}
+            <button type="button" className="porteiro-ver"
               aria-label={ver ? 'Ocultar senha' : 'Mostrar senha'}
               onClick={() => setVer((v) => !v)}>{ver ? 'Ocultar' : 'Mostrar'}</button>
           </div>
         </div>
         <div role="alert" id="porteiro-erro">
-          {erro && <p className="porteiro-erro">{erro}</p>}
+          {(aviso ?? erro) && <p className="porteiro-erro" ref={mensagem} tabIndex={-1}>{aviso ?? erro}</p>}
         </div>
         <button className="botao cheio" type="submit" disabled={entrando || espera > 0}>
           {entrando ? 'Entrando…' : espera > 0 ? `Entrar (${espera})` : 'Entrar'}

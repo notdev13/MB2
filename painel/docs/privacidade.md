@@ -34,6 +34,10 @@ desenhado antes disso.
 - **Outra conta no mesmo aparelho**: se alguém entrar com um e-mail diferente do que já usou este
   aparelho, o painel pergunta antes de enviar os dados que estão aqui para a conta nova.
 - **Duas abas abertas**: elas se acompanham (entrar, sair e renovar a sessão numa vale para a outra).
+- **Limites conhecidos** (baixo risco para um dono só, aceitos por enquanto):
+  - Aparelho antigo, sem conta gravada, adota a **primeira conta que entrar sem perguntar**.
+  - Duas abas que renovam a sessão exatamente no mesmo instante ainda podem se atropelar; na pior hipótese uma delas pede para entrar de novo.
+  - Uma sessão revogada no Supabase só é notada na próxima renovação (até cerca de uma hora depois); até lá o painel continua aberto.
 
 ## Publicação sem login é bloqueada
 
