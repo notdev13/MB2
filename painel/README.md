@@ -27,8 +27,12 @@ Em **Visão geral › Importar extrato** (celular e computador), escolha o arqui
 painel mostra o banco, o final da conta, a data e o saldo, compara com o último saldo e só grava depois
 que você confere. O arquivo é lido só no aparelho e não é guardado nem enviado. **Regra de ouro:** um
 extrato mais antigo que o último saldo da conta nunca é aceito (e não há botão para forçar). Regras em
-`src/dominio/ofx.ts` e `src/dominio/importacao.ts`; limites e pendências em
-[docs/privacidade.md](docs/privacidade.md). No computador, a Visão geral ganhou o painel **Contas e
+`src/dominio/ofx.ts` e `src/dominio/importacao.ts`.
+**PDF:** também dá para importar o extrato em PDF (só com texto, até 10 MB e 30 páginas, sem OCR e sem
+senha), mas como cada banco tem um layout diferente o painel **mostra o que achou e você escolhe** o
+saldo (e o sinal) e a data; nada é gravado sem a sua escolha (`src/dominio/extratoPdf.ts`). O OFX é mais
+seguro quando o banco oferece. O leitor de PDF (pdf.js) só é baixado quando alguém importa um PDF.
+Limites e pendências em [docs/privacidade.md](docs/privacidade.md). No computador, a Visão geral ganhou o painel **Contas e
 saldos** (saldo de cada conta, totais, atualizar saldo, importar extrato, nova conta).
 
 ## Lançar falando

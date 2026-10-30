@@ -1,23 +1,30 @@
-import { useMemo, useRef, useState, type DragEvent } from 'react';
+import { lazy, Suspense, useMemo, useRef, useState, type DragEvent } from 'react';
 import { useDados } from '../dados/contexto';
 import { gravarImportacao } from '../dados/importar';
 import { avaliarImportacao, contaPeloFinal, ultimoSaldoValido } from '../dominio/importacao';
 import { dataBR, hoje, reais } from '../dominio/formato';
 import { decodificarOfx, lerOfx, TAMANHO_MAX_OFX, type ExtratoOfx } from '../dominio/ofx';
+import type { CandidatosPdf } from '../dominio/extratoPdf';
 import { useAviso } from './Aviso';
 import { useConfirmar } from './Confirmar';
 import { Folha } from './Folha';
+import { ehPdf, TAMANHO_MAX_PDF } from './pdfLimites';
 
-// "Importar extrato": lê um arquivo OFX só neste aparelho (nada é enviado e o arquivo não é guardado),
-// mostra o que achou e só grava depois que o dono confere. Rejeitado = só "Fechar": não existe
-// "importar assim mesmo". As regras estão em dominio/importacao.ts.
+// A conferência do PDF também é carregada só quando precisa (junto com o leitor).
+const ConferirPdf = lazy(() => import('./ConferirPdf').then((m) => ({ default: m.ConferirPdf })));
+
+// "Importar extrato": lê um arquivo OFX (ou PDF) só neste aparelho (nada é enviado e o arquivo não é
+// guardado), mostra o que achou e só grava depois que o dono confere. Rejeitado = só "Fechar": não
+// existe "importar assim mesmo". As regras estão em dominio/importacao.ts. O PDF segue por uma
+// conferência assistida (ConferirPdf): o dono toca no saldo e na data certos.
 type Estado =
   | { tipo: 'escolher' }
   | { tipo: 'lendo' }
   | { tipo: 'erro'; mensagem: string }
-  | { tipo: 'lido'; extrato: ExtratoOfx };
+  | { tipo: 'lido'; extrato: ExtratoOfx }
+  | { tipo: 'pdf'; candidatos: CandidatosPdf; paginas: number; lidas: number };
 
-export function FormImportar({ aoFechar }: { aoFechar: () => void }) {
+export function FormImportar({ aoFechar, aoDigitarSaldo }: { aoFechar: () => void; aoDigitarSaldo?: () => void }) {
   const { contas, saldos, salvarSaldo, salvarConta } = useDados();
   const avisar = useAviso();
   const confirmar = useConfirmar();
@@ -32,6 +39,26 @@ export function FormImportar({ aoFechar }: { aoFechar: () => void }) {
     if (!arquivo) return;
     setEstado({ tipo: 'lendo' });
     try {
+      const eraPdf = ehPdf(new Uint8Array(await arquivo.slice(0, 1024).arrayBuffer()));
+      if (!eraPdf && /\.pdf$/i.test(arquivo.name)) {
+        setEstado({ tipo: 'erro', mensagem: 'Este arquivo não é um PDF válido.' });
+        return;
+      }
+      if (eraPdf) {
+        if (arquivo.size > TAMANHO_MAX_PDF) {
+          setEstado({ tipo: 'erro', mensagem: 'O PDF é grande demais (o limite é 10 MB).' });
+          return;
+        }
+        // O leitor de PDF (pdf.js) só é baixado agora, quando alguém importa um PDF.
+        const { lerCandidatosDoPdf } = await import('./lerPdf');
+        const leitura = await lerCandidatosDoPdf(await arquivo.arrayBuffer());
+        if (!leitura.ok) {
+          setEstado({ tipo: 'erro', mensagem: leitura.erro });
+          return;
+        }
+        setEstado({ tipo: 'pdf', candidatos: leitura.candidatos, paginas: leitura.paginas, lidas: leitura.lidas });
+        return;
+      }
       if (arquivo.size > TAMANHO_MAX_OFX) {
         setEstado({ tipo: 'erro', mensagem: 'O arquivo é muito grande para ser um extrato (o limite é 5 MB).' });
         return;
@@ -100,14 +127,21 @@ export function FormImportar({ aoFechar }: { aoFechar: () => void }) {
         <div className={'imp-zona' + (arrastando ? ' sobre' : '')}
           onDragOver={(e) => { e.preventDefault(); setArrastando(true); }}
           onDragLeave={() => setArrastando(false)} onDrop={soltar}>
-          <p>Escolha o arquivo OFX que você baixou do banco. Ele é lido só neste aparelho: nada é enviado e o arquivo não fica guardado.</p>
-          <input ref={entrada} type="file" accept=".ofx,.OFX,.qfx,application/x-ofx,text/plain" hidden
+          <p>Escolha o extrato que você baixou do banco: OFX (o mais seguro) ou PDF. Ele é lido só neste aparelho: nada é enviado e o arquivo não fica guardado.</p>
+          <input ref={entrada} type="file" accept=".ofx,.OFX,.qfx,application/x-ofx,text/plain,.pdf,application/pdf" hidden
             aria-label="Arquivo do extrato (OFX)" onChange={(e) => void ler(e.target.files?.[0])} />
           <button type="button" className="botao cheio" disabled={estado.tipo === 'lendo'} onClick={() => entrada.current?.click()}>
             {estado.tipo === 'lendo' ? 'Lendo o arquivo…' : 'Escolher arquivo'}
           </button>
           <p className="nota imp-arraste">Ou arraste o arquivo e solte aqui.</p>
         </div>
+      )}
+
+      {estado.tipo === 'pdf' && (
+        <Suspense fallback={<p className="nota" role="status">Carregando…</p>}>
+          <ConferirPdf candidatos={estado.candidatos} paginas={estado.paginas} lidas={estado.lidas}
+            aoFechar={aoFechar} aoDigitarSaldo={aoDigitarSaldo} />
+        </Suspense>
       )}
 
       {estado.tipo === 'erro' && (

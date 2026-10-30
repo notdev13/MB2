@@ -194,7 +194,7 @@ function Casca() {
       {gaveta?.tipo === 'custo' && <FormCusto custo={gaveta.custo} obraId={gaveta.obraId} aoFechar={fechar} />}
       {gaveta?.tipo === 'saldo' && <FormSaldo contaId={gaveta.contaId} aoFechar={fechar} />}
       {gaveta?.tipo === 'conta' && <FormConta aoFechar={fechar} />}
-      {gaveta?.tipo === 'importar' && <FormImportar aoFechar={fechar} />}
+      {gaveta?.tipo === 'importar' && <FormImportar aoFechar={fechar} aoDigitarSaldo={() => setGaveta({ tipo: 'saldo' })} />}
       {gaveta?.tipo === 'obra' && (
         <FormObra obra={gaveta.obra} aoFechar={fechar}
           aoSalvar={(o) => !gaveta.obra && irD({ tela: 'obra', id: o.id })}

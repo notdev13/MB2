@@ -107,7 +107,7 @@ function Conteudo() {
 
       {folha?.tipo === 'saldo' && <FormSaldo aoFechar={fechar} />}
       {folha?.tipo === 'conta' && <FormConta aoFechar={fechar} />}
-      {folha?.tipo === 'importar' && <FormImportar aoFechar={fechar} />}
+      {folha?.tipo === 'importar' && <FormImportar aoFechar={fechar} aoDigitarSaldo={() => setFolha({ tipo: 'saldo' })} />}
       {folha?.tipo === 'custo' && <FormCusto custo={folha.custo} obraId={folha.obraId} aoFechar={fechar} />}
       {folha?.tipo === 'obra' && (
         <FormObra obra={folha.obra} aoFechar={fechar}
