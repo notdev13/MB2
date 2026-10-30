@@ -84,7 +84,7 @@ export function ObrasD({ aoNovaObra }: { aoNovaObra: () => void }) {
               </span>
             ) },
             { chave: 'status', titulo: 'Status', render: (r) => <SeloStatus status={r.obra.status} />, largura: '128px' },
-            { chave: 'uso', titulo: 'Uso do orçamento', render: (r) => <UsoOrcamento gasto={r.gasto} orcamento={r.obra.orcamento} />, largura: '200px' },
+            { chave: 'uso', titulo: 'Uso do orçamento', render: (r) => <UsoOrcamento gasto={r.gasto} orcamento={r.obra.orcamento} />, largura: '250px' },
             { chave: 'orcamento', titulo: 'Orçamento', ordenavel: true, numero: true, largura: '140px',
               render: (r) => r.obra.orcamento > 0 ? reais(r.obra.orcamento) : <span className="d-apagado">—</span> },
             { chave: 'gasto', titulo: 'Gasto', ordenavel: true, numero: true, largura: '140px', render: (r) => reais(r.gasto) },

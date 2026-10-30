@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { BarraOrcamento } from '../componentes/Graficos';
 import { EstadoVazio } from '../componentes/EstadoVazio';
 import { useDados } from '../dados/contexto';
-import { resumirObra } from '../dominio/calculos';
+import { resumirObra, situacaoOrcamento } from '../dominio/calculos';
 import { porcentagem, reais, reaisCurto } from '../dominio/formato';
 import { STATUS_OBRA, type StatusObra } from '../dominio/tipos';
 import { ir } from '../navegacao';
@@ -43,7 +43,7 @@ export function Obras({ aoNovaObra }: { aoNovaObra: () => void }) {
         {lista.map((o) => {
           const r = resumirObra(o, custos);
           return (
-            <button key={o.id} className="cartao clicavel" onClick={() => ir({ tela: 'obra', id: o.id })}>
+            <button key={o.id} className={'cartao clicavel situacao-' + situacaoOrcamento(r.gasto, o.orcamento)} onClick={() => ir({ tela: 'obra', id: o.id })}>
               <div className="linha">
                 <strong>{o.nome}</strong>
                 <span className={'selo' + (o.status === 'em_andamento' ? ' ativo' : o.status === 'planejamento' ? '' : ' neutro')}>
@@ -58,7 +58,7 @@ export function Obras({ aoNovaObra }: { aoNovaObra: () => void }) {
                   {o.orcamento > 0
                     ? r.saldo >= 0
                       ? `${porcentagem(r.gasto, o.orcamento)}% · saldo ${reaisCurto(r.saldo)}`
-                      : <span className="selo alerta">Estourou {reaisCurto(-r.saldo)}</span>
+                      : `${reaisCurto(-r.saldo)} acima do orçado`
                     : 'sem orçamento'}
                 </span>
               </div>

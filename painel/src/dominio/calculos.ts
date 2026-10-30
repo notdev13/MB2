@@ -110,3 +110,55 @@ export function resumoGeral(obras: Obra[], custos: Custo[], referencia: string):
       .length,
   };
 }
+
+// Faixa de situação do orçamento, para o dono ler a obra "de relance".
+// Limites (gasto / orçamento, comparados só com centavos inteiros, sem arredondar):
+//   sem-orcamento: orçamento 0 (ou negativo): não há o que comparar
+//   folga:         abaixo de 80%
+//   atencao:       de 80% até menos de 95%
+//   limite:        de 95% até exatamente 100% (ainda não passou)
+//   estourou:      acima de 100% (1 centavo a mais já conta)
+export type SituacaoOrcamento = 'sem-orcamento' | 'folga' | 'atencao' | 'limite' | 'estourou';
+
+export const LIMITE_ATENCAO_PCT = 80;
+export const LIMITE_LIMITE_PCT = 95;
+
+export function situacaoOrcamento(gasto: number, orcamento: number): SituacaoOrcamento {
+  if (!(orcamento > 0)) return 'sem-orcamento';
+  if (gasto > orcamento) return 'estourou';
+  // gasto/orcamento >= N/100  <=>  gasto*100 >= orcamento*N (evita erro de ponto flutuante)
+  if (gasto * 100 >= orcamento * LIMITE_LIMITE_PCT) return 'limite';
+  if (gasto * 100 >= orcamento * LIMITE_ATENCAO_PCT) return 'atencao';
+  return 'folga';
+}
+
+// Palavra curta de cada faixa (mesmo vocabulário no celular e no computador).
+export const ROTULO_SITUACAO: Record<SituacaoOrcamento, string> = {
+  'sem-orcamento': 'Sem orçamento',
+  folga: 'Tranquilo',
+  atencao: 'Atenção',
+  limite: 'No limite',
+  estourou: 'Estourou',
+};
+
+// Texto curto da faixa ("Tranquilo", "Atenção · 85%", "Estourou · 112%"): a cor nunca fala sozinha.
+export function textoSituacao(gasto: number, orcamento: number): string {
+  const faixa = situacaoOrcamento(gasto, orcamento);
+  return faixa === 'atencao' || faixa === 'limite' || faixa === 'estourou'
+    ? `${ROTULO_SITUACAO[faixa]} · ${percentualDaFaixa(gasto, orcamento, faixa)}%`
+    : ROTULO_SITUACAO[faixa];
+}
+
+// Percentual ao lado do rótulo, coerente com a faixa: nunca arredonda para cima até cruzar o limite
+// ("Atenção" não mostra 95%, "No limite" não mostra 100% se ainda não chegou) e "Estourou" mostra 101% ou mais.
+function percentualDaFaixa(gasto: number, orcamento: number, faixa: SituacaoOrcamento): number {
+  const piso = Math.floor((gasto * 100) / orcamento);
+  return faixa === 'estourou' ? Math.max(101, piso) : piso;
+}
+
+// Gasto das obras em aberto que têm orçamento: a base certa para comparar com `orcamentoAtivas`
+// (obras sem orçamento ficam de fora, senão o total estoura sem nenhuma obra ter estourado).
+export function gastoComOrcamento(obras: Obra[], custos: Custo[]): number {
+  const comOrcamento = new Set(obras.filter((o) => o.status !== 'concluida' && o.orcamento > 0).map((o) => o.id));
+  return soma(custos.filter((c) => comOrcamento.has(c.obraId)));
+}

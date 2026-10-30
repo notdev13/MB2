@@ -1,16 +1,22 @@
 import { porcentagem, mesAno, reais, reaisCurto } from '../dominio/formato';
-import type { FatiaCategoria } from '../dominio/calculos';
+import { situacaoOrcamento, textoSituacao, type FatiaCategoria } from '../dominio/calculos';
 
-// Barra de uso do orçamento. Acima de 100% fica vermelha e ganha o selo "Estourou" (cor nunca sozinha).
+// Barra de uso do orçamento com a faixa em texto, marcador de 80% e preenchimento animado.
+// A faixa vem do domínio (situacaoOrcamento); aqui só se desenha.
 export function BarraOrcamento({ gasto, orcamento }: { gasto: number; orcamento: number }) {
-  if (orcamento <= 0) return null; // sem orçamento não há o que comparar
-  const uso = orcamento > 0 ? gasto / orcamento : 0;
-  const estourou = orcamento > 0 && gasto > orcamento;
+  const faixa = situacaoOrcamento(gasto, orcamento);
+  if (faixa === 'sem-orcamento') return null; // sem orçamento não há o que comparar
+  const uso = Math.min(gasto / orcamento, 1);
+  const texto = textoSituacao(gasto, orcamento);
   return (
-    <div className={'trilho' + (estourou ? ' estourou' : '')} role="meter" aria-valuemin={0} aria-valuemax={100}
-      aria-valuenow={porcentagem(gasto, orcamento)} aria-label="Uso do orçamento"
-      title={orcamento > 0 ? `${reais(gasto)} de ${reais(orcamento)} (${porcentagem(gasto, orcamento)}%)` : 'Sem orçamento'}>
-      <i style={{ width: `${Math.min(uso, 1) * 100}%` }} />
+    <div className={'orc ' + faixa}>
+      <div className="trilho" role="meter" aria-valuemin={0} aria-valuemax={100}
+        aria-valuenow={Math.min(porcentagem(gasto, orcamento), 100)} aria-valuetext={texto}
+        aria-label="Uso do orçamento"
+        title={`${reais(gasto)} de ${reais(orcamento)} (${porcentagem(gasto, orcamento)}%)`}>
+        <i style={{ width: `${uso * 100}%` }} />
+      </div>
+      <span className="faixa">{texto}</span>
     </div>
   );
 }

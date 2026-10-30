@@ -32,9 +32,11 @@ export function Tabela<T>({ colunas, linhas, chaveLinha, aoClicar, ordem, aoOrde
     const direcao = ordem?.chave === chave && ordem.direcao === 'desc' ? 'asc' : 'desc';
     aoOrdenar({ chave, direcao });
   };
+  // Colunas sem largura fixa (o nome) nunca ficam menores que 200px: abaixo disso a caixa rola na horizontal.
+  const larguraMinima = colunas.reduce((t, c) => t + (c.largura ? parseInt(c.largura, 10) || 0 : 200), 0);
   return (
     <div className="d-tabela-caixa">
-      <table className="d-tabela" aria-label={rotulo}>
+      <table className="d-tabela" aria-label={rotulo} style={{ minWidth: larguraMinima }}>
         <colgroup>{colunas.map((c) => <col key={c.chave} style={c.largura ? { width: c.largura } : undefined} />)}</colgroup>
         <thead>
           <tr>

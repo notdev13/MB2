@@ -1,4 +1,4 @@
-import type { FatiaCategoria } from '../../dominio/calculos';
+import { situacaoOrcamento, textoSituacao, type FatiaCategoria } from '../../dominio/calculos';
 import { mesAno, porcentagem, reais } from '../../dominio/formato';
 
 const compacto = new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFractionDigits: 1 });
@@ -64,19 +64,21 @@ export function BarrasCategoria({ fatias }: { fatias: FatiaCategoria[] }) {
   );
 }
 
-// Uso do orçamento em linha: barra + percentual. Sem orçamento, mostra um traço.
+// Uso do orçamento em linha: barra + percentual + faixa em texto (mesmo vocabulário do celular).
+// Marcador de 80% no trilho; preenchimento animado (desligado com prefers-reduced-motion).
 export function UsoOrcamento({ gasto, orcamento }: { gasto: number; orcamento: number }) {
-  if (orcamento <= 0) return <span className="d-apagado">sem orçamento</span>;
+  const faixa = situacaoOrcamento(gasto, orcamento);
+  if (faixa === 'sem-orcamento') return <span className="d-apagado">sem orçamento</span>;
   const pct = porcentagem(gasto, orcamento);
-  const estourou = gasto > orcamento;
+  const base = textoSituacao(gasto, orcamento);
+  const texto = faixa === 'folga' ? `${base} · ${pct}%` : base; // no desktop a folga também mostra o percentual
   return (
-    <span className={'d-uso' + (estourou ? ' estourou' : '')} title={`${reais(gasto)} de ${reais(orcamento)}`}>
-      <span className="d-trilho" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}
-        aria-label="Uso do orçamento">
-        <i style={{ width: `${Math.min(pct, 100)}%` }} />
+    <span className={'d-uso ' + faixa} title={`${reais(gasto)} de ${reais(orcamento)}`}>
+      <span className="d-trilho" role="meter" aria-valuemin={0} aria-valuemax={100}
+        aria-valuenow={Math.min(pct, 100)} aria-valuetext={texto} aria-label="Uso do orçamento">
+        <i style={{ width: `${Math.min(gasto / orcamento, 1) * 100}%` }} />
       </span>
-      <span className="d-num">{pct}%</span>
-      {estourou && <span className="selo alerta">Estourou</span>}
+      <span className={'d-faixa ' + faixa}>{texto}</span>
     </span>
   );
 }

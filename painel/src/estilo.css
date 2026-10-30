@@ -68,7 +68,21 @@ h2 { font-size: 13px; font-weight: 600; letter-spacing: -0.02em; color: var(--fo
 /* Barras (dados: dourado) */
 .trilho { height: 4px; border-radius: 9999px; background: var(--graphite); overflow: hidden; margin-top: 14px; }
 .trilho > i { display: block; height: 100%; border-radius: 9999px; background: var(--gilded); background-size: 260px 100%; }
-.trilho.estourou > i { background: var(--alerta); }
+
+/* Leitura do orçamento: faixa em texto + marcador de 80% + preenchimento animado */
+.orc .trilho { position: relative; }
+.orc .trilho::after { content: ''; position: absolute; top: 0; bottom: 0; left: 80%; width: 1px; background: var(--bone); opacity: 0.55; }
+.orc .trilho > i { transform-origin: left center; animation: encher 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.orc.limite .trilho > i, .orc.estourou .trilho > i { background: var(--alerta); }
+.orc .faixa { display: inline-block; margin-top: 8px; font-size: 12.5px; font-weight: 600; letter-spacing: 0.01em; color: var(--mist); }
+.orc.folga .faixa { color: var(--ok); }
+.orc.atencao .faixa, .orc.limite .faixa, .orc.estourou .faixa { color: var(--alerta); }
+.orc.estourou .faixa { border: 1px solid var(--alerta-borda); border-radius: 9999px; padding: 1px 10px; }
+.aviso.atencao { border-color: var(--slate); color: var(--bone); }
+.cartao.situacao-atencao { border-color: var(--slate); }
+.cartao.situacao-limite, .cartao.situacao-estourou { border-color: var(--alerta-borda); }
+@keyframes encher { from { transform: scaleX(0); } }
+@media (prefers-reduced-motion: reduce) { .orc .trilho > i { animation: none; } }
 
 .colunas { display: flex; align-items: flex-end; gap: 10px; height: 150px; padding-top: 24px; }
 .coluna { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 8px; }

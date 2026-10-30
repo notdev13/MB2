@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useDados } from '../../dados/contexto';
-import { porCategoria, porMes, resumirObra, resumoGeral, type ResumoObra } from '../../dominio/calculos';
+import { gastoComOrcamento, porCategoria, porMes, resumirObra, resumoGeral, type ResumoObra } from '../../dominio/calculos';
 import { mesAnterior, totalDoMes, variacao } from '../../dominio/consultas';
 import { EstadoVazio } from '../../componentes/EstadoVazio';
 import { dataBR, hoje, reais, reaisCurto } from '../../dominio/formato';
@@ -42,7 +42,7 @@ export function VisaoD({ aoNovaObra, aoLancar, aoAbrirCusto }: {
       <div className="d-kpis span-12">
         <Kpi rotulo="Gasto nas obras em aberto" valor={reaisCurto(geral.gastoAtivas)}
           detalhe={geral.orcamentoAtivas > 0
-            ? `de ${reaisCurto(geral.orcamentoAtivas)} orçados`
+            ? <>de {reaisCurto(geral.orcamentoAtivas)} orçados<UsoOrcamento gasto={gastoComOrcamento(obras, custos)} orcamento={geral.orcamentoAtivas} /></>
             : `em ${geral.obrasAtivas} obra${geral.obrasAtivas === 1 ? '' : 's'} · sem orçamento cadastrado`} />
         <Kpi rotulo="Gasto no mês" valor={reaisCurto(geral.gastoNoMes)}
           detalhe={<Variacao valor={variacao(geral.gastoNoMes, anterior)} rotulo="do mês passado" />} />
@@ -78,7 +78,7 @@ export function VisaoD({ aoNovaObra, aoLancar, aoAbrirCusto }: {
           colunas={[
             { chave: 'nome', titulo: 'Obra', render: (r) => <span className="d-corta forte">{r.obra.nome}</span> },
             { chave: 'status', titulo: 'Status', render: (r) => <SeloStatus status={r.obra.status} />, largura: '128px' },
-            { chave: 'uso', titulo: 'Orçamento', render: (r) => <UsoOrcamento gasto={r.gasto} orcamento={r.obra.orcamento} />, largura: '190px' },
+            { chave: 'uso', titulo: 'Orçamento', render: (r) => <UsoOrcamento gasto={r.gasto} orcamento={r.obra.orcamento} />, largura: '250px' },
             { chave: 'ultimo', titulo: 'Último lanç.', render: (r) => dataBR(r.ultimoLancamento), largura: '108px' },
             { chave: 'gasto', titulo: 'Gasto', render: (r) => reais(r.gasto), numero: true, largura: '140px' },
           ]} />}
