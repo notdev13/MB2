@@ -36,6 +36,8 @@ writeFileSync(
 <html lang="pt-BR">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+<meta name="referrer" content="no-referrer">
 <title>Painel MB²</title>
 <meta name="theme-color" content="#08080a">
 <style>${css}</style>

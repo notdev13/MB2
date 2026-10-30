@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { defineConfig, type Plugin } from 'vite';
+import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 
 // Gera o service worker com a lista de todos os arquivos do build, para o painel abrir
@@ -27,8 +27,30 @@ function serviceWorker(): Plugin {
   };
 }
 
+// Política de conteúdo (CSP) no index.html do build: o painel só carrega código, estilo, fonte e
+// imagem do próprio endereço e só conversa com o banco da nuvem do build (VITE_SUPABASE_URL).
+// Nada de endereço fixo aqui. (frame-ancestors não funciona em <meta>: quem barra isso é o
+// X-Frame-Options de public/_headers.) Guia: docs/privacidade.md
+function politicaDeConteudo(urlNuvem: string | undefined): Plugin {
+  let origem = '';
+  try { if (urlNuvem) origem = new URL(urlNuvem).origin; } catch { /* sem nuvem: só o próprio endereço */ }
+  const politica = [
+    "default-src 'self'", "script-src 'self'", "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data:", "font-src 'self' data:", `connect-src 'self'${origem ? ' ' + origem : ''}`,
+    "manifest-src 'self'", "worker-src 'self'", "base-uri 'none'", "form-action 'none'",
+  ].join('; ');
+  return {
+    name: 'mb2-csp',
+    apply: 'build',
+    transformIndexHtml: () => [
+      { tag: 'meta', attrs: { 'http-equiv': 'Content-Security-Policy', content: politica }, injectTo: 'head-prepend' },
+    ],
+  };
+}
+
 // base relativa: o painel funciona em qualquer endereço (raiz do domínio ou subpasta).
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   base: './',
-  plugins: [react(), serviceWorker()],
-});
+  build: { sourcemap: false }, // não publicar mapas do código
+  plugins: [react(), serviceWorker(), politicaDeConteudo(loadEnv(mode, process.cwd(), 'VITE_').VITE_SUPABASE_URL)],
+}));

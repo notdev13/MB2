@@ -3,6 +3,15 @@
 Com a nuvem ligada, o dono lança no iPhone e vê no computador (e vice-versa). Cada aparelho
 continua guardando tudo (funciona sem internet); a nuvem só troca o que mudou.
 
+## Login obrigatório
+Com a nuvem ligada no build, o painel abre **só a tela de entrar** (e-mail e senha) até haver uma
+sessão guardada no aparelho. A **primeira entrada num aparelho precisa de internet**; depois o
+painel abre direto, mesmo sem internet. Falha de rede, 429 e erros 5xx na renovação nunca
+derrubam a sessão (só 400/401). **Ajustes › Sair** volta ao login, **sem apagar** os dados do
+aparelho, e para a sincronização. Sem as variáveis (`npm run dev` sem `.env`), não há login.
+O porteiro trava a tela; os dados na nuvem são protegidos pelo login e pelo RLS do banco.
+Mais em [privacidade.md](privacidade.md).
+
 ## Como funciona
 - Banco: [Supabase](https://supabase.com) (plano grátis). Uma tabela, `painel_registros`, com uma
   linha por obra ou lançamento (`painel/supabase/painel.sql`).
@@ -32,10 +41,10 @@ continua guardando tudo (funciona sem internet); a nuvem só troca o que mudou.
 7. No GitHub, repositório MB2: **Settings › Secrets and variables › Actions › aba Variables ›
    New repository variable**: `SUPABASE_URL` = Project URL e `SUPABASE_CHAVE` = chave pública.
 8. **Actions › Publicar painel › Run workflow** (ou qualquer merge na main). Depois, no iPhone e no
-   computador: **Ajustes › Sincronizar aparelhos › Entrar**.
+   computador, abra o painel e entre com e-mail e senha (com internet, na primeira vez).
 
 ## Bom saber
 - O plano grátis do Supabase pausa o projeto depois de 7 dias **sem nenhum acesso**. Com o painel em
   uso isso não acontece; se pausar, é só reativar no site do Supabase (os dados ficam).
 - Para testar no `npm run dev`: copie `.env.exemplo` para `.env.local` e preencha.
-- Desconectar um aparelho (Ajustes) não apaga os dados dele; ao entrar de novo, tudo é conferido.
+- Sair (Ajustes) não apaga os dados dele; ao entrar de novo, tudo é conferido.

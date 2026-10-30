@@ -5,6 +5,7 @@ import '@fontsource/cormorant-garamond/600.css';
 import './estilo.css';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
+import { Porteiro } from './componentes/Porteiro';
 import { useCasca } from './casca';
 import { DadosProvider } from './dados/contexto';
 import { AppDesktop } from './desktop/AppDesktop';
@@ -14,9 +15,11 @@ function Raiz() {
 }
 
 createRoot(document.getElementById('raiz')!).render(
-  <DadosProvider>
-    <Raiz />
-  </DadosProvider>,
+  <Porteiro>
+    <DadosProvider>
+      <Raiz />
+    </DadosProvider>
+  </Porteiro>,
 );
 
 // Funciona sem internet depois da primeira abertura (só no build de produção).

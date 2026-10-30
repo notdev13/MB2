@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { Custo, NovaObra, NovoCusto, Obra } from '../dominio/tipos';
 import { validarBackup } from './backup';
 import { criarRepositorioLocal, type RepositorioLocal } from './indexeddb';
-import { configDoBuild, criarNuvem, ErroNuvem, type Nuvem } from './nuvem';
+import { ErroNuvem, nuvemDoBuild, type Nuvem } from './nuvem';
 import type { Backup, Repositorio } from './repositorio';
 import { sincronizar } from './sincronizacao';
 
@@ -49,8 +49,7 @@ export function DadosProvider({ children, repo, nuvem: nuvemDada }: {
   const repositorio = useMemo(() => repo ?? criarRepositorioLocal(), [repo]);
   const nuvem = useMemo(() => {
     if (nuvemDada !== undefined) return nuvemDada;
-    const config = configDoBuild();
-    return config ? criarNuvem(config) : null;
+    return nuvemDoBuild();
   }, [nuvemDada]);
   const [obras, setObras] = useState<Obra[]>([]);
   const [custos, setCustos] = useState<Custo[]>([]);

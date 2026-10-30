@@ -237,3 +237,10 @@
 .dk .ev p { margin: 0; max-width: 46ch; }
 .dk .ev-acoes { flex-direction: row; flex-wrap: wrap; align-items: center; margin-top: 18px; }
 .dk .ev-acoes .d-botao { height: 44px; }
+
+/* ---------- Porteiro: cartão centralizado (a tela de entrada compartilhada) ---------- */
+.dk .porteiro { max-width: none; align-items: center; }
+.dk .porteiro-cartao { width: 100%; max-width: 420px; background: var(--onyx); border: 1px solid var(--graphite); border-radius: var(--d-raio); padding: 36px 32px; }
+.dk .porteiro-cartao h1 { font-size: var(--d-titulo); margin-bottom: 8px; }
+.dk .porteiro-ver:hover { color: var(--white); }
+.dk .porteiro :is(input, button):focus-visible { outline: 2px solid var(--copper); outline-offset: 2px; }
