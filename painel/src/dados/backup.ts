@@ -14,6 +14,18 @@ export function obraValida(o: Record<string, unknown>): boolean {
     texto(o.criadoEm) && texto(o.atualizadoEm);
 }
 
+export function contaValida(c: Record<string, unknown>, obras?: Set<string>): boolean {
+  return texto(c.id) && texto(c.nome) && texto(c.banco) && typeof c.ativa === 'boolean' &&
+    (c.obraId === null || (texto(c.obraId) && (!obras || obras.has(c.obraId as string)))) &&
+    texto(c.criadoEm) && texto(c.atualizadoEm);
+}
+
+// Saldo da conta pode ser negativo (conta no vermelho); o custo continua só >= 0.
+export function saldoValido(s: Record<string, unknown>, contas?: Set<string>): boolean {
+  return texto(s.id) && texto(s.contaId) && (!contas || contas.has(s.contaId as string)) && data(s.data) &&
+    Number.isSafeInteger(s.valor) && s.fonte === 'manual' && texto(s.obs) && texto(s.criadoEm);
+}
+
 // Sem a lista de obras, não confere se a obra do custo existe (ela pode chegar da nuvem depois).
 export function custoValido(c: Record<string, unknown>, obras?: Set<string>): boolean {
   return texto(c.id) && texto(c.obraId) && (!obras || obras.has(c.obraId as string)) && data(c.data) &&
@@ -28,7 +40,7 @@ export function validarBackup(bruto: unknown): { ok: true; backup: Backup } | { 
   if (!b || typeof b !== 'object' || b.app !== 'mb2-painel') {
     return { ok: false, erro: 'Este arquivo não é um backup do Painel MB².' };
   }
-  if (b.versao !== 1 || !texto(b.geradoEm)) return { ok: false, erro: 'Versão de backup desconhecida.' };
+  if ((b.versao !== 1 && b.versao !== 2) || !texto(b.geradoEm)) return { ok: false, erro: 'Versão de backup desconhecida.' };
   if (!Array.isArray(b.obras) || !Array.isArray(b.custos)) {
     return { ok: false, erro: 'Backup incompleto: faltam obras ou custos.' };
   }
@@ -45,6 +57,25 @@ export function validarBackup(bruto: unknown): { ok: true; backup: Backup } | { 
       return { ok: false, erro: 'Há um lançamento de custo com dados inválidos no backup.' };
     }
     idsCustos.add(c.id);
+  }
+  // Versão 1 não tem contas nem saldos: entram vazios (e a restauração não mexe nos do aparelho).
+  if (b.versao === 1) return { ok: true, backup: { ...(b as Backup), contas: [], saldos: [] } };
+  if (!Array.isArray(b.contas) || !Array.isArray(b.saldos)) {
+    return { ok: false, erro: 'Backup incompleto: faltam contas ou saldos.' };
+  }
+  const idsContas = new Set<string>();
+  for (const c of b.contas) {
+    if (!c || typeof c !== 'object' || !contaValida(c as never, idsObras) || idsContas.has(c.id)) {
+      return { ok: false, erro: 'Há uma conta com dados inválidos no backup.' };
+    }
+    idsContas.add(c.id);
+  }
+  const idsSaldos = new Set<string>();
+  for (const s of b.saldos) {
+    if (!s || typeof s !== 'object' || !saldoValido(s as never, idsContas) || idsSaldos.has(s.id)) {
+      return { ok: false, erro: 'Há um saldo de conta com dados inválidos no backup.' };
+    }
+    idsSaldos.add(s.id);
   }
   return { ok: true, backup: b as Backup };
 }

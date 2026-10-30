@@ -1,4 +1,4 @@
-import type { Custo, NovaObra, NovoCusto, Obra } from '../dominio/tipos';
+import type { Conta, Custo, NovaConta, NovaObra, NovoCusto, NovoSaldo, Obra, SaldoConta } from '../dominio/tipos';
 
 // Contrato do armazenamento. Os dados ficam no próprio aparelho (IndexedDB) e, se a nuvem
 // estiver ligada, a sincronização troca com ela só o que mudou (ver sincronizacao.ts).
@@ -11,6 +11,14 @@ export interface Repositorio {
   salvarCusto(dados: NovoCusto, id?: string): Promise<Custo>;
   excluirCusto(id: string): Promise<void>;
 
+  // Dinheiro em conta. Por enquanto só no aparelho e no backup (não vai para a nuvem).
+  listarContas(): Promise<Conta[]>;
+  salvarConta(dados: NovaConta, id?: string): Promise<Conta>;
+  excluirConta(id: string): Promise<void>; // apaga também os saldos da conta
+  listarSaldos(): Promise<SaldoConta[]>;
+  salvarSaldo(dados: NovoSaldo): Promise<SaldoConta>; // sempre uma linha nova, nunca sobrescreve
+  excluirSaldo(id: string): Promise<void>; // só para linha lançada por engano
+
   exportar(): Promise<Backup>;
   // Guarda uma cópia do que havia antes (para desfazer), salvo com semCopia.
   substituirTudo(backup: Backup, opcoes?: { semCopia?: boolean }): Promise<void>;
@@ -20,10 +28,13 @@ export interface Repositorio {
 
 export interface Backup {
   app: 'mb2-painel';
-  versao: 1;
+  versao: 1 | 2;
   geradoEm: string;
   obras: Obra[];
   custos: Custo[];
+  // Da versão 2 em diante. Backup versão 1 não traz: restaurá-lo não mexe nas contas e saldos do aparelho.
+  contas?: Conta[];
+  saldos?: SaldoConta[];
 }
 
 // ---- Sincronização com a nuvem ----
