@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
-import { validarConfigNuvem } from './src/dados/validarConfig.ts';
+import { exigirLogin, validarConfigNuvem } from './src/dados/validarConfig.ts';
 
 // Gera o service worker com a lista de todos os arquivos do build, para o painel abrir
 // sem internet já depois da primeira visita. O nome do cache muda a cada build.
@@ -53,7 +53,7 @@ function politicaDeConteudo(urlNuvem: string | undefined): Plugin {
 export default defineConfig(({ mode, command }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_');
   // Na publicação (VITE_EXIGIR_LOGIN=1), sem URL e chave válidas o painel sairia SEM login: o build falha.
-  const exigir = (process.env.VITE_EXIGIR_LOGIN ?? env.VITE_EXIGIR_LOGIN) === '1';
+  const exigir = exigirLogin(process.env.VITE_EXIGIR_LOGIN ?? env.VITE_EXIGIR_LOGIN);
   if (command === 'build' && exigir) {
     const problemas = validarConfigNuvem(env.VITE_SUPABASE_URL, env.VITE_SUPABASE_CHAVE);
     if (problemas.length) {

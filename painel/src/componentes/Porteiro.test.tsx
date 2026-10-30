@@ -1,7 +1,7 @@
 import { renderToString } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { criarNuvem, type Guarda, type Nuvem, type Sessao } from '../dados/nuvem';
-import { gravarUltima, lerUltima, limparUltima } from '../dados/ultimaSincronizacao';
+import type { Nuvem } from '../dados/nuvem';
+import { gravarConta } from '../dados/ultimaSincronizacao';
 import { Porteiro } from './Porteiro';
 
 const FILHOS = 'CONTEUDO-SECRETO-DO-PAINEL';
@@ -16,7 +16,12 @@ function nuvemFalsa(email: string | null): Nuvem {
     buscar: async () => [],
   };
 }
-const desenhar = (nuvem: Nuvem | null) => renderToString(<Porteiro nuvem={nuvem}>{FILHOS}</Porteiro>);
+function armazemFalso() {
+  const loja = new Map<string, string>();
+  return { getItem: (k: string) => loja.get(k) ?? null, setItem: (k: string, v: string) => void loja.set(k, v), removeItem: (k: string) => void loja.delete(k) };
+}
+const desenhar = (nuvem: Nuvem | null, armazem = armazemFalso()) =>
+  renderToString(<Porteiro nuvem={nuvem} armazem={armazem}>{FILHOS}</Porteiro>);
 
 describe('Porteiro (renderização)', () => {
   beforeEach(() => {
@@ -52,22 +57,33 @@ describe('Porteiro (renderização)', () => {
   });
 });
 
-describe('Sair', () => {
-  it('apaga a sessão guardada e a marca da última sincronização', async () => {
-    let guardada: Sessao | null = { email: 'a@b', acesso: 'x', renovacao: 'r', expiraEm: Date.now() + 3_600_000 };
-    const guarda: Guarda = { ler: () => guardada, gravar: (s) => { guardada = s; } };
-    const web = (async () => new Response(null, { status: 204 })) as unknown as typeof fetch;
-    const nuvem = criarNuvem({ url: 'https://exemplo.invalid', chave: 'k' }, guarda, web);
-    const loja = new Map<string, string>();
-    const armazem = { getItem: (k: string) => loja.get(k) ?? null, setItem: (k: string, v: string) => void loja.set(k, v), removeItem: (k: string) => void loja.delete(k) };
-    gravarUltima('2026-10-30T10:00:00.000Z', armazem);
-    expect(lerUltima(armazem)).not.toBeNull();
+describe('Porteiro: aparelho que já foi de outra conta', () => {
+  beforeEach(() => {
+    vi.stubGlobal('window', { matchMedia: () => ({ matches: false, addEventListener() {}, removeEventListener() {} }) });
+  });
+  afterEach(() => vi.unstubAllGlobals());
 
-    await nuvem.sair();
-    limparUltima(armazem); // o que o DadosProvider faz logo depois de nuvem.sair()
+  it('conta gravada diferente da sessão: faz a pergunta e não mostra os filhos', () => {
+    const armazem = armazemFalso();
+    gravarConta('a@exemplo.invalid', armazem);
+    const html = desenhar(nuvemFalsa('b@exemplo.invalid'), armazem);
+    expect(html).toContain('Outra conta');
+    expect(html).toContain('a@exemplo.invalid');
+    expect(html).toContain('b@exemplo.invalid');
+    expect(html).not.toContain(FILHOS);
+  });
 
-    expect(guardada).toBeNull();
-    expect(nuvem.email()).toBeNull();
-    expect(lerUltima(armazem)).toBeNull();
+  it('mesma conta (mesmo com maiúsculas): mostra os filhos', () => {
+    const armazem = armazemFalso();
+    gravarConta('a@exemplo.invalid', armazem);
+    const html = desenhar(nuvemFalsa('A@Exemplo.invalid'), armazem);
+    expect(html).toContain(FILHOS);
+    expect(html).not.toContain('Outra conta');
+  });
+
+  it('sem conta gravada (aparelho antigo): mostra os filhos', () => {
+    const html = desenhar(nuvemFalsa('b@exemplo.invalid'), armazemFalso());
+    expect(html).toContain(FILHOS);
+    expect(html).not.toContain('Outra conta');
   });
 });

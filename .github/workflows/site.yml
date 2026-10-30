@@ -35,7 +35,8 @@ jobs:
       - name: Testar e gerar o painel
         working-directory: painel
         env:
-          # Banco na nuvem (sincronização entre aparelhos). Vazios = painel só no aparelho.
+          # Banco na nuvem e login do painel. Se faltarem (ou a URL não for https://), o build FALHA
+          # de propósito: nada é publicado sem a tela de login (VITE_EXIGIR_LOGIN abaixo).
           # Settings > Secrets and variables > Actions > Variables. Guia: painel/docs/nuvem.md
           VITE_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           VITE_SUPABASE_CHAVE: ${{ vars.SUPABASE_CHAVE }}
