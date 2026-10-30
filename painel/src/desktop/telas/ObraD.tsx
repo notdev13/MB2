@@ -3,6 +3,7 @@ import { useDados } from '../../dados/contexto';
 import { porCategoria, porMes, resumirObra } from '../../dominio/calculos';
 import { porFornecedor } from '../../dominio/consultas';
 import { dataBR, hoje, reais, reaisCurto } from '../../dominio/formato';
+import { contasComSaldo, sobraSePagarTudo } from '../../dominio/saldos';
 import { EstadoVazio } from '../../componentes/EstadoVazio';
 import type { Custo, Obra } from '../../dominio/tipos';
 import { IconeD, Kpi, Painel, Vazio } from '../componentes/Base';
@@ -10,10 +11,11 @@ import { BarrasCategoria, ColunasMes, UsoOrcamento } from '../componentes/Grafic
 import { TabelaLancamentos } from '../componentes/TabelaLancamentos';
 import { linkD } from '../rotas';
 
-export function ObraD({ id, aoLancar, aoAbrirCusto }: {
+export function ObraD({ id, aoLancar, aoAbrirCusto, aoAtualizarSaldo, aoNovaConta }: {
   id: string; aoLancar: () => void; aoAbrirCusto: (c: Custo) => void;
+  aoAtualizarSaldo: (contaId: string) => void; aoNovaConta: () => void;
 }) {
-  const { obras, custos } = useDados();
+  const { obras, custos, contas, saldos } = useDados();
   const obra = obras.find((o) => o.id === id);
   const meus = useMemo(() => custos.filter((c) => c.obraId === id), [custos, id]);
   const r = useMemo(() => obra && resumirObra(obra, custos), [obra, custos]);
@@ -29,6 +31,8 @@ export function ObraD({ id, aoLancar, aoAbrirCusto }: {
     );
   }
 
+  const conta = contasComSaldo(contas, saldos, hoje()).filter((i) => i.conta.obraId === id);
+  const sobra = sobraSePagarTudo(obra, conta, custos);
   const estourou = obra.orcamento > 0 && r.saldo < 0;
   return (
     <div className="d-grade-12">
@@ -45,6 +49,22 @@ export function ObraD({ id, aoLancar, aoAbrirCusto }: {
         <Kpi rotulo="Custo por m²" valor={r.custoM2 !== null ? reais(r.custoM2) : '—'}
           detalhe={obra.areaM2 ? `${obra.areaM2.toLocaleString('pt-BR')} m²` : 'informe a área da obra'} />
         <Kpi rotulo="A pagar" valor={reaisCurto(r.aPagar)} detalhe={r.aPagar > 0 ? 'lançado e não pago' : 'nada pendente'} />
+        <Kpi rotulo="Saldo da conta" tom={sobra && sobra.sobra < 0 ? 'alerta' : undefined}
+          valor={conta[0]?.saldo ? reaisCurto(conta[0].saldo.valor) : '—'}
+          detalhe={conta[0] ? (
+            <>
+              <span>
+                {conta[0].dias === null ? 'sem saldo digitado' : `conferido ${conta[0].dias === 0 ? 'hoje' : `há ${conta[0].dias} dia${conta[0].dias === 1 ? '' : 's'}`}${conta[0].dias > 7 ? ' · ⚠ atualize' : ''}`}
+                {sobra && (sobra.sobra < 0 ? ` · faltam ${reais(-sobra.sobra)} para o a pagar` : ` · sobra ${reais(sobra.sobra)} se pagar tudo`)}
+              </span>
+              <button type="button" className="d-botao secundario" onClick={() => aoAtualizarSaldo(conta[0].conta.id)}>Atualizar saldo</button>
+            </>
+          ) : (
+            <>
+              <span>obra sem conta cadastrada</span>
+              <button type="button" className="d-botao secundario" onClick={aoNovaConta}>Cadastrar conta</button>
+            </>
+          )} />
       </div>
 
       <Painel className="span-8" titulo="Gasto por mês · últimos 12 meses">

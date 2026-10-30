@@ -19,7 +19,7 @@ import { Visao } from './telas/Visao';
 type FolhaAberta =
   | { tipo: 'custo'; custo?: Custo; obraId?: string }
   | { tipo: 'obra'; obra?: Obra }
-  | { tipo: 'saldo' }
+  | { tipo: 'saldo'; contaId?: string }
   | { tipo: 'conta' }
   | { tipo: 'importar' }
   | null;
@@ -84,6 +84,7 @@ function Conteudo() {
             {rota.tela === 'obras' && <Obras aoNovaObra={novaObra} />}
             {rota.tela === 'obra' && (
               <ObraDetalhe id={rota.id} aoAbrirCusto={abrirCusto}
+                aoAtualizarSaldo={(contaId) => setFolha({ tipo: 'saldo', contaId })} aoNovaConta={() => setFolha({ tipo: 'conta' })}
                 aoEditar={(o) => setFolha({ tipo: 'obra', obra: o })}
                 aoLancar={(obraId) => setFolha({ tipo: 'custo', obraId })} />
             )}
@@ -105,7 +106,7 @@ function Conteudo() {
         </nav>
       </div>
 
-      {folha?.tipo === 'saldo' && <FormSaldo aoFechar={fechar} />}
+      {folha?.tipo === 'saldo' && <FormSaldo contaId={folha.contaId} aoFechar={fechar} />}
       {folha?.tipo === 'conta' && <FormConta aoFechar={fechar} />}
       {folha?.tipo === 'importar' && <FormImportar aoFechar={fechar} aoDigitarSaldo={() => setFolha({ tipo: 'saldo' })} />}
       {folha?.tipo === 'custo' && <FormCusto custo={folha.custo} obraId={folha.obraId} aoFechar={fechar} />}

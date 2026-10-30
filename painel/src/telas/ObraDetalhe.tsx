@@ -4,16 +4,19 @@ import { EstadoVazio } from '../componentes/EstadoVazio';
 import { Lancamentos } from '../componentes/Lancamentos';
 import { useDados } from '../dados/contexto';
 import { porCategoria, resumirObra, soma } from '../dominio/calculos';
-import { dataBR, porcentagem, reais, reaisCurto } from '../dominio/formato';
+import { contasComSaldo, sobraSePagarTudo } from '../dominio/saldos';
+import { dataBR, hoje, porcentagem, reais, reaisCurto } from '../dominio/formato';
 import { STATUS_OBRA, type Categoria, type Custo, type Obra } from '../dominio/tipos';
 
-export function ObraDetalhe({ id, aoEditar, aoLancar, aoAbrirCusto }: {
+export function ObraDetalhe({ id, aoEditar, aoLancar, aoAbrirCusto, aoAtualizarSaldo, aoNovaConta }: {
   id: string;
   aoEditar: (o: Obra) => void;
   aoLancar: (obraId: string) => void;
   aoAbrirCusto: (c: Custo) => void;
+  aoAtualizarSaldo: (contaId: string) => void;
+  aoNovaConta: () => void;
 }) {
-  const { obras, custos } = useDados();
+  const { obras, custos, contas, saldos } = useDados();
   const [categoria, setCategoria] = useState<Categoria | 'todas'>('todas');
   const [soAPagar, setSoAPagar] = useState(false);
   const obra = obras.find((o) => o.id === id);
@@ -23,6 +26,8 @@ export function ObraDetalhe({ id, aoEditar, aoLancar, aoAbrirCusto }: {
   }
 
   const r = resumirObra(obra, custos);
+  const contaObra = contasComSaldo(contas, saldos, hoje()).filter((i) => i.conta.obraId === obra.id);
+  const sobra = sobraSePagarTudo(obra, contaObra, custos);
   const daObra = custos.filter((c) => c.obraId === obra.id);
   const fatias = porCategoria(daObra);
   const filtrados = daObra.filter((c) => (categoria === 'todas' || c.categoria === categoria) && (!soAPagar || !c.pago));
@@ -63,6 +68,34 @@ export function ObraDetalhe({ id, aoEditar, aoLancar, aoAbrirCusto }: {
         <div className="cartao">
           <div className="rotulo">A pagar</div>
           <div className="numero menor">{reaisCurto(r.aPagar)}</div>
+        </div>
+        <div className="cartao largo">
+          <div className="rotulo">Saldo da conta{contaObra[0] ? ` · ${contaObra[0].conta.nome}` : ' da obra'}</div>
+          {contaObra[0] ? (
+            <>
+              <div className="numero menor">
+                {contaObra[0].saldo ? <>{contaObra[0].saldo.valor < 0 && '⚠ Negativo: '}{reais(contaObra[0].saldo.valor)}</> : '—'}
+              </div>
+              <div className="nota">
+                {contaObra[0].dias === null ? 'Digite o saldo para acompanhar.'
+                  : <>Conferido {contaObra[0].dias === 0 ? 'hoje' : `há ${contaObra[0].dias} dia${contaObra[0].dias === 1 ? '' : 's'}`}
+                    {contaObra[0].dias > 7 && ' · ⚠ atualize o saldo'}</>}
+              </div>
+              {sobra && (
+                <div className={sobra.sobra < 0 ? 'aviso' : 'nota'} role={sobra.sobra < 0 ? 'alert' : undefined}>
+                  {sobra.sobra < 0
+                    ? `⚠ Faltam ${reais(-sobra.sobra)} na conta para pagar o que está em aberto (${reais(sobra.aPagar)}).`
+                    : `Sobra ${reais(sobra.sobra)} se pagar tudo o que está em aberto (${reais(sobra.aPagar)}).`}
+                </div>
+              )}
+              <button className="botao secundario" style={{ marginTop: 10 }} onClick={() => aoAtualizarSaldo(contaObra[0].conta.id)}>Atualizar saldo</button>
+            </>
+          ) : (
+            <>
+              <div className="nota">Esta obra ainda não tem conta cadastrada.</div>
+              <button className="botao secundario" style={{ marginTop: 10 }} onClick={aoNovaConta}>Cadastrar conta</button>
+            </>
+          )}
         </div>
         {r.custoM2 !== null && (
           <div className="cartao largo">

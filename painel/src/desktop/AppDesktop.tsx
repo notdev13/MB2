@@ -179,7 +179,8 @@ function Casca() {
                 aoAtualizarSaldo={(contaId) => setGaveta({ tipo: 'saldo', contaId })}
                 aoImportarExtrato={() => setGaveta({ tipo: 'importar' })} aoNovaConta={() => setGaveta({ tipo: 'conta' })} />}
               {rota.tela === 'obras' && <ObrasD aoNovaObra={novaObra} />}
-              {rota.tela === 'obra' && <ObraD id={rota.id} aoLancar={lancar} aoAbrirCusto={abrirCusto} />}
+              {rota.tela === 'obra' && <ObraD id={rota.id} aoLancar={lancar} aoAbrirCusto={abrirCusto}
+                aoAtualizarSaldo={(contaId) => setGaveta({ tipo: 'saldo', contaId })} aoNovaConta={() => setGaveta({ tipo: 'conta' })} />}
               {rota.tela === 'lancamentos' && <LancamentosD aoAbrirCusto={abrirCusto} />}
               {rota.tela === 'ajustes' && (
                 <div className="d-coluna-estreita">
