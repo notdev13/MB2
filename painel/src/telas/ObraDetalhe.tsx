@@ -3,8 +3,8 @@ import { BarraOrcamento, PorCategoria } from '../componentes/Graficos';
 import { EstadoVazio } from '../componentes/EstadoVazio';
 import { Lancamentos } from '../componentes/Lancamentos';
 import { useDados } from '../dados/contexto';
-import { porCategoria, resumirObra, soma } from '../dominio/calculos';
-import { dataBR, porcentagem, reais, reaisCurto } from '../dominio/formato';
+import { porCategoria, resumirObra, saldoDaConta, soma } from '../dominio/calculos';
+import { dataBR, hoje, porcentagem, reais, reaisCurto } from '../dominio/formato';
 import { STATUS_OBRA, type Categoria, type Custo, type Obra } from '../dominio/tipos';
 
 export function ObraDetalhe({ id, aoEditar, aoLancar, aoAbrirCusto }: {
@@ -23,6 +23,7 @@ export function ObraDetalhe({ id, aoEditar, aoLancar, aoAbrirCusto }: {
   }
 
   const r = resumirObra(obra, custos);
+  const conta = saldoDaConta(obra, r.aPagar, hoje());
   const daObra = custos.filter((c) => c.obraId === obra.id);
   const fatias = porCategoria(daObra);
   const filtrados = daObra.filter((c) => (categoria === 'todas' || c.categoria === categoria) && (!soAPagar || !c.pago));
@@ -63,6 +64,21 @@ export function ObraDetalhe({ id, aoEditar, aoLancar, aoAbrirCusto }: {
         <div className="cartao">
           <div className="rotulo">A pagar</div>
           <div className="numero menor">{reaisCurto(r.aPagar)}</div>
+        </div>
+        <div className="cartao largo">
+          <div className="rotulo">Saldo da conta{obra.contaBancaria ? ` · ${obra.contaBancaria}` : ' bancária'}</div>
+          <div className="numero menor">{conta ? reais(conta.saldo) : '—'}</div>
+          <div className="nota">
+            {!conta ? 'Informe o saldo em “Editar obra”.'
+              : `Atualizado em ${dataBR(conta.atualizadoEm)}${conta.desatualizado ? ' · confira, já faz dias' : ''}`}
+          </div>
+          {conta && r.aPagar > 0 && (
+            <div className={conta.faltaCobrir > 0 ? 'aviso' : 'nota'} role={conta.faltaCobrir > 0 ? 'alert' : undefined}>
+              {conta.faltaCobrir > 0
+                ? `⚠ Faltam ${reais(conta.faltaCobrir)} na conta para pagar o que está em aberto (${reais(r.aPagar)}).`
+                : `Cobre os ${reais(r.aPagar)} a pagar.`}
+            </div>
+          )}
         </div>
         {r.custoM2 !== null && (
           <div className="cartao largo">

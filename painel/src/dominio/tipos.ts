@@ -21,6 +21,10 @@ export interface Obra {
   previsaoFim: string | null;
   status: StatusObra;
   observacoes: string;
+  // Conta bancária (PJ) da obra. Opcionais: obras antigas e backups antigos não têm.
+  contaBancaria?: string; // só um apelido, ex.: "Itaú PJ · final 1234"; nunca agência/conta completas
+  saldoConta?: number | null; // centavos, como informado em saldoContaEm
+  saldoContaEm?: string | null; // AAAA-MM-DD da última atualização do saldo
   criadoEm: string; // ISO
   atualizadoEm: string; // ISO
 }

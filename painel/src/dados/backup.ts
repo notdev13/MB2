@@ -11,6 +11,9 @@ export function obraValida(o: Record<string, unknown>): boolean {
   return texto(o.id) && texto(o.nome) && texto(o.endereco) && texto(o.cliente) && texto(o.observacoes) &&
     centavos(o.orcamento) && (o.areaM2 === null || (typeof o.areaM2 === 'number' && o.areaM2 > 0)) &&
     dataOuNada(o.inicio) && dataOuNada(o.previsaoFim) && texto(o.status) && Object.hasOwn(STATUS_OBRA, o.status as string) &&
+    (o.contaBancaria === undefined || texto(o.contaBancaria)) &&
+    (o.saldoConta == null || Number.isSafeInteger(o.saldoConta)) &&
+    (o.saldoContaEm == null || data(o.saldoContaEm)) &&
     texto(o.criadoEm) && texto(o.atualizadoEm);
 }
 

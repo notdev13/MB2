@@ -25,6 +25,32 @@ export function resumirObra(obra: Obra, custos: Custo[]): ResumoObra {
   };
 }
 
+export interface SaldoConta {
+  saldo: number; // centavos
+  atualizadoEm: string | null;
+  diasDesde: number | null; // dias entre a atualização e a data de referência
+  desatualizado: boolean; // mais de 7 dias sem atualizar
+  cobertura: number | null; // saldo / a pagar (1 = cobre tudo); null se não há nada a pagar
+  faltaCobrir: number; // centavos do a pagar que o saldo não cobre (0 se cobre)
+}
+
+const DIAS_DESATUALIZADO = 7;
+
+// Saldo da conta bancária da obra comparado com o que falta pagar nela. null = saldo não informado.
+export function saldoDaConta(obra: Obra, aPagar: number, ref: string): SaldoConta | null {
+  if (obra.saldoConta == null) return null;
+  const em = obra.saldoContaEm ?? null;
+  const dias = em ? Math.round((Date.parse(ref) - Date.parse(em)) / 86_400_000) : null;
+  return {
+    saldo: obra.saldoConta,
+    atualizadoEm: em,
+    diasDesde: dias,
+    desatualizado: dias === null || dias > DIAS_DESATUALIZADO,
+    cobertura: aPagar > 0 ? obra.saldoConta / aPagar : null,
+    faltaCobrir: Math.max(0, aPagar - Math.max(0, obra.saldoConta)),
+  };
+}
+
 export interface ImpactoOrcamento {
   gastoAntes: number; // centavos, sem o lançamento (e sem o valor original, se for edição)
   gastoDepois: number; // centavos, com o valor novo

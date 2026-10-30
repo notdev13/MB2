@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useDados } from '../../dados/contexto';
-import { porCategoria, porMes, resumirObra } from '../../dominio/calculos';
+import { porCategoria, porMes, resumirObra, saldoDaConta } from '../../dominio/calculos';
 import { porFornecedor } from '../../dominio/consultas';
 import { dataBR, hoje, reais, reaisCurto } from '../../dominio/formato';
 import { EstadoVazio } from '../../componentes/EstadoVazio';
@@ -29,6 +29,8 @@ export function ObraD({ id, aoLancar, aoAbrirCusto }: {
     );
   }
 
+  const conta = saldoDaConta(obra, r.aPagar, hoje());
+  const faltaConta = !!conta && conta.faltaCobrir > 0;
   const estourou = obra.orcamento > 0 && r.saldo < 0;
   return (
     <div className="d-grade-12">
@@ -45,6 +47,12 @@ export function ObraD({ id, aoLancar, aoAbrirCusto }: {
         <Kpi rotulo="Custo por m²" valor={r.custoM2 !== null ? reais(r.custoM2) : '—'}
           detalhe={obra.areaM2 ? `${obra.areaM2.toLocaleString('pt-BR')} m²` : 'informe a área da obra'} />
         <Kpi rotulo="A pagar" valor={reaisCurto(r.aPagar)} detalhe={r.aPagar > 0 ? 'lançado e não pago' : 'nada pendente'} />
+        <Kpi rotulo={`Saldo da conta${obra.contaBancaria ? ` · ${obra.contaBancaria}` : ''}`}
+          tom={faltaConta ? 'alerta' : undefined}
+          valor={conta ? reais(conta.saldo) : '—'}
+          detalhe={!conta ? 'informe em “Editar obra”'
+            : faltaConta ? `faltam ${reais(conta.faltaCobrir)} para o a pagar`
+            : `atualizado em ${dataBR(conta.atualizadoEm)}${conta.desatualizado ? ' · confira, já faz dias' : ''}`} />
       </div>
 
       <Painel className="span-8" titulo="Gasto por mês · últimos 12 meses">
