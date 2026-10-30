@@ -2,9 +2,10 @@ import { useMemo, useState } from 'react';
 import { useDados } from '../../dados/contexto';
 import { resumirObra, type ResumoObra } from '../../dominio/calculos';
 import { normalizar } from '../../dominio/consultas';
+import { EstadoVazio } from '../../componentes/EstadoVazio';
 import { dataBR, reais } from '../../dominio/formato';
 import { STATUS_OBRA, type StatusObra } from '../../dominio/tipos';
-import { IconeD, Painel, SeloStatus, Vazio } from '../componentes/Base';
+import { IconeD, Painel, SeloStatus } from '../componentes/Base';
 import { UsoOrcamento } from '../componentes/Graficos';
 import { Tabela, type Ordem } from '../componentes/Tabela';
 import { irD } from '../rotas';
@@ -41,9 +42,10 @@ export function ObrasD({ aoNovaObra }: { aoNovaObra: () => void }) {
 
   if (obras.length === 0) {
     return (
-      <Vazio titulo="Nenhuma obra cadastrada" texto="Cadastre a primeira obra para começar a lançar custos.">
+      <EstadoVazio icone="obras" titulo="Nenhuma obra cadastrada"
+        texto="Cadastre a primeira obra para começar a lançar custos.">
         <button className="d-botao primario" onClick={aoNovaObra}>Cadastrar obra</button>
-      </Vazio>
+      </EstadoVazio>
     );
   }
 
@@ -65,7 +67,10 @@ export function ObrasD({ aoNovaObra }: { aoNovaObra: () => void }) {
         </label>
       </div>
       {linhas.length === 0 ? (
-        <Vazio titulo="Nenhuma obra aqui" texto="Mude o filtro ou a busca." />
+        <EstadoVazio icone="filtro" titulo="Nenhuma obra aqui"
+          texto="Nenhuma obra combina com o filtro ou a busca. Veja todas para encontrar o que procura.">
+          <button type="button" className="d-botao secundario" onClick={() => { setStatus('todas'); setBusca(''); }}>Ver todas</button>
+        </EstadoVazio>
       ) : (
         <Tabela<ResumoObra> rotulo="Obras" linhas={linhas} chaveLinha={(r) => r.obra.id} ordem={ordem} aoOrdenar={setOrdem}
           aoClicar={(r) => irD({ tela: 'obra', id: r.obra.id })}

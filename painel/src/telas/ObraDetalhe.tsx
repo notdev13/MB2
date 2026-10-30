@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { BarraOrcamento, PorCategoria } from '../componentes/Graficos';
+import { EstadoVazio } from '../componentes/EstadoVazio';
 import { Lancamentos } from '../componentes/Lancamentos';
 import { useDados } from '../dados/contexto';
 import { porCategoria, resumirObra, soma } from '../dominio/calculos';
@@ -88,7 +89,10 @@ export function ObraDetalhe({ id, aoEditar, aoLancar, aoAbrirCusto }: {
 
       <h2>Lançamentos ({daObra.length})</h2>
       {daObra.length === 0 ? (
-        <p className="sub">Nenhum custo lançado nesta obra ainda.</p>
+        <EstadoVazio icone="recibo" titulo="Nenhum custo lançado"
+          texto="Registre o primeiro gasto desta obra para acompanhar o saldo.">
+          <button className="botao" onClick={() => aoLancar(obra.id)}>Lançar primeiro custo</button>
+        </EstadoVazio>
       ) : (
         <>
           <div className="chips" role="group" aria-label="Filtrar lançamentos">

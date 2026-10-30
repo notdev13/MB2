@@ -2,14 +2,17 @@ import { useMemo } from 'react';
 import { useDados } from '../../dados/contexto';
 import { porCategoria, porMes, resumirObra, resumoGeral, type ResumoObra } from '../../dominio/calculos';
 import { mesAnterior, totalDoMes, variacao } from '../../dominio/consultas';
+import { EstadoVazio } from '../../componentes/EstadoVazio';
 import { dataBR, hoje, reais, reaisCurto } from '../../dominio/formato';
 import type { Custo } from '../../dominio/tipos';
-import { Kpi, Painel, SeloStatus, Variacao, Vazio } from '../componentes/Base';
+import { Kpi, Painel, SeloStatus, Variacao } from '../componentes/Base';
 import { BarrasCategoria, ColunasMes, UsoOrcamento } from '../componentes/Graficos';
 import { Tabela } from '../componentes/Tabela';
 import { irD, linkD } from '../rotas';
 
-export function VisaoD({ aoNovaObra, aoAbrirCusto }: { aoNovaObra: () => void; aoAbrirCusto: (c: Custo) => void }) {
+export function VisaoD({ aoNovaObra, aoLancar, aoAbrirCusto }: {
+  aoNovaObra: () => void; aoLancar: () => void; aoAbrirCusto: (c: Custo) => void;
+}) {
   const { obras, custos } = useDados();
   const ref = hoje();
   const geral = useMemo(() => resumoGeral(obras, custos, ref), [obras, custos, ref]);
@@ -27,9 +30,10 @@ export function VisaoD({ aoNovaObra, aoAbrirCusto }: { aoNovaObra: () => void; a
 
   if (obras.length === 0) {
     return (
-      <Vazio titulo="Comece cadastrando uma obra" texto="Depois é só lançar os custos e acompanhar aqui o gasto de cada uma.">
+      <EstadoVazio icone="obras" titulo="Comece cadastrando uma obra"
+        texto="Depois é só lançar os custos e acompanhar aqui o gasto de cada uma.">
         <button className="d-botao primario" onClick={aoNovaObra}>Cadastrar obra</button>
-      </Vazio>
+      </EstadoVazio>
     );
   }
 
@@ -50,7 +54,12 @@ export function VisaoD({ aoNovaObra, aoAbrirCusto }: { aoNovaObra: () => void; a
       </div>
 
       <Painel className="span-8" titulo="Gasto por mês · últimos 12 meses">
-        <ColunasMes meses={meses} />
+        {custos.length === 0 ? (
+          <EstadoVazio icone="grafico" titulo="Ainda sem gastos"
+            texto="Lance o primeiro custo e o gráfico mês a mês aparece aqui. Atalho: tecle N.">
+            <button className="d-botao primario" onClick={aoLancar}>Lançar primeiro custo</button>
+          </EstadoVazio>
+        ) : <ColunasMes meses={meses} />}
       </Painel>
       <Painel className="span-4" titulo="Por categoria" acao={<span className="d-apagado">obras em aberto</span>}>
         <BarrasCategoria fatias={fatias} />
@@ -58,7 +67,13 @@ export function VisaoD({ aoNovaObra, aoAbrirCusto }: { aoNovaObra: () => void; a
 
       <Painel className="span-8" titulo="Obras em aberto" semPadding
         acao={<a className="d-link" href={linkD({ tela: 'obras' })}>Ver todas</a>}>
-        <Tabela<ResumoObra> rotulo="Obras em aberto" linhas={resumos} chaveLinha={(r) => r.obra.id}
+        {resumos.length === 0 ? (
+          <EstadoVazio icone="obras" titulo="Nenhuma obra em aberto"
+            texto="Todas as obras estão concluídas. Cadastre uma nova para voltar a acompanhar os gastos.">
+            <button className="d-botao primario" onClick={aoNovaObra}>Cadastrar obra</button>
+            <a className="d-botao secundario" href={linkD({ tela: 'obras' })}>Ver todas as obras</a>
+          </EstadoVazio>
+        ) : <Tabela<ResumoObra> rotulo="Obras em aberto" linhas={resumos} chaveLinha={(r) => r.obra.id}
           aoClicar={(r) => irD({ tela: 'obra', id: r.obra.id })}
           colunas={[
             { chave: 'nome', titulo: 'Obra', render: (r) => <span className="d-corta forte">{r.obra.nome}</span> },
@@ -66,7 +81,7 @@ export function VisaoD({ aoNovaObra, aoAbrirCusto }: { aoNovaObra: () => void; a
             { chave: 'uso', titulo: 'Orçamento', render: (r) => <UsoOrcamento gasto={r.gasto} orcamento={r.obra.orcamento} />, largura: '190px' },
             { chave: 'ultimo', titulo: 'Último lanç.', render: (r) => dataBR(r.ultimoLancamento), largura: '108px' },
             { chave: 'gasto', titulo: 'Gasto', render: (r) => reais(r.gasto), numero: true, largura: '140px' },
-          ]} />
+          ]} />}
       </Painel>
 
       <Painel className="span-4" titulo="Últimos lançamentos" semPadding

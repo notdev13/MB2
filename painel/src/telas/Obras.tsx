@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { BarraOrcamento } from '../componentes/Graficos';
+import { EstadoVazio } from '../componentes/EstadoVazio';
 import { useDados } from '../dados/contexto';
 import { resumirObra } from '../dominio/calculos';
 import { porcentagem, reais, reaisCurto } from '../dominio/formato';
@@ -27,10 +28,17 @@ export function Obras({ aoNovaObra }: { aoNovaObra: () => void }) {
       </div>
       <div className="lista">
         {lista.length === 0 && (
-          <div className="vazio cartao">
-            <h3>{obras.length === 0 ? 'Nenhuma obra ainda' : 'Nada neste filtro'}</h3>
-            {obras.length === 0 && <button className="botao" onClick={aoNovaObra}>Cadastrar obra</button>}
-          </div>
+          obras.length === 0 ? (
+            <EstadoVazio icone="obras" titulo="Nenhuma obra ainda"
+              texto="Cadastre a primeira obra para começar a lançar os custos.">
+              <button className="botao" onClick={aoNovaObra}>Cadastrar obra</button>
+            </EstadoVazio>
+          ) : (
+            <EstadoVazio icone="filtro" titulo="Nada neste filtro"
+              texto="Nenhuma obra combina com este filtro. Veja todas para encontrar o que procura.">
+              <button className="botao secundario" onClick={() => setFiltro('todas')}>Ver todas</button>
+            </EstadoVazio>
+          )
         )}
         {lista.map((o) => {
           const r = resumirObra(o, custos);
