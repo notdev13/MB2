@@ -2,7 +2,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { AvisoProvider } from '../componentes/Aviso';
 import { ConfirmarProvider } from '../componentes/Confirmar';
 import { FormCusto } from '../componentes/FormCusto';
+import { FormConta } from '../componentes/FormConta';
+import { FormImportar } from '../componentes/FormImportar';
 import { FormObra } from '../componentes/FormObra';
+import { FormSaldo } from '../componentes/FormSaldo';
 import { useDados } from '../dados/contexto';
 import type { Custo, Obra } from '../dominio/tipos';
 import { useTema } from '../tema';
@@ -21,6 +24,9 @@ import './desktop.css';
 type Gaveta =
   | { tipo: 'custo'; custo?: Custo; obraId?: string }
   | { tipo: 'obra'; obra?: Obra }
+  | { tipo: 'saldo'; contaId?: string }
+  | { tipo: 'conta' }
+  | { tipo: 'importar' }
   | null;
 
 const MENU: { rota: RotaD; rotulo: string; icone: NomeIconeD }[] = [
@@ -169,7 +175,9 @@ function Casca() {
           {erro && <div className="aviso" role="alert">{erro}</div>}
           {!carregando && !erro && (
             <main className="d-pagina">
-              {rota.tela === 'visao' && <VisaoD aoNovaObra={novaObra} aoLancar={lancar} aoAbrirCusto={abrirCusto} />}
+              {rota.tela === 'visao' && <VisaoD aoNovaObra={novaObra} aoLancar={lancar} aoAbrirCusto={abrirCusto}
+                aoAtualizarSaldo={(contaId) => setGaveta({ tipo: 'saldo', contaId })}
+                aoImportarExtrato={() => setGaveta({ tipo: 'importar' })} aoNovaConta={() => setGaveta({ tipo: 'conta' })} />}
               {rota.tela === 'obras' && <ObrasD aoNovaObra={novaObra} />}
               {rota.tela === 'obra' && <ObraD id={rota.id} aoLancar={lancar} aoAbrirCusto={abrirCusto} />}
               {rota.tela === 'lancamentos' && <LancamentosD aoAbrirCusto={abrirCusto} />}
@@ -184,6 +192,9 @@ function Casca() {
       </div>
 
       {gaveta?.tipo === 'custo' && <FormCusto custo={gaveta.custo} obraId={gaveta.obraId} aoFechar={fechar} />}
+      {gaveta?.tipo === 'saldo' && <FormSaldo contaId={gaveta.contaId} aoFechar={fechar} />}
+      {gaveta?.tipo === 'conta' && <FormConta aoFechar={fechar} />}
+      {gaveta?.tipo === 'importar' && <FormImportar aoFechar={fechar} aoDigitarSaldo={() => setGaveta({ tipo: 'saldo' })} />}
       {gaveta?.tipo === 'obra' && (
         <FormObra obra={gaveta.obra} aoFechar={fechar}
           aoSalvar={(o) => !gaveta.obra && irD({ tela: 'obra', id: o.id })}

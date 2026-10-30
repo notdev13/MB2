@@ -9,9 +9,11 @@ import { Kpi, Painel, SeloStatus, Variacao } from '../componentes/Base';
 import { BarrasCategoria, ColunasMes, UsoOrcamento } from '../componentes/Graficos';
 import { Tabela } from '../componentes/Tabela';
 import { irD, linkD } from '../rotas';
+import { ContasD } from './ContasD';
 
-export function VisaoD({ aoNovaObra, aoLancar, aoAbrirCusto }: {
+export function VisaoD({ aoNovaObra, aoLancar, aoAbrirCusto, aoAtualizarSaldo, aoImportarExtrato, aoNovaConta }: {
   aoNovaObra: () => void; aoLancar: () => void; aoAbrirCusto: (c: Custo) => void;
+  aoAtualizarSaldo: (contaId?: string) => void; aoImportarExtrato: () => void; aoNovaConta: () => void;
 }) {
   const { obras, custos } = useDados();
   const ref = hoje();
@@ -52,6 +54,8 @@ export function VisaoD({ aoNovaObra, aoLancar, aoAbrirCusto }: {
           tom={geral.estouradas > 0 ? 'alerta' : undefined}
           detalhe={geral.estouradas > 0 ? `${geral.estouradas} acima do orçamento` : 'nenhuma acima do orçamento'} />
       </div>
+
+      <ContasD aoAtualizarSaldo={aoAtualizarSaldo} aoImportar={aoImportarExtrato} aoNovaConta={aoNovaConta} />
 
       <Painel className="span-8" titulo="Gasto por mês · últimos 12 meses">
         {custos.length === 0 ? (

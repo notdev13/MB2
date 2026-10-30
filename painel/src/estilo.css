@@ -253,3 +253,25 @@ h2 { font-size: 13px; font-weight: 600; letter-spacing: -0.02em; color: var(--fo
 .conta-lista { margin-top: 12px; gap: 14px; }
 .conta-item { border-top: 1px solid var(--graphite); padding-top: 12px; }
 .conta-historico .botao.pequeno { min-height: 44px; min-width: 44px; }
+/* Importar extrato (celular e gaveta do computador) */
+.imp-zona { border: 1px dashed var(--slate); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.imp-zona.sobre { border-color: var(--white); border-style: solid; }
+.imp-zona p { margin: 0; color: var(--bone); font-size: 14px; line-height: 1.5; }
+.imp-arraste { display: none; }
+.imp-dados { margin: 0 0 12px; display: flex; flex-direction: column; border: 1px solid var(--graphite); border-radius: 10px; }
+.imp-dados > div { display: flex; justify-content: space-between; gap: 12px; padding: 10px 14px; min-height: 44px; align-items: center; border-top: 1px solid var(--graphite); }
+.imp-dados > div:first-child { border-top: 0; }
+.imp-dados dt { color: var(--fog); font-size: 13px; }
+.imp-dados dd { margin: 0; font-weight: 500; text-align: right; }
+/* Conferência do PDF: candidatos como botões grandes (a escolha é sempre do dono) */
+.imp-opcoes { display: flex; flex-direction: column; gap: 8px; margin: 8px 0 14px; }
+.imp-opcoes .nota { margin: 0; }
+.imp-opcao { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; width: 100%; min-height: 56px; padding: 12px 14px; text-align: left; font: inherit; color: var(--white); background: transparent; border: 1px solid var(--slate); border-radius: 12px; cursor: pointer; }
+.imp-opcao:hover { border-color: var(--white); }
+.imp-opcao:focus-visible { outline: 2px solid var(--white); outline-offset: 2px; }
+.imp-opcao[aria-pressed="true"] { border: 2px solid var(--white); padding: 11px 13px; }
+.imp-opcao strong { font-family: var(--serif); font-size: 26px; font-weight: 600; line-height: 1.1; }
+.imp-opcao small { color: var(--fog); font-size: 13px; line-height: 1.4; word-break: break-word; }
+.imp-rotulos { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 13px; color: var(--bone); }
+.imp-rotulos b { font-weight: 600; color: var(--white); }
+.imp-rotulos i { font-style: normal; }

@@ -230,6 +230,13 @@
 .dk .toast { bottom: 28px; left: calc(50% + var(--d-lateral) / 2); }
 @keyframes d-entrar { from { transform: translateX(32px); opacity: 0; } }
 
+/* ---------- Contas e saldos / importar extrato ---------- */
+.dk .d-contas-acoes { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.dk .d-contas-acoes .d-botao { height: 44px; }
+.dk .imp-arraste { display: block; }
+.dk .imp-zona { padding: 22px; }
+.dk .imp .botao, .dk .imp .campo select { min-height: 44px; }
+
 /* ---------- Estado vazio (componente EstadoVazio) no computador: ícone ao lado do texto ---------- */
 .dk .ev { flex-direction: row; align-items: center; text-align: left; gap: 24px; max-width: 640px; margin: 0 auto; padding: 48px 24px; border: 0; border-radius: 0; }
 .dk .ev-icone { flex: none; width: 72px; height: 72px; }

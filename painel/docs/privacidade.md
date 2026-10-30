@@ -71,6 +71,54 @@ ignorado. E um `Disallow` seria pior: se o buscador é proibido de visitar a pá
 noindex**, e pode listar o endereço mesmo assim. Para sumir de verdade, a página precisa ser
 visitável e dizer "noindex".
 
+## Importar extrato
+
+**Visão geral › Importar extrato** atualiza o saldo de uma conta a partir de um arquivo OFX do banco.
+
+- **O arquivo é lido só no aparelho.** Nada é enviado a lugar nenhum e o arquivo não é guardado: o
+  painel lê, mostra o resultado para conferência e descarta o conteúdo.
+- **O que é gravado:** só o valor do saldo, a data, a origem "extrato" e os **4 últimos dígitos** da
+  conta (para reconhecer a conta nas próximas vezes). Não é gravado número de conta completo, nome,
+  descrição de lançamento, CPF ou CNPJ. Com a nuvem ligada, esses mesmos dados sincronizam como
+  qualquer saldo ([nuvem.md](nuvem.md)). Aparelho com versão antiga do painel pode ignorar os saldos
+  "extrato" que chegarem da nuvem: atualize o painel em todos os aparelhos.
+- **Regra de ouro:** nunca é aceito um extrato com data mais antiga que o último saldo da conta, e não
+  existe botão para forçar. Também são recusados: extrato repetido (mesma data e valor), de data no
+  futuro, e de outra conta (final diferente do já guardado). Saldo digitado por engano com data no
+  futuro é ignorado nessa conferência e o painel avisa. Mudança de mais de 30% pede confirmação.
+- **Limites do OFX:** só conta corrente e poupança em reais; um arquivo por conta; até 5 MB. Muitos
+  aplicativos de banco no iPhone não exportam OFX: em geral o arquivo é baixado no internet banking,
+  pelo computador. **O OFX é o mais seguro** (o painel lê o saldo e a data direto do arquivo): use-o
+  sempre que o banco oferecer.
+
+### Importar extrato em PDF (conferência assistida)
+
+- **Por que a conferência é manual:** cada banco tem um layout de PDF diferente e não há campo
+  "saldo" garantido. Ler o número errado, ou o sinal errado (credor x devedor), seria o pior erro
+  possível num painel de dinheiro. Por isso o painel mostra o que achou (saldos e datas candidatos,
+  em botões grandes) e **você escolhe**; nada é gravado sem essa escolha. O painel nunca marca
+  sozinho um saldo duvidoso (pontuação baixa, "saldo anterior" ou sinal incerto); se o sinal não for
+  claro, você escolhe "credor (positivo)" ou "devedor (negativo)".
+- **Lido só no aparelho:** o texto do PDF é extraído aqui (biblioteca pdf.js, Apache-2.0, versão
+  fixada, baixada só quando alguém importa um PDF). Nada é enviado, o arquivo não é guardado e a
+  política de conteúdo do painel (CSP) não foi afrouxada. Na tela aparecem só trechos curtos, com
+  sequências de 6 ou mais dígitos, CPF, CNPJ e conta escondidos (••••).
+- **O que é gravado:** só valor, data e origem "extrato" (observação "Importado do extrato (PDF),
+  conferido pelo dono"). O PDF não traz conta confiável: você escolhe a conta do painel e o final da
+  conta **não** é gravado a partir de PDF. A conta escolhida por último é lembrada neste aparelho
+  (só o identificador da conta).
+- **A regra de ouro vale igual:** data escolhida mais antiga que o último saldo da conta é sempre
+  recusada. Além disso, se o PDF informa o período (por exemplo "de 01/10 a 30/10") e a data
+  escolhida é anterior ao fim dele, o painel avisa e pede uma confirmação extra.
+- **Limites:** só PDF com texto (sem OCR: PDF que é imagem é recusado); até 10 MB e 30 páginas
+  (se tiver mais, o painel avisa que leu só as 30 primeiras); sem senha (baixe o extrato sem senha).
+- **Pendências (não feito):** importar as movimentações para conciliar com os custos; OCR de PDF
+  escaneado; CSV; cartão de crédito; Open Finance.
+- **Sem prova com PDFs reais de bancos:** os testes usam só PDFs inventados. Teste com o seu extrato
+  neste aparelho: o painel mostra o que achou e nada é gravado sem a sua escolha.
+- Não testado com extratos reais: cada banco escreve o OFX de um jeito. Se um arquivo real for
+  recusado sem motivo, é um formato novo a tratar (nunca mande o arquivo real para o repositório).
+
 ## Checklist do dono
 
 - [ ] Supabase: **cadastro aberto desligado** (Authentication › Sign In / Providers › Allow new users to sign up, passo 3 do [nuvem.md](nuvem.md)).

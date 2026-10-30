@@ -74,17 +74,20 @@ export interface Conta {
   banco: string;
   obraId: string | null;
   ativa: boolean;
+  // Últimos 4 dígitos da conta, aprendidos na primeira importação de extrato confirmada. Opcional:
+  // conta antiga não tem. Serve para impedir que o extrato de uma conta entre em outra.
+  finalConta?: string;
   criadoEm: string;
   atualizadoEm: string;
 }
 
-// Saldo digitado numa data. Cada conferência é uma linha nova; nunca se sobrescreve.
+// Saldo numa data (digitado ou vindo de extrato). Cada conferência é uma linha nova; nunca se sobrescreve.
 export interface SaldoConta {
   id: string;
   contaId: string;
   data: string; // AAAA-MM-DD
   valor: number; // centavos, pode ser negativo
-  fonte: 'manual';
+  fonte: 'manual' | 'extrato';
   obs: string;
   criadoEm: string;
 }

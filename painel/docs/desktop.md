@@ -26,6 +26,9 @@ src/
   (filtrar, ordenar, agrupar por fornecedor, variação entre meses), com testes.
 - **Reaproveitado do celular, sem alterar**: `FormCusto`, `FormObra`, `Ajustes`, `Aviso`, `Confirmar`
   e o tema. No desktop os formulários abrem como gaveta lateral (só CSS dentro de `.dk`).
+- **Contas e saldos**: painel na Visão geral (`telas/ContasD.tsx`) com saldo de cada conta, dias desde a
+  conferência e totais; abre `FormSaldo`, `FormConta` e `FormImportar` (importar extrato OFX, também por
+  arrastar e soltar) como gaveta. Os formulários são os mesmos do celular.
 - **Isolamento**: todo estilo do desktop usa classes `d-…` ou fica sob `.dk`. Nada em `desktop/`
   muda a aparência do celular.
 
