@@ -20,7 +20,7 @@ export function FormSaldo({ contaId, aoFechar }: { contaId?: string; aoFechar: (
   const [salvando, setSalvando] = useState(false);
 
   const centavos = lerSaldo(valor);
-  const erroValor = centavos === null ? 'Digite o valor. Use o sinal de menos se a conta estiver no vermelho.' : null;
+  const erroValor = centavos === null ? 'Digite um valor válido, até R$ 999.999.999,99. Use o sinal de menos se a conta estiver no vermelho.' : null;
   const erroData = !/^\d{4}-\d{2}-\d{2}$/.test(data) ? 'Escolha a data.' : null;
   const anterior = saldoAtual(conta, saldos);
   const historico = saldos.filter((s) => s.contaId === conta)

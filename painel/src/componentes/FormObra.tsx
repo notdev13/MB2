@@ -12,7 +12,7 @@ export function FormObra({ obra, aoFechar, aoSalvar, aoExcluir }: {
   aoSalvar?: (o: Obra) => void;
   aoExcluir?: () => void;
 }) {
-  const { custos, salvarObra, excluirObra } = useDados();
+  const { custos, contas, salvarObra, excluirObra } = useDados();
   const avisar = useAviso();
   const confirmar = useConfirmar();
   const [nome, setNome] = useState(obra?.nome ?? '');
@@ -57,9 +57,11 @@ export function FormObra({ obra, aoFechar, aoSalvar, aoExcluir }: {
   async function excluir() {
     if (!obra) return;
     const qtd = custos.filter((c) => c.obraId === obra.id).length;
+    const nContas = contas.filter((c) => c.obraId === obra.id).length;
+    const extra = nContas > 0 ? ` e ${nContas === 1 ? 'a conta' : `as ${nContas} contas`} com os saldos` : '';
     const msg = qtd > 0
-      ? `Excluir "${obra.nome}" e os ${qtd} lançamento(s) de custo dela? Não dá para desfazer.`
-      : `Excluir "${obra.nome}"?`;
+      ? `Excluir "${obra.nome}", os ${qtd} lançamento(s) de custo dela${extra}? Não dá para desfazer.`
+      : nContas > 0 ? `Excluir "${obra.nome}"${extra}? Não dá para desfazer.` : `Excluir "${obra.nome}"?`;
     if (!(await confirmar({ texto: msg, acao: 'Excluir obra', perigo: true }))) return;
     setSalvando(true);
     try {

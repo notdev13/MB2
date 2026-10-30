@@ -72,6 +72,15 @@ describe('sobraSePagarTudo', () => {
   });
 });
 
+describe('lerSaldo (limite)', () => {
+  it('recusa valor que não cabe em centavos com segurança', () => {
+    expect(lerSaldo('99999999999999999999')).toBeNull();
+    expect(lerSaldo('1.000.000.000,00')).toBeNull();
+    expect(lerSaldo('999.999.999,99')).toBe(99_999_999_999);
+    expect(lerSaldo('-999.999.999,99')).toBe(-99_999_999_999);
+  });
+});
+
 describe('lerSaldo', () => {
   it('lê positivo e negativo', () => {
     expect(lerSaldo('1.234,56')).toBe(123_456);

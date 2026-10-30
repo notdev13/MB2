@@ -123,9 +123,10 @@ export function criarRepositorioLocal(fabrica: IDBFactory = indexedDB): Reposito
     listarObras: () => listar<Obra>('obras'),
     salvarObra: (dados: NovaObra, id?: string) => gravar<Obra, NovaObra>('obras', dados, id),
     async excluirObra(id) {
-      const tx = await transacao(['obras', 'custos', 'pendentes'], 'readwrite');
+      const tx = await transacao(['obras', 'custos', 'pendentes', 'contas', 'saldos'], 'readwrite');
       const agora = new Date().toISOString();
       tx.objectStore('obras').delete(id);
+      await removerContasSemObra(tx, (obraId) => obraId !== id); // a conta da SPE vai junto com a obra
       enfileirar(tx, 'obra', id, true, agora);
       const custos = tx.objectStore('custos');
       const chaves = await pedido(custos.index('obraId').getAllKeys(id));
@@ -275,6 +276,18 @@ export function criarRepositorioLocal(fabrica: IDBFactory = indexedDB): Reposito
   };
 }
 
+// Apaga as contas (e os saldos delas) de obras que não existem mais: conta sem obra não passaria na
+// validação do backup e entraria nos totais sem dono.
+async function removerContasSemObra(tx: IDBTransaction, obraExiste: (obraId: string) => boolean) {
+  const contas = tx.objectStore('contas');
+  const saldos = tx.objectStore('saldos');
+  for (const c of (await pedido(contas.getAll())) as Conta[]) {
+    if (c.obraId === null || obraExiste(c.obraId)) continue;
+    contas.delete(c.id);
+    for (const k of await pedido(saldos.index('contaId').getAllKeys(c.id))) saldos.delete(k);
+  }
+}
+
 // Troca tudo pelo backup e põe a troca na fila da nuvem: o que entrou e o que saiu.
 async function gravarTudo(tx: IDBTransaction, backup: Backup) {
   const obras = tx.objectStore('obras');
@@ -289,7 +302,8 @@ async function gravarTudo(tx: IDBTransaction, backup: Backup) {
   custos.clear();
   for (const o of backup.obras) { obras.put(o); enfileirar(tx, 'obra', o.id, false, agora); }
   for (const c of backup.custos) { custos.put(c); enfileirar(tx, 'custo', c.id, false, agora); }
-  // Backup versão 1 não conhece contas e saldos: os do aparelho ficam como estão.
+  // Backup versão 1 não conhece contas e saldos: os do aparelho ficam, menos os de obra que sumiu.
+  if (backup.versao === 1) await removerContasSemObra(tx, (obraId) => novasObras.has(obraId));
   if (backup.versao === 2) {
     const contas = tx.objectStore('contas');
     const saldos = tx.objectStore('saldos');

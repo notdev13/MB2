@@ -235,3 +235,34 @@ describe('backup versão 2 e compatibilidade com a versão 1', () => {
     expect(await repo.listarSaldos()).toEqual(antes.saldos);
   });
 });
+
+describe('contas de obra que some', () => {
+  const conta = (obraId: string | null) => ({ nome: 'Conta', banco: 'Banco X', obraId, ativa: true });
+
+  it('excluir a obra leva a conta dela e os saldos, e o backup continua válido', async () => {
+    const repo = criarRepositorioLocal(new IDBFactory());
+    const a = await repo.salvarObra(novaObra);
+    const b = await repo.salvarObra({ ...novaObra, nome: 'Outra' });
+    const ca = await repo.salvarConta(conta(a.id));
+    const cb = await repo.salvarConta(conta(b.id));
+    const cm = await repo.salvarConta(conta(null));
+    for (const c of [ca, cb, cm]) await repo.salvarSaldo({ contaId: c.id, data: '2026-10-30', valor: 100_00, fonte: 'manual', obs: '' });
+    await repo.excluirObra(a.id);
+    expect((await repo.listarContas()).map((c) => c.id).sort()).toEqual([cb.id, cm.id].sort());
+    expect((await repo.listarSaldos()).map((s) => s.contaId).sort()).toEqual([cb.id, cm.id].sort());
+    expect(validarBackup(await repo.exportar()).ok).toBe(true);
+  });
+
+  it('restaurar backup v1 tira as contas de obras que não existem mais e mantém as outras', async () => {
+    const repo = criarRepositorioLocal(new IDBFactory());
+    const a = await repo.salvarObra(novaObra);
+    const cm = await repo.salvarConta(conta(null));
+    await repo.salvarConta(conta(a.id));
+    const v1 = { app: 'mb2-painel', versao: 1, geradoEm: '2026-10-01T00:00:00.000Z', obras: [], custos: [] };
+    const v = validarBackup(v1);
+    if (!v.ok) throw new Error(v.erro);
+    await repo.substituirTudo(v.backup);
+    expect((await repo.listarContas()).map((c) => c.id)).toEqual([cm.id]);
+    expect(validarBackup(await repo.exportar()).ok).toBe(true);
+  });
+});

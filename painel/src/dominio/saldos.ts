@@ -58,11 +58,15 @@ export function sobraSePagarTudo(obra: Obra, itens: ContaComSaldo[], custos: Cus
 }
 
 // Lê o valor digitado do saldo, que pode ser negativo ("-1.234,56" ou "R$ -50"). Centavos ou null.
+// R$ 999.999.999,99: acima disso o número deixa de caber com segurança em centavos.
+export const MAX_SALDO = 99_999_999_999;
+
 export function lerSaldo(texto: string): number | null {
   const t = texto.replace(/R\$|\s/g, '');
   const negativo = /^[-−]/.test(t);
   const c = lerReais(negativo ? t.slice(1) : t);
-  return c === null ? null : negativo && c !== 0 ? -c : c;
+  if (c === null || !Number.isSafeInteger(c) || c > MAX_SALDO) return null; // valor absurdo = erro de digitação
+  return negativo && c !== 0 ? -c : c;
 }
 
 // Diferença maior que 30% do saldo anterior: vale perguntar antes de gravar (provável erro de digitação).
