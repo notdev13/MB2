@@ -63,7 +63,8 @@ export function TabelaLancamentos({ custos, obras, aoAbrir, idBusca }: {
 
   return (
     <>
-      <div className="d-filtros" role="search">
+      <div className="d-filtros duas" role="search">
+        <div className="d-filtros-topo">
         <label className="d-busca">
           <IconeD nome="busca" tamanho={16} />
           <input id={idBusca} type="search" placeholder="Buscar descrição ou fornecedor" value={filtro.busca ?? ''}
@@ -85,6 +86,15 @@ export function TabelaLancamentos({ custos, obras, aoAbrir, idBusca }: {
           <option value="pago">Só pagos</option>
           <option value="a_pagar">Só a pagar</option>
         </select>
+        </div>
+        <div className="d-filtros-base">
+          <span className="d-filtros-esq">
+        {temFiltro && (
+          <button type="button" className="d-botao fantasma pequeno" onClick={() => { setFiltro({ situacao: 'todos' }); setLimite(POR_PAGINA); }}>
+            <IconeD nome="limpar" tamanho={14} /> Limpar filtros
+          </button>
+        )}
+          </span>
         <span className="d-periodo">
           <input type="date" className="d-select" value={filtro.de ?? ''} onChange={(e) => mudar({ de: e.target.value || undefined })} aria-label="De" />
           <span>até</span>
@@ -96,11 +106,7 @@ export function TabelaLancamentos({ custos, obras, aoAbrir, idBusca }: {
           <button type="button" className="d-botao fantasma pequeno" disabled={!filtrados.length} onClick={() => exportar('csv')}
             title="Baixar em CSV (Excel, Google Planilhas)">CSV</button>
         </span>
-        {temFiltro && (
-          <button type="button" className="d-botao fantasma pequeno" onClick={() => { setFiltro({ situacao: 'todos' }); setLimite(POR_PAGINA); }}>
-            <IconeD nome="limpar" tamanho={14} /> Limpar filtros
-          </button>
-        )}
+        </div>
       </div>
 
       {filtrados.length === 0 ? (
