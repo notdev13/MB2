@@ -34,13 +34,14 @@ src/
 
 ## Design system
 
-Parte da identidade do celular (DESIGN 22, out/2026): fundo quase preto (#0f1011), serifa leve
-Playfair Display em títulos e números grandes (primeira palavra do título em itálico), Inter na
-interface, Roboto Mono maiúsculo em rótulos e cabeçalhos de tabela, azul-ciano (`--dado`) só em
-gráficos e barras, cores fortes (violeta, rosa, azul) só nas obras dos painéis. Botões e campos com
-cantos de 8px, cartões de 16px, bordas finas; a única sombra é a do botão principal. Temas escuro e
-claro usam os mesmos tokens de cor de `estilo.css`. A Visão geral abre com os painéis de
-`componentes/Paineis.tsx` (os mesmos do celular), dois por linha.
+Mesma identidade do celular (prints de referência, out/2026): fundo quase preto, cartões de vidro
+escuro (degradê sutil, borda fina translúcida, sombra macia) com o rótulo em Roboto Mono maiúsculo bem
+espaçado e uma linha embaixo, títulos em Playfair Display leve (primeira palavra em itálico), interface
+e números em Inter (números leves). Gráficos: linha verde (`--linha`) com ponto no último mês, barras
+cheias (valor) e tracejadas (orçamento) em azul, amarelo, ouro e turquesa (`--azul`, `--amarelo`,
+`--ouro`, `--turquesa`), minigráficos de saldo claros que ficam vermelhos quando caem; verde (`--sobe`)
+para o que subiu, vermelho (`--cai`, `--alerta`) para o que caiu ou passou do orçamento. Botões e
+campos com cantos de 8px, cartões de 16px. Temas escuro e claro usam os mesmos tokens de `estilo.css`.
 
 O que é próprio do desktop:
 
@@ -53,7 +54,7 @@ O que é próprio do desktop:
 | `--d-raio` / `--d-raio-p` | 16px / 8px | cartões / itens de menu |
 | `--d-corpo` | 14px | texto padrão (mais denso que os 16px do celular) |
 | `--d-titulo` | 64px serifa leve | título da página |
-| `--d-kpi` | 38px serifa leve | número dos indicadores |
+| `--d-kpi` | 32px Inter leve | número dos indicadores |
 | `--d-linha` | 46px | altura da linha de tabela |
 
 **Layout**: menu lateral fixo + conteúdo com grade de 12 colunas (`.d-grade-12`, `.span-4/6/8/12`).
@@ -61,18 +62,21 @@ Abaixo de 1280px, os blocos de 4 e 8 colunas ocupam a linha inteira.
 
 **Componentes**
 - `Painel`: cartão com cabeçalho (título à esquerda, ação ou link à direita).
-- `Kpi`: rótulo, número em serifa, detalhe; tom `alerta` com borda vermelha e texto.
+- `Kpi`: rótulo com linha embaixo, número em Inter leve, detalhe; tom `alerta` com borda vermelha e texto.
 - `Tabela`: cabeçalho fixo, números à direita com algarismos de largura fixa, ordenação pelo
   cabeçalho (`aria-sort`), linha clicável por mouse ou Enter, rodapé com total.
 - `TabelaLancamentos`: busca, filtros, ordenação, total do filtro e "mostrar mais" (100 por vez).
-- Gráficos: `ColunasMes` (12 meses, grade com valores redondos, valor ao passar o mouse, mês atual
-  destacado), `BarrasCategoria`, `UsoOrcamento` (barra + faixa em texto ("Tranquilo · 62%", "Atenção · 85%", "Estourou · 112%")). Todos com tabela
-  escondida para leitor de tela.
+- Gráficos: `LinhaMes` (linha suave de `componentes/GraficoLinha.tsx`, a mesma do celular, com grade
+  de valores redondos, total e pico do período, abas 3M / 6M / 1A, valor ao passar o mouse e tabela
+  escondida para leitor de tela), `BarrasCategoria` (barra colorida com valor na ponta), `UsoOrcamento`
+  (linha cheia do gasto sobre a tracejada do orçamento + faixa em texto ("Tranquilo · 62%",
+  "Atenção · 85%", "Estourou · 112%")). Em "Contas e saldos", a coluna Tendência traz o minigráfico
+  (`componentes/MiniGrafico.tsx`) e a variação dos últimos saldos.
 - Botões `d-botao` (`primario` branco cheio, uma ação principal por tela; `secundario` contorno;
   `fantasma`; `pequeno`; `largo`), cantos de 8px. Busca e filtros (`d-busca`, `d-select`, `d-segmentos`).
 - Selos de status reaproveitam `.selo` do celular.
 
-**Interação**: foco visível em azul-ciano; atalhos `N` (lançar custo) e `/` (buscar lançamentos), que não
+**Interação**: foco visível em verde; atalhos `N` (lançar custo) e `/` (buscar lançamentos), que não
 disparam com um campo ou janela abertos. Esc fecha gaveta e perguntas.
 
 ## Regra de manutenção

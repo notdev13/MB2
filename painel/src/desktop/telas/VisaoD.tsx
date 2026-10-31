@@ -1,13 +1,13 @@
 import { useMemo } from 'react';
 import { useDados } from '../../dados/contexto';
-import { gastoComOrcamento, porCategoria, resumirObra, resumoGeral, type ResumoObra } from '../../dominio/calculos';
+import { gastoComOrcamento, porCategoria, porMes, resumirObra, resumoGeral, type ResumoObra } from '../../dominio/calculos';
 import { mesAnterior, totalDoMes, variacao } from '../../dominio/consultas';
 import { EstadoVazio } from '../../componentes/EstadoVazio';
 import { dataBR, hoje, reais, reaisCurto } from '../../dominio/formato';
 import type { Custo } from '../../dominio/tipos';
 import { Kpi, Painel, SeloStatus, Variacao } from '../componentes/Base';
-import { BarrasCategoria, UsoOrcamento } from '../componentes/Graficos';
-import { Paineis } from '../../componentes/Paineis';
+import { corDaSerie } from '../../componentes/Graficos';
+import { BarrasCategoria, LinhaMes, UsoOrcamento } from '../componentes/Graficos';
 import { Tabela } from '../componentes/Tabela';
 import { irD, linkD } from '../rotas';
 import { ContasD } from './ContasD';
@@ -25,6 +25,7 @@ export function VisaoD({ aoNovaObra, aoLancar, aoAbrirCusto, aoAtualizarSaldo, a
     () => obras.filter((o) => ativas.has(o.id)).map((o) => resumirObra(o, custos)).sort((a, b) => b.gasto - a.gasto),
     [obras, custos, ativas],
   );
+  const meses = useMemo(() => porMes(custosAtivas, ref, 12), [custosAtivas, ref]);
   const fatias = useMemo(() => porCategoria(custosAtivas), [custosAtivas]);
   const mesAtual = ref.slice(0, 7);
   const anterior = totalDoMes(custos, mesAnterior(mesAtual));
@@ -55,13 +56,21 @@ export function VisaoD({ aoNovaObra, aoLancar, aoAbrirCusto, aoAtualizarSaldo, a
           detalhe={geral.estouradas > 0 ? `${geral.estouradas} acima do orçamento` : 'nenhuma acima do orçamento'} />
       </div>
 
-      <div className="span-12">
-        <Paineis aoAbrirObra={(id) => irD({ tela: 'obra', id })} aoAtualizarSaldo={() => aoAtualizarSaldo()} aoLancar={aoLancar} />
-      </div>
-
       <ContasD aoAtualizarSaldo={aoAtualizarSaldo} aoImportar={aoImportarExtrato} aoNovaConta={aoNovaConta} />
 
-      <Painel className="span-12" titulo="Obras em aberto" semPadding
+      <Painel className="span-8" titulo="Gasto por mês">
+        {custos.length === 0 ? (
+          <EstadoVazio icone="grafico" titulo="Ainda sem gastos"
+            texto="Lance o primeiro custo e o gráfico mês a mês aparece aqui. Atalho: tecle N.">
+            <button className="d-botao primario" onClick={aoLancar}>Lançar primeiro custo</button>
+          </EstadoVazio>
+        ) : <LinhaMes meses={meses} />}
+      </Painel>
+      <Painel className="span-4" titulo="Por categoria" acao={<span className="d-apagado">obras em aberto</span>}>
+        <BarrasCategoria fatias={fatias} />
+      </Painel>
+
+      <Painel className="span-8" titulo="Obras em aberto" semPadding
         acao={<a className="d-link" href={linkD({ tela: 'obras' })}>Ver todas</a>}>
         {resumos.length === 0 ? (
           <EstadoVazio icone="obras" titulo="Nenhuma obra em aberto"
@@ -74,20 +83,15 @@ export function VisaoD({ aoNovaObra, aoLancar, aoAbrirCusto, aoAtualizarSaldo, a
           colunas={[
             { chave: 'nome', titulo: 'Obra', render: (r) => <span className="d-corta forte">{r.obra.nome}</span> },
             { chave: 'status', titulo: 'Status', render: (r) => <SeloStatus status={r.obra.status} />, largura: '128px' },
-            { chave: 'uso', titulo: 'Orçamento', render: (r) => <UsoOrcamento gasto={r.gasto} orcamento={r.obra.orcamento} />, largura: '250px' },
-            { chave: 'ultimo', titulo: 'Último lanç.', render: (r) => dataBR(r.ultimoLancamento), largura: '108px' },
+            { chave: 'uso', titulo: 'Orçamento', render: (r) => <UsoOrcamento gasto={r.gasto} orcamento={r.obra.orcamento} cor={corDaSerie(resumos.indexOf(r))} />, largura: '250px' },
             { chave: 'gasto', titulo: 'Gasto', render: (r) => reais(r.gasto), numero: true, largura: '140px' },
           ]} />}
       </Painel>
 
-      <Painel className="span-4" titulo="Por categoria" acao={<span className="d-apagado">obras em aberto</span>}>
-        <BarrasCategoria fatias={fatias} />
-      </Painel>
-
-      <Painel className="span-8" titulo="Últimos lançamentos" semPadding
+      <Painel className="span-4" titulo="Últimos lançamentos" semPadding
         acao={<a className="d-link" href={linkD({ tela: 'lancamentos' })}>Ver todos</a>}>
         <ul className="d-recentes">
-          {custos.slice(0, 6).map((c) => (
+          {custos.slice(0, 8).map((c) => (
             <li key={c.id}>
               <button type="button" onClick={() => aoAbrirCusto(c)}>
                 <span>

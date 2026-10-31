@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BarraOrcamento } from '../componentes/Graficos';
+import { BarraOrcamento, corDaSerie } from '../componentes/Graficos';
 import { EstadoVazio } from '../componentes/EstadoVazio';
 import { useDados } from '../dados/contexto';
 import { resumirObra, situacaoOrcamento } from '../dominio/calculos';
@@ -40,7 +40,7 @@ export function Obras({ aoNovaObra }: { aoNovaObra: () => void }) {
             </EstadoVazio>
           )
         )}
-        {lista.map((o) => {
+        {lista.map((o, i) => {
           const r = resumirObra(o, custos);
           return (
             <button key={o.id} className={'cartao clicavel situacao-' + situacaoOrcamento(r.gasto, o.orcamento)} onClick={() => ir({ tela: 'obra', id: o.id })}>
@@ -51,7 +51,7 @@ export function Obras({ aoNovaObra }: { aoNovaObra: () => void }) {
                 </span>
               </div>
               {o.endereco && <div className="nota">{o.endereco}</div>}
-              <BarraOrcamento gasto={r.gasto} orcamento={o.orcamento} />
+              <BarraOrcamento gasto={r.gasto} orcamento={o.orcamento} cor={corDaSerie(i)} />
               <div className="linha nota">
                 <span>{reais(r.gasto)} gastos</span>
                 <span>

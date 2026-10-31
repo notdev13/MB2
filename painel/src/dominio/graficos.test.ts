@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { historicoSaldo, mesDoPico, totalDoPeriodo, usoLimitado, variacaoSerie } from './paineis';
+import { barrasOrcamento, historicoSaldo, mesDoPico, passoDaEscala, totalDoPeriodo, variacaoSerie } from './graficos';
 import type { SaldoConta } from './tipos';
 
 const saldo = (contaId: string, data: string, valor: number, criadoEm = '2026-10-01T10:00:00Z'): SaldoConta =>
@@ -39,11 +39,18 @@ describe('variacaoSerie', () => {
   });
 });
 
-describe('usoLimitado', () => {
-  it('fica entre 0 e 1', () => {
-    expect(usoLimitado(50, 100)).toBe(0.5);
-    expect(usoLimitado(150, 100)).toBe(1);
-    expect(usoLimitado(-5, 100)).toBe(0);
+describe('barrasOrcamento', () => {
+  it('dentro do orçamento, a tracejada é a largura toda', () => expect(barrasOrcamento(25, 100)).toEqual({ gasto: 0.25, orcamento: 1 }));
+  it('passou do orçamento, a cheia é a largura toda', () => expect(barrasOrcamento(200, 100)).toEqual({ gasto: 1, orcamento: 0.5 }));
+  it('sem valores, nada aparece', () => expect(barrasOrcamento(0, 0)).toEqual({ gasto: 0, orcamento: 0 }));
+  it('gasto negativo conta como zero', () => expect(barrasOrcamento(-5, 100)).toEqual({ gasto: 0, orcamento: 1 }));
+});
+
+describe('passoDaEscala', () => {
+  it('cai em 1, 2 ou 5 vezes potência de 10', () => {
+    expect(passoDaEscala(1000)).toBe(500);
+    expect(passoDaEscala(700)).toBe(200);
+    expect(passoDaEscala(30)).toBe(10);
   });
-  it('sem orçamento é 0', () => expect(usoLimitado(50, 0)).toBe(0));
+  it('sem valor, passo 1', () => expect(passoDaEscala(0)).toBe(1));
 });

@@ -1,9 +1,11 @@
-import { BarraOrcamento, PorCategoria } from '../componentes/Graficos';
-import { Paineis } from '../componentes/Paineis';
+import { BarraOrcamento, corDaSerie, GastoPorMes, PorCategoria } from '../componentes/Graficos';
 import { EstadoVazio } from '../componentes/EstadoVazio';
 import { Lancamentos } from '../componentes/Lancamentos';
+import { MiniGrafico, VariacaoSaldo } from '../componentes/MiniGrafico';
+import { TituloItalico } from '../componentes/TituloItalico';
 import { useDados } from '../dados/contexto';
-import { gastoComOrcamento, porCategoria, resumirObra, resumoGeral, situacaoOrcamento } from '../dominio/calculos';
+import { gastoComOrcamento, porCategoria, porMes, resumirObra, resumoGeral, situacaoOrcamento } from '../dominio/calculos';
+import { historicoSaldo } from '../dominio/graficos';
 import { hoje, porcentagem, reais, reaisCurto } from '../dominio/formato';
 import { contasComSaldo, sobraSePagarTudo, totalConsolidado, totalMB2 } from '../dominio/saldos';
 import type { Custo } from '../dominio/tipos';
@@ -72,9 +74,7 @@ export function Visao({ aoNovaObra, aoLancar, aoAbrirCusto, aoAtualizarSaldo, ao
         </div>
       )}
 
-      <Paineis aoAbrirObra={(id) => ir({ tela: 'obra', id })} aoAtualizarSaldo={aoAtualizarSaldo} aoLancar={aoLancar} />
-
-      <h2>Dinheiro em conta</h2>
+      <h2><TituloItalico texto="Dinheiro em conta" /></h2>
       {itensConta.every((i) => !i.saldo) ? (
         <EstadoVazio icone="recibo" titulo="Dinheiro em conta"
           texto="Ainda não sei quanto tem em conta. Digite o saldo de hoje.">
@@ -94,6 +94,7 @@ export function Visao({ aoNovaObra, aoLancar, aoAbrirCusto, aoAtualizarSaldo, ao
               const obra = conta.obraId ? obras.find((o) => o.id === conta.obraId) : undefined;
               const r = obra ? resumirObra(obra, custos) : null;
               const sobra = obra ? sobraSePagarTudo(obra, itensConta, custos) : null;
+              const serie = historicoSaldo(conta.id, saldos);
               return (
                 <div key={conta.id} className="conta-item">
                   <div className="linha">
@@ -102,6 +103,12 @@ export function Visao({ aoNovaObra, aoLancar, aoAbrirCusto, aoAtualizarSaldo, ao
                       {saldo ? <>{saldo.valor < 0 && '⚠ Negativo: '}{reais(saldo.valor)}</> : 'Sem saldo digitado'}
                     </span>
                   </div>
+                  {serie.length > 1 && (
+                    <div className="conta-tendencia">
+                      <MiniGrafico serie={serie} />
+                      <VariacaoSaldo serie={serie} />
+                    </div>
+                  )}
                   <div className="nota">
                     {dias === null
                       ? 'Digite o saldo para acompanhar.'
@@ -131,7 +138,7 @@ export function Visao({ aoNovaObra, aoLancar, aoAbrirCusto, aoAtualizarSaldo, ao
         </div>
       )}
 
-      <h2>Obras em aberto</h2>
+      <h2><TituloItalico texto="Obras em aberto" /></h2>
       <div className="lista">
         {ativas.length === 0 && (
           <EstadoVazio icone="obras" titulo="Nenhuma obra em aberto"
@@ -140,13 +147,13 @@ export function Visao({ aoNovaObra, aoLancar, aoAbrirCusto, aoAtualizarSaldo, ao
             <a className="botao secundario" href="#/obras">Ver todas as obras</a>
           </EstadoVazio>
         )}
-        {ativas.map((r) => (
+        {ativas.map((r, i) => (
           <button key={r.obra.id} className={'cartao clicavel situacao-' + situacaoOrcamento(r.gasto, r.obra.orcamento)} onClick={() => ir({ tela: 'obra', id: r.obra.id })}>
             <div className="linha">
               <strong>{r.obra.nome}</strong>
               <span className="valor">{reais(r.gasto)}</span>
             </div>
-            <BarraOrcamento gasto={r.gasto} orcamento={r.obra.orcamento} />
+            <BarraOrcamento gasto={r.gasto} orcamento={r.obra.orcamento} cor={corDaSerie(i)} />
             <div className="nota">
               {r.obra.orcamento > 0
                 ? r.saldo < 0
@@ -159,12 +166,22 @@ export function Visao({ aoNovaObra, aoLancar, aoAbrirCusto, aoAtualizarSaldo, ao
         ))}
       </div>
 
+      <h2><TituloItalico texto="Gasto por mês" /></h2>
+      {custos.length === 0 ? (
+        <EstadoVazio icone="grafico" titulo="Ainda sem gastos"
+          texto="Lance o primeiro custo e o gráfico mês a mês aparece aqui.">
+          <button className="botao" onClick={aoLancar}>Lançar primeiro custo</button>
+        </EstadoVazio>
+      ) : (
+        <div className="cartao"><GastoPorMes meses={porMes(custos, ref, 12)} /></div>
+      )}
+
       {custos.length > 0 && (
         <>
-          <h2>Para onde vai o dinheiro</h2>
+          <h2><TituloItalico texto="Para onde vai o dinheiro" /></h2>
           <div className="cartao"><PorCategoria fatias={porCategoria(custos)} /></div>
 
-          <h2>Últimos lançamentos</h2>
+          <h2><TituloItalico texto="Últimos lançamentos" /></h2>
           <Lancamentos custos={custos.slice(0, 6)} nomeObra={nomeObra} aoAbrir={aoAbrirCusto} agrupar={false} />
         </>
       )}
