@@ -360,3 +360,7 @@ h2.centro { text-align: center; }
 .print-resultado img { max-width: 100%; max-height: 160px; object-fit: contain; border-radius: 8px; background: var(--carbon); }
 
 h1 i, .d-cabecalho h1 i { font-style: italic; }
+/* Login no celular: logo, título, textos e rótulos centralizados (computador fica como está) */
+.porteiro:not(.dk .porteiro) .porteiro-cartao { text-align: center; }
+.porteiro:not(.dk .porteiro) .porteiro-logo { margin-left: auto; margin-right: auto; }
+.porteiro:not(.dk .porteiro) .campo > label { padding-left: 0; text-align: center; }
