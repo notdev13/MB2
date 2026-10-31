@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 // Tema escuro (padrão da marca) ou claro. Sem escolha salva, segue o iPhone.
 export type Tema = 'claro' | 'escuro';
 const CHAVE = 'mb2-tema';
-const COR_BARRA: Record<Tema, string> = { claro: '#f7f6f2', escuro: '#08080a' };
+const COR_BARRA: Record<Tema, string> = { claro: '#f7f6f2', escuro: '#0f1011' };
 
 function inicial(): Tema {
   try {

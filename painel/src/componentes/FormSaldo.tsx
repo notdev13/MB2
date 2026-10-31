@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useDados } from '../dados/contexto';
 import { dataBR, hoje, reais } from '../dominio/formato';
 import { lerSaldo, mudancaGrande, saldoAtual } from '../dominio/saldos';
+import { valorParaCampo, type CandidatoPrint, type LeituraPrint } from '../dominio/saldoPrint';
 import { useAviso } from './Aviso';
 import { useConfirmar } from './Confirmar';
 import { Folha } from './Folha';
+import { lerSaldoDoPrint, miniaturaDoPrint } from './lerPrint';
 
 // "Atualizar saldo": digita quanto tem na conta numa data. Cada vez vira uma conferência nova.
 export function FormSaldo({ contaId, aoFechar }: { contaId?: string; aoFechar: () => void }) {
@@ -18,6 +20,28 @@ export function FormSaldo({ contaId, aoFechar }: { contaId?: string; aoFechar: (
   const [obs, setObs] = useState('');
   const [tentou, setTentou] = useState(false);
   const [salvando, setSalvando] = useState(false);
+  // "Ler do print": a foto só existe aqui, na memória; nada é enviado nem guardado.
+  const entradaPrint = useRef<HTMLInputElement>(null);
+  const [print, setPrint] = useState<{ url: string; estado: 'lendo' | 'lido' | 'erro'; leitura?: LeituraPrint; erro?: string } | null>(null);
+
+  function usarCandidato(c: CandidatoPrint) {
+    setValor(valorParaCampo(c.valor));
+    setData(hoje()); // o print é tirado na hora: vale a data de hoje
+    setObs((o) => o || 'Lido do print');
+  }
+
+  async function lerPrint(arquivo: File | undefined) {
+    if (!arquivo) return;
+    setPrint({ url: await miniaturaDoPrint(arquivo).catch(() => ''), estado: 'lendo' });
+    const r = await lerSaldoDoPrint(arquivo);
+    if (entradaPrint.current) entradaPrint.current.value = '';
+    if (!r.ok) {
+      setPrint((p) => p && { ...p, estado: 'erro', erro: r.erro });
+      return;
+    }
+    setPrint((p) => p && { ...p, estado: 'lido', leitura: r.leitura });
+    if (r.leitura.sugerido) usarCandidato(r.leitura.sugerido);
+  }
 
   const centavos = lerSaldo(valor);
   const erroValor = centavos === null ? 'Digite um valor válido, até R$ 999.999.999,99. Use o sinal de menos se a conta estiver no vermelho.' : null;
@@ -66,6 +90,42 @@ export function FormSaldo({ contaId, aoFechar }: { contaId?: string; aoFechar: (
 
   return (
     <Folha titulo="Atualizar saldo" aoFechar={aoFechar}>
+      <div className="print-saldo">
+        <input ref={entradaPrint} type="file" accept="image/*" hidden onChange={(e) => lerPrint(e.target.files?.[0])} />
+        <button type="button" className="botao secundario cheio" disabled={print?.estado === 'lendo'}
+          onClick={() => entradaPrint.current?.click()}>
+          {print?.estado === 'lendo' ? 'Lendo o print…' : 'Ler o saldo de um print'}
+        </button>
+        <p className="nota">Tire um print só do saldo e escolha a imagem. Ela é lida neste aparelho e não é guardada.</p>
+        {print && (
+          <div className="cartao print-resultado" aria-live="polite">
+            {print.url && <img src={print.url} alt="Print escolhido" />}
+            {print.estado === 'lendo' && <p className="nota">Lendo… na primeira vez demora um pouco mais.</p>}
+            {print.estado === 'erro' && <p className="aviso" role="alert">{print.erro}</p>}
+            {print.estado === 'lido' && print.leitura && (
+              print.leitura.candidatos.length === 0
+                ? <p className="aviso" role="alert">Não achei um valor com centavos neste print. Tire outro, só com o saldo, ou digite abaixo.</p>
+                : (
+                  <>
+                    <p className={print.leitura.sugerido && !print.leitura.incerto ? 'nota' : 'aviso'}>
+                      {print.leitura.sugerido
+                        ? `Li ${reais(print.leitura.sugerido.valor)} e coloquei abaixo. Confira com a imagem antes de salvar.`
+                        : print.leitura.incerto
+                          ? 'A leitura ficou incerta. Escolha o valor certo (ou digite) conferindo com a imagem.'
+                          : 'Achei mais de um valor. Toque no saldo da conta.'}
+                    </p>
+                    <div className="chips" role="group" aria-label="Valores encontrados no print">
+                      {print.leitura.candidatos.slice(0, 6).map((c) => (
+                        <button key={c.valor} type="button" className="chip" aria-pressed={centavos === c.valor}
+                          onClick={() => usarCandidato(c)}>{reais(c.valor)}</button>
+                      ))}
+                    </div>
+                  </>
+                )
+            )}
+          </div>
+        )}
+      </div>
       <form onSubmit={(e) => { e.preventDefault(); salvar(); }} noValidate>
         <label className="campo">
           <span>Conta</span>

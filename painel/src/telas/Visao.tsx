@@ -1,8 +1,9 @@
-import { BarraOrcamento, GastoPorMes, PorCategoria } from '../componentes/Graficos';
+import { BarraOrcamento, PorCategoria } from '../componentes/Graficos';
+import { Paineis } from '../componentes/Paineis';
 import { EstadoVazio } from '../componentes/EstadoVazio';
 import { Lancamentos } from '../componentes/Lancamentos';
 import { useDados } from '../dados/contexto';
-import { gastoComOrcamento, porCategoria, porMes, resumirObra, resumoGeral, situacaoOrcamento } from '../dominio/calculos';
+import { gastoComOrcamento, porCategoria, resumirObra, resumoGeral, situacaoOrcamento } from '../dominio/calculos';
 import { hoje, porcentagem, reais, reaisCurto } from '../dominio/formato';
 import { contasComSaldo, sobraSePagarTudo, totalConsolidado, totalMB2 } from '../dominio/saldos';
 import type { Custo } from '../dominio/tipos';
@@ -70,6 +71,8 @@ export function Visao({ aoNovaObra, aoLancar, aoAbrirCusto, aoAtualizarSaldo, ao
           Atenção: {perto} obra{perto === 1 ? ' está' : 's estão'} perto do limite do orçamento.
         </div>
       )}
+
+      <Paineis aoAbrirObra={(id) => ir({ tela: 'obra', id })} aoAtualizarSaldo={aoAtualizarSaldo} aoLancar={aoLancar} />
 
       <h2>Dinheiro em conta</h2>
       {itensConta.every((i) => !i.saldo) ? (
@@ -155,16 +158,6 @@ export function Visao({ aoNovaObra, aoLancar, aoAbrirCusto, aoAtualizarSaldo, ao
           </button>
         ))}
       </div>
-
-      <h2>Gasto por mês</h2>
-      {custos.length === 0 ? (
-        <EstadoVazio icone="grafico" titulo="Ainda sem gastos"
-          texto="Lance o primeiro custo e o gráfico mês a mês aparece aqui.">
-          <button className="botao" onClick={aoLancar}>Lançar primeiro custo</button>
-        </EstadoVazio>
-      ) : (
-        <div className="cartao"><GastoPorMes meses={porMes(custos, ref)} /></div>
-      )}
 
       {custos.length > 0 && (
         <>
