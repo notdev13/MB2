@@ -1,3 +1,4 @@
+import { TituloItalico } from '../componentes/TituloItalico';
 import { useCallback, useEffect, useState } from 'react';
 import { AvisoProvider } from '../componentes/Aviso';
 import { ConfirmarProvider } from '../componentes/Confirmar';
@@ -148,7 +149,7 @@ function Casca() {
                   <span aria-current="page">{titulo}</span>
                 </nav>
               )}
-              <h1>{titulo}</h1>
+              <h1>{rota.tela === 'obra' ? titulo : <TituloItalico texto={titulo} />}</h1>
               {rota.tela === 'obra' && obraAtual
                 ? <p className="d-sub"><SeloStatus status={obraAtual.status} />{obraAtual.endereco && <span>{obraAtual.endereco}</span>}</p>
                 : subtitulo && <p className="d-sub">{subtitulo}</p>}

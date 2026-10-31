@@ -1,3 +1,4 @@
+import { TituloItalico } from './componentes/TituloItalico';
 import { useCallback, useEffect, useState } from 'react';
 import { AvisoProvider } from './componentes/Aviso';
 import { ConfirmarProvider } from './componentes/Confirmar';
@@ -73,7 +74,7 @@ function Conteudo() {
             </div>
           )}
         </header>
-        {rota.tela !== 'obra' && <h1 style={{ marginBottom: 16 }}>{TITULOS[rota.tela]}</h1>}
+        {rota.tela !== 'obra' && <h1 style={{ marginBottom: 16 }}><TituloItalico texto={TITULOS[rota.tela]} /></h1>}
 
         {erro && <div className="aviso" role="alert">{erro}</div>}
         {!carregando && !erro && (

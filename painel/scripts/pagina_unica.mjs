@@ -4,7 +4,7 @@
 //
 // Uso:  npm run build && node scripts/pagina_unica.mjs saida.html [backup.json]
 import { readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 
 const [saida, semente] = process.argv.slice(2);
 if (!saida) {
@@ -25,7 +25,11 @@ css = css.replace(/url\(([^)]+\.woff2)\)/g, (_, rel) => {
   return `url(data:font/woff2;base64,${readFileSync(arquivo).toString('base64')})`;
 });
 
-const js = readFileSync(join(dist, jsArq), 'utf8').replace(/<\/script/gi, '<\\/script');
+// Pedaços que a entrada importa direto (ex.: o runtime do empacotador) entram como data URI,
+// porque a página única não tem servidor para buscar outros arquivos.
+const embutir = (arquivo) => readFileSync(join(dist, dirname(jsArq), arquivo), 'utf8')
+  .replace(/from\s*"\.\/([^"]+\.js)"/g, (_, dep) => `from"data:text/javascript;base64,${Buffer.from(embutir(dep)).toString('base64')}"`);
+const js = embutir(basename(jsArq)).replace(/<\/script/gi, '<\\/script');
 const dados = semente
   ? `<script>window.__MB2_SEMENTE__ = ${readFileSync(semente, 'utf8').replace(/</g, '\\u003c')};</script>\n`
   : '';
@@ -39,7 +43,7 @@ writeFileSync(
 <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
 <meta name="referrer" content="no-referrer">
 <title>Painel MB²</title>
-<meta name="theme-color" content="#08080a">
+<meta name="theme-color" content="#0f1011">
 <style>${css}</style>
 <div id="raiz"></div>
 ${dados}<script type="module">${js}</script>

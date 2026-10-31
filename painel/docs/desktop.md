@@ -34,9 +34,13 @@ src/
 
 ## Design system
 
-Parte da identidade do celular (DESIGN 15): fundo quase preto, serifa Cormorant Garamond em
-títulos e números grandes, Manrope na interface, cobre só nas categorias, dourado só nos gráficos,
-pílulas, bordas finas, sem sombra. Temas escuro e claro usam os mesmos tokens de cor de `estilo.css`.
+Parte da identidade do celular (DESIGN 22, out/2026): fundo quase preto (#0f1011), serifa leve
+Playfair Display em títulos e números grandes (primeira palavra do título em itálico), Inter na
+interface, Roboto Mono maiúsculo em rótulos e cabeçalhos de tabela, azul-ciano (`--dado`) só em
+gráficos e barras, cores fortes (violeta, rosa, azul) só nas obras dos painéis. Botões e campos com
+cantos de 8px, cartões de 16px, bordas finas; a única sombra é a do botão principal. Temas escuro e
+claro usam os mesmos tokens de cor de `estilo.css`. A Visão geral abre com os painéis de
+`componentes/Paineis.tsx` (os mesmos do celular), dois por linha.
 
 O que é próprio do desktop:
 
@@ -44,12 +48,12 @@ O que é próprio do desktop:
 |---|---|---|
 | `--d-lateral` | 256px | largura do menu lateral |
 | `--d-margem` | 40px | margem lateral da página |
-| `--d-vao` | 20px | espaço entre cartões da grade |
+| `--d-vao` | 12px | espaço entre cartões da grade |
 | `--d-largura-max` | 1480px | largura máxima do conteúdo |
-| `--d-raio` / `--d-raio-p` | 12px / 8px | cartões / itens de menu |
+| `--d-raio` / `--d-raio-p` | 16px / 8px | cartões / itens de menu |
 | `--d-corpo` | 14px | texto padrão (mais denso que os 16px do celular) |
-| `--d-titulo` | 44px serifa | título da página |
-| `--d-kpi` | 32px serifa | número dos indicadores |
+| `--d-titulo` | 64px serifa leve | título da página |
+| `--d-kpi` | 38px serifa leve | número dos indicadores |
 | `--d-linha` | 46px | altura da linha de tabela |
 
 **Layout**: menu lateral fixo + conteúdo com grade de 12 colunas (`.d-grade-12`, `.span-4/6/8/12`).
@@ -65,10 +69,10 @@ Abaixo de 1280px, os blocos de 4 e 8 colunas ocupam a linha inteira.
   destacado), `BarrasCategoria`, `UsoOrcamento` (barra + faixa em texto ("Tranquilo · 62%", "Atenção · 85%", "Estourou · 112%")). Todos com tabela
   escondida para leitor de tela.
 - Botões `d-botao` (`primario` branco cheio, uma ação principal por tela; `secundario` contorno;
-  `fantasma`; `pequeno`; `largo`). Filtros em pílula (`d-busca`, `d-select`, `d-segmentos`).
+  `fantasma`; `pequeno`; `largo`), cantos de 8px. Busca e filtros (`d-busca`, `d-select`, `d-segmentos`).
 - Selos de status reaproveitam `.selo` do celular.
 
-**Interação**: foco visível em cobre; atalhos `N` (lançar custo) e `/` (buscar lançamentos), que não
+**Interação**: foco visível em azul-ciano; atalhos `N` (lançar custo) e `/` (buscar lançamentos), que não
 disparam com um campo ou janela abertos. Esc fecha gaveta e perguntas.
 
 ## Regra de manutenção
