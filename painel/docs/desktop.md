@@ -65,7 +65,7 @@ Abaixo de 1280px, os blocos de 4 e 8 colunas ocupam a linha inteira.
 - `Kpi`: rótulo com linha embaixo, número em Inter leve, detalhe; tom `alerta` com borda vermelha e texto.
 - `Tabela`: cabeçalho fixo, números à direita com algarismos de largura fixa, ordenação pelo
   cabeçalho (`aria-sort`), linha clicável por mouse ou Enter, rodapé com total.
-- `TabelaLancamentos`: busca, filtros, ordenação, total do filtro e "mostrar mais" (100 por vez).
+- `TabelaLancamentos`: busca, filtros, ordenação, total do filtro e "mostrar mais" (100 por vez). Botões **Exportar Excel** (.xlsx com abas Lançamentos, Resumo por obra e Por categoria) e **CSV** baixam tudo o que está filtrado (`dominio/exportacao.ts`, `dominio/xlsx.ts`, sem biblioteca). A cópia automática no Google Planilhas está em `docs/planilha-google.md`.
 - Gráficos: `LinhaMes` (linha suave de `componentes/GraficoLinha.tsx`, a mesma do celular, com grade
   de valores redondos, total e pico do período, abas 3M / 6M / 1A, valor ao passar o mouse e tabela
   escondida para leitor de tela), `BarrasCategoria` (barra colorida com valor na ponta), `UsoOrcamento`

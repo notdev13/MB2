@@ -75,6 +75,33 @@ revoke all on public.painel_membros from anon;
 grant select, insert, update on public.painel_registros to authenticated;
 grant select on public.painel_membros to authenticated;
 
+-- 5) Leitor da planilha do Google (somente leitura). A planilha espelho entra com um usuário
+--    próprio, que só enxerga os registros: não consegue lançar, alterar nem apagar nada.
+create table if not exists public.painel_leitores (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  criado_em timestamptz not null default now()
+);
+
+create or replace function public.painel_e_leitor() returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.painel_leitores where user_id = auth.uid());
+$$;
+
+alter table public.painel_leitores enable row level security;
+
+drop policy if exists painel_registros_leitores on public.painel_registros;
+create policy painel_registros_leitores on public.painel_registros
+  for select to authenticated
+  using (public.painel_e_leitor());
+
+drop policy if exists painel_leitores_proprio on public.painel_leitores;
+create policy painel_leitores_proprio on public.painel_leitores
+  for select to authenticated
+  using (user_id = auth.uid());
+
+revoke all on public.painel_leitores from anon;
+grant select on public.painel_leitores to authenticated;
+
 -- ============================================================================
 -- DEPOIS de rodar o script acima: crie cada usuário em Authentication > Users
 -- (Add user > Create new user, marcando "Auto Confirm User") e autorize o e-mail
@@ -82,6 +109,12 @@ grant select on public.painel_membros to authenticated;
 --
 --   insert into public.painel_membros (user_id)
 --   select id from auth.users where email = 'email-da-pessoa@exemplo.com'
+--   on conflict (user_id) do nothing;
+--
+-- Para o usuário da planilha do Google (só leitura), crie-o do mesmo jeito e rode:
+--
+--   insert into public.painel_leitores (user_id)
+--   select id from auth.users where email = 'planilha@exemplo.com'
 --   on conflict (user_id) do nothing;
 --
 -- Para conferir quem está autorizado (mostra só e-mails):

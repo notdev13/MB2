@@ -1,4 +1,8 @@
 import { useMemo, useState } from 'react';
+import { baixarArquivo } from '../../dados/baixar';
+import { custosEmCsv } from '../../dados/backup';
+import { useDados } from '../../dados/contexto';
+import { planilhaXlsx } from '../../dominio/exportacao';
 import { soma } from '../../dominio/calculos';
 import { filtrarCustos, ordenarCustos, type CampoOrdem, type FiltroCustos, type Situacao } from '../../dominio/consultas';
 import { dataBR, reais } from '../../dominio/formato';
@@ -19,6 +23,7 @@ export function TabelaLancamentos({ custos, obras, aoAbrir, idBusca }: {
   const [filtro, setFiltro] = useState<FiltroCustos>({ situacao: 'todos' });
   const [ordem, setOrdem] = useState<Ordem>({ chave: 'data', direcao: 'desc' });
   const [limite, setLimite] = useState(POR_PAGINA);
+  const { obras: todasObras } = useDados();
 
   const mudar = (f: Partial<FiltroCustos>) => {
     setFiltro((atual) => ({ ...atual, ...f }));
@@ -31,6 +36,19 @@ export function TabelaLancamentos({ custos, obras, aoAbrir, idBusca }: {
   const nomeObra = useMemo(() => new Map(obras?.map((o) => [o.id, o.nome])), [obras]);
   const temFiltro = !!(filtro.obraId || filtro.categoria || filtro.de || filtro.ate || filtro.busca ||
     (filtro.situacao && filtro.situacao !== 'todos'));
+
+  // Exporta exatamente o que está filtrado na tela (todos, não só os 100 mostrados).
+  const exportar = (formato: 'xlsx' | 'csv') => {
+    const hoje = new Date().toISOString().slice(0, 10);
+    const sufixo = temFiltro ? '-filtrado' : '';
+    if (formato === 'xlsx') {
+      baixarArquivo(`mb2-lancamentos${sufixo}-${hoje}.xlsx`, planilhaXlsx(filtrados, todasObras),
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    } else {
+      const nomes = new Map(todasObras.map((o) => [o.id, o.nome]));
+      baixarArquivo(`mb2-lancamentos${sufixo}-${hoje}.csv`, custosEmCsv(filtrados, (id) => nomes.get(id) ?? ''), 'text/csv;charset=utf-8');
+    }
+  };
 
   const colunas: Coluna<Custo>[] = [
     { chave: 'data', titulo: 'Data', render: (c) => dataBR(c.data), largura: '104px', ordenavel: true },
@@ -71,6 +89,12 @@ export function TabelaLancamentos({ custos, obras, aoAbrir, idBusca }: {
           <input type="date" className="d-select" value={filtro.de ?? ''} onChange={(e) => mudar({ de: e.target.value || undefined })} aria-label="De" />
           <span>até</span>
           <input type="date" className="d-select" value={filtro.ate ?? ''} onChange={(e) => mudar({ ate: e.target.value || undefined })} aria-label="Até" />
+        </span>
+        <span className="d-exportar" role="group" aria-label="Exportar o que está na tela">
+          <button type="button" className="d-botao secundario pequeno" disabled={!filtrados.length} onClick={() => exportar('xlsx')}
+            title={`Baixar ${filtrados.length} lançamento(s) em planilha Excel`}>Exportar Excel</button>
+          <button type="button" className="d-botao fantasma pequeno" disabled={!filtrados.length} onClick={() => exportar('csv')}
+            title="Baixar em CSV (Excel, Google Planilhas)">CSV</button>
         </span>
         {temFiltro && (
           <button type="button" className="d-botao fantasma pequeno" onClick={() => { setFiltro({ situacao: 'todos' }); setLimite(POR_PAGINA); }}>

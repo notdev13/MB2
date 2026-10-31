@@ -124,6 +124,8 @@
 .d-select:focus { outline: none; border-color: var(--white); }
 .d-periodo { display: inline-flex; align-items: center; gap: 6px; color: var(--fog); font-size: 13px; }
 .d-periodo .d-select { width: 148px; }
+.d-exportar { display: inline-flex; gap: 4px; margin-left: auto; }
+.d-botao:disabled { opacity: 0.4; cursor: default; }
 .d-segmentos { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--graphite); border-radius: 9999px; background: var(--carbon); }
 .d-segmentos button { border: 0; background: none; color: var(--fog); padding: 6px 12px; border-radius: 9999px; font-size: 13px; font-weight: 500;
   display: inline-flex; gap: 6px; align-items: center; }
