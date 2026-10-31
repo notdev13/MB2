@@ -56,7 +56,7 @@
 .d-trilha a:hover { color: var(--white); }
 .d-trilha [aria-current] { color: var(--mist); }
 .d-pagina { padding-bottom: 64px; }
-.d-coluna-estreita { max-width: 720px; }
+.d-coluna-estreita { max-width: 720px; margin-left: auto; margin-right: auto; }
 
 /* Grade de 12 colunas */
 .d-grade-12 { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: var(--d-vao); align-items: stretch; }
