@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { criarRepositorioLocal } from './indexeddb';
 import type { Nuvem } from './nuvem';
 import type { RegistroNuvem } from './repositorio';
-import { sincronizar } from './sincronizacao';
+import { ExclusaoEmMassa, exclusaoEmMassa, sincronizar } from './sincronizacao';
 import type { NovaObra, NovoCusto } from '../dominio/tipos';
 import { validarBackup } from './backup';
 
@@ -278,5 +278,59 @@ describe('sincronização de contas e saldos', () => {
     await sincronizar(b, nuvem);
     expect(await b.listarContas()).toEqual([c]);
     expect(await b.listarSaldos()).toEqual([s]);
+  });
+});
+
+describe('proteção contra apagar tudo', () => {
+  async function aparelhoCom(n: number, nuvem: ReturnType<typeof nuvemFalsa>) {
+    const repo = criarRepositorioLocal(new IDBFactory());
+    const o = await repo.salvarObra(novaObra);
+    for (let i = 0; i < n; i++) await repo.salvarCusto(novoCusto(o.id, (i + 1) * 100));
+    await sincronizar(repo, nuvem);
+    return { repo, obra: o };
+  }
+
+  it('exclusaoEmMassa: poucos ou minoria não contam', () => {
+    expect(exclusaoEmMassa(9, 9)).toBe(false);
+    expect(exclusaoEmMassa(10, 30)).toBe(false);
+    expect(exclusaoEmMassa(10, 20)).toBe(true);
+  });
+
+  it('não envia para a nuvem a exclusão de quase tudo sem confirmação', async () => {
+    const nuvem = nuvemFalsa();
+    const { repo, obra } = await aparelhoCom(20, nuvem);
+    await espera();
+    await repo.excluirObra(obra.id); // leva junto os 20 custos
+    await expect(sincronizar(repo, nuvem)).rejects.toBeInstanceOf(ExclusaoEmMassa);
+    expect([...nuvem.linhas.values()].filter((l) => l.excluido)).toHaveLength(0);
+    await sincronizar(repo, nuvem, { confirmarExclusao: true });
+    expect([...nuvem.linhas.values()].filter((l) => l.excluido)).toHaveLength(21);
+  });
+
+  it('não apaga este aparelho quando a nuvem manda apagar quase tudo', async () => {
+    const nuvem = nuvemFalsa();
+    const { repo: iphone } = await aparelhoCom(20, nuvem);
+    const pc = criarRepositorioLocal(new IDBFactory());
+    await sincronizar(pc, nuvem);
+    await espera();
+    const [o] = await pc.listarObras();
+    await pc.excluirObra(o.id);
+    await sincronizar(pc, nuvem, { confirmarExclusao: true });
+    const erro = await sincronizar(iphone, nuvem).catch((e) => e);
+    expect(erro).toBeInstanceOf(ExclusaoEmMassa);
+    expect(erro.direcao).toBe('receber');
+    expect(await iphone.listarCustos()).toHaveLength(20);
+    // a marca não avança: a próxima rodada pergunta de novo
+    await expect(sincronizar(iphone, nuvem)).rejects.toBeInstanceOf(ExclusaoEmMassa);
+    await sincronizar(iphone, nuvem, { confirmarExclusao: true });
+    expect(await iphone.listarCustos()).toHaveLength(0);
+  });
+
+  it('excluir poucos lançamentos segue normal', async () => {
+    const nuvem = nuvemFalsa();
+    const { repo } = await aparelhoCom(20, nuvem);
+    const custos = await repo.listarCustos();
+    for (const c of custos.slice(0, 3)) await repo.excluirCusto(c.id);
+    expect((await sincronizar(repo, nuvem)).enviados).toBe(3);
   });
 });

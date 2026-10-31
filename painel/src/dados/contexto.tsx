@@ -5,7 +5,7 @@ import { validarBackup } from './backup';
 import { criarRepositorioLocal, type RepositorioLocal } from './indexeddb';
 import { ErroNuvem, nuvemDoBuild, type Nuvem } from './nuvem';
 import type { Backup, Repositorio } from './repositorio';
-import { sincronizar } from './sincronizacao';
+import { ExclusaoEmMassa, sincronizar } from './sincronizacao';
 import { limparSessaoLocal } from './sessaoLocal';
 import { gravarUltima, lerUltima } from './ultimaSincronizacao';
 
@@ -16,6 +16,9 @@ export interface EstadoNuvem {
   ultimaVez: string | null; // ISO da última sincronização completa
   pendentes: number; // mudanças daqui que ainda não subiram
   erro: string | null;
+  // A última rodada parou porque ia apagar a maior parte dos dados de uma vez (ver sincronizacao.ts).
+  exclusaoEmMassa: { direcao: 'enviar' | 'receber'; quantidade: number } | null;
+  confirmarExclusao(): Promise<void>;
   entrar(email: string, senha: string): Promise<void>;
   sair(): Promise<void>;
   sincronizarAgora(): Promise<void>;
@@ -93,6 +96,8 @@ export function DadosProvider({ children, repo, nuvem: nuvemDada }: {
   const [ultimaVez, setUltimaVez] = useState(() => lerUltima());
   const [pendentes, setPendentes] = useState(0);
   const [erroNuvem, setErroNuvem] = useState<string | null>(null);
+  const [emMassa, setEmMassa] = useState<EstadoNuvem['exclusaoEmMassa']>(null);
+  const confirmar = useRef(false);
   const rodando = useRef<Promise<void> | null>(null);
   const deNovo = useRef(false);
   const agendado = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -110,15 +115,19 @@ export function DadosProvider({ children, repo, nuvem: nuvemDada }: {
       try {
         do {
           deNovo.current = false;
-          const r = await sincronizar(repositorio, nuvem);
+          const confirmarExclusao = confirmar.current;
+          confirmar.current = false;
+          const r = await sincronizar(repositorio, nuvem, { confirmarExclusao });
           if (r.recebidos) await recarregar();
         } while (deNovo.current);
         const agora = new Date().toISOString();
         gravarUltima(agora);
         setUltimaVez(agora);
         setErroNuvem(null);
+        setEmMassa(null);
       } catch (e) {
-        setErroNuvem(e instanceof ErroNuvem ? e.message : 'Não foi possível sincronizar: ' + String(e));
+        if (e instanceof ExclusaoEmMassa) setEmMassa({ direcao: e.direcao, quantidade: e.quantidade });
+        setErroNuvem(e instanceof ErroNuvem || e instanceof ExclusaoEmMassa ? e.message : 'Não foi possível sincronizar: ' + String(e));
       } finally {
         setEmail(nuvem.email());
         setSincronizando(false);
@@ -159,6 +168,11 @@ export function DadosProvider({ children, repo, nuvem: nuvemDada }: {
     ultimaVez,
     pendentes,
     erro: erroNuvem,
+    exclusaoEmMassa: emMassa,
+    async confirmarExclusao() {
+      confirmar.current = true;
+      await rodar();
+    },
     async entrar(e, senha) {
       if (!nuvem) return;
       await nuvem.entrar(e, senha);
