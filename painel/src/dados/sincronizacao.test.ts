@@ -107,7 +107,7 @@ describe('sincronização entre aparelhos', () => {
     const o = await iphone.salvarObra(novaObra);
     const fila = await iphone.pendentes();
     await espera();
-    await iphone.salvarObra({ ...novaObra, nome: 'Lote 39 Geminadas' }, o.id);
+    await iphone.salvarObra({ ...novaObra, nome: 'Jardim Campeche Geminada 39' }, o.id);
     await iphone.confirmarEnvio(fila);
     expect(await iphone.pendentes()).toHaveLength(1);
   });
