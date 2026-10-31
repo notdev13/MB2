@@ -195,7 +195,7 @@ export function Ajustes({ tema, alternarTema }: { tema: Tema; alternarTema: () =
 
   return (
     <>
-      <h2 style={{ marginTop: 0 }}>Aparência</h2>
+      <h2 className="titulo-centro" style={{ marginTop: 0 }}>Aparência</h2>
       <label className="alternar">
         <span>Tema claro</span>
         <input type="checkbox" checked={tema === 'claro'} onChange={alternarTema} />

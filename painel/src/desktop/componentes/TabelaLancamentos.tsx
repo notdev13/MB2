@@ -63,44 +63,47 @@ export function TabelaLancamentos({ custos, obras, aoAbrir, idBusca }: {
 
   return (
     <>
-      <div className="d-filtros" role="search">
-        <label className="d-busca">
+      <div className={'d-filtros-grade' + (obras ? '' : ' sem-obra')} role="search">
+        <label className="d-campo d-busca-campo">
           <IconeD nome="busca" tamanho={16} />
-          <input id={idBusca} type="search" placeholder="Buscar descrição ou fornecedor" value={filtro.busca ?? ''}
+          <input id={idBusca} type="search" placeholder="Descrição ou fornecedor" value={filtro.busca ?? ''}
             onChange={(e) => mudar({ busca: e.target.value })} aria-label="Buscar lançamentos" />
         </label>
         {obras && (
-          <select className="d-select" value={filtro.obraId ?? ''} onChange={(e) => mudar({ obraId: e.target.value || undefined })} aria-label="Obra">
+          <select className="d-campo" value={filtro.obraId ?? ''} onChange={(e) => mudar({ obraId: e.target.value || undefined })} aria-label="Obra">
             <option value="">Todas as obras</option>
             {obras.map((o) => <option key={o.id} value={o.id}>{o.nome}</option>)}
           </select>
         )}
-        <select className="d-select" value={filtro.categoria ?? ''} aria-label="Categoria"
+        <select className="d-campo" value={filtro.categoria ?? ''} aria-label="Categoria"
           onChange={(e) => mudar({ categoria: (e.target.value || undefined) as Categoria | undefined })}>
           <option value="">Todas as categorias</option>
           {CATEGORIAS.map((c) => <option key={c}>{c}</option>)}
         </select>
-        <select className="d-select" value={filtro.situacao} aria-label="Situação" onChange={(e) => mudar({ situacao: e.target.value as Situacao })}>
+        <select className="d-campo" value={filtro.situacao} aria-label="Situação" onChange={(e) => mudar({ situacao: e.target.value as Situacao })}>
           <option value="todos">Pagos e a pagar</option>
           <option value="pago">Só pagos</option>
           <option value="a_pagar">Só a pagar</option>
         </select>
-        <span className="d-periodo">
-          <input type="date" className="d-select" value={filtro.de ?? ''} onChange={(e) => mudar({ de: e.target.value || undefined })} aria-label="De" />
-          <span>até</span>
-          <input type="date" className="d-select" value={filtro.ate ?? ''} onChange={(e) => mudar({ ate: e.target.value || undefined })} aria-label="Até" />
-        </span>
-        <span className="d-exportar" role="group" aria-label="Exportar o que está na tela">
-          <button type="button" className="d-botao secundario pequeno" disabled={!filtrados.length} onClick={() => exportar('xlsx')}
-            title={`Baixar ${filtrados.length} lançamento(s) em planilha Excel`}>Exportar Excel</button>
-          <button type="button" className="d-botao fantasma pequeno" disabled={!filtrados.length} onClick={() => exportar('csv')}
+
+        <button type="button" className="d-campo d-acao d-limpar" disabled={!temFiltro}
+          onClick={() => { setFiltro({ situacao: 'todos' }); setLimite(POR_PAGINA); }}>
+          <IconeD nome="limpar" tamanho={14} /> Limpar filtros
+        </button>
+        <label className="d-campo d-data">
+          <span>De</span>
+          <input type="date" value={filtro.de ?? ''} max={filtro.ate} onChange={(e) => mudar({ de: e.target.value || undefined })} aria-label="Data inicial" />
+        </label>
+        <label className="d-campo d-data">
+          <span>Até</span>
+          <input type="date" value={filtro.ate ?? ''} min={filtro.de} onChange={(e) => mudar({ ate: e.target.value || undefined })} aria-label="Data final" />
+        </label>
+        <div className="d-exportar" role="group" aria-label="Exportar o que está na tela">
+          <button type="button" className="d-campo d-acao" disabled={!filtrados.length} onClick={() => exportar('xlsx')}
+            title={`Baixar ${filtrados.length} lançamento(s) em planilha Excel`}>Excel</button>
+          <button type="button" className="d-campo d-acao" disabled={!filtrados.length} onClick={() => exportar('csv')}
             title="Baixar em CSV (Excel, Google Planilhas)">CSV</button>
-        </span>
-        {temFiltro && (
-          <button type="button" className="d-botao fantasma pequeno" onClick={() => { setFiltro({ situacao: 'todos' }); setLimite(POR_PAGINA); }}>
-            <IconeD nome="limpar" tamanho={14} /> Limpar filtros
-          </button>
-        )}
+        </div>
       </div>
 
       {filtrados.length === 0 ? (

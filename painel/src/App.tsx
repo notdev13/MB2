@@ -63,19 +63,18 @@ function Conteudo() {
   return (
     <>
       <div className="app" inert={folha !== null}>
-        <header className="topo">
+        {(rota.tela === 'obra' || rota.tela === 'visao') && <header className={rota.tela === 'visao' ? 'topo topo-logo' : 'topo'}>
           {rota.tela === 'obra' ? (
             <button className="voltar" onClick={() => (window.history.length > 1 ? window.history.back() : ir({ tela: 'obras' }))}>
               <Icone nome="voltar" tamanho={20} /> Obras
             </button>
           ) : (
             <div className="marca" aria-label="MB2 Painel">
-              <Logo altura={34} />
-              <span>PAINEL</span>
+              <Logo altura={40} />
             </div>
           )}
-        </header>
-        {rota.tela !== 'obra' && rota.tela !== 'visao' && <h1 style={{ marginBottom: 16 }}><TituloItalico texto={TITULOS[rota.tela]} /></h1>}
+        </header>}
+        {rota.tela !== 'obra' && rota.tela !== 'visao' && <h1 className="titulo-centro"><TituloItalico texto={TITULOS[rota.tela]} /></h1>}
 
         {erro && <div className="aviso" role="alert">{erro}</div>}
         {!carregando && !erro && (
