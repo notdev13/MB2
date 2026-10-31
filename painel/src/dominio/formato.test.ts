@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dataBR, lerNumero, lerReais, quando, reaisParaCampo } from './formato';
+import { dataBR, lerNumero, lerReais, quando, reaisCartao, reaisParaCampo } from './formato';
 
 describe('lerReais', () => {
   it.each([
@@ -42,5 +42,14 @@ describe('quando', () => {
     const agora = new Date(2026, 9, 28, 15, 0);
     expect(quando(new Date(2026, 9, 28, 14, 5).toISOString(), agora)).toBe('hoje às 14:05');
     expect(quando(new Date(2026, 9, 27, 9, 30).toISOString(), agora)).toBe('27/10 às 09:30');
+  });
+});
+
+describe('reaisCartao', () => {
+  it('mostra o valor inteiro abaixo de 1 milhão e abrevia a partir dele', () => {
+    const limpo = (t: string) => t.replace(/\s/g, ' ');
+    expect(limpo(reaisCartao(51_342_398))).toBe('R$ 513.423,98');
+    expect(limpo(reaisCartao(99_999_999))).toBe('R$ 999.999,99');
+    expect(limpo(reaisCartao(130_133_254))).toBe('R$ 1,3 mi');
   });
 });

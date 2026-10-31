@@ -14,6 +14,11 @@ export const reais = (centavos: number) => brl.format(centavos / 100);
 export const reaisCurto = (centavos: number) =>
   Math.abs(centavos) < 1_000_000 ? reais(centavos) : brlCurto.format(centavos / 100);
 
+// Cartões da página da obra no computador: valor inteiro abaixo de 1 milhão ("R$ 513.423,98"),
+// abreviado a partir dele ("R$ 1,3 mi").
+export const reaisCartao = (centavos: number) =>
+  Math.abs(centavos) < 100_000_000 ? reais(centavos) : brlCurto.format(centavos / 100);
+
 // Aceita "1.234,56", "1234,56", "1234.56", "R$ 1.234", "1234". Devolve centavos ou null.
 // Recusa o que é ambíguo ou parece erro de digitação ("1.234.5", "12,345", ".").
 const INTEIRO = String.raw`(\d+|\d{1,3}(?:\.\d{3})+)`;

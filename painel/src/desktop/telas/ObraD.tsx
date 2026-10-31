@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useDados } from '../../dados/contexto';
 import { porCategoria, porMes, resumirObra } from '../../dominio/calculos';
 import { porFornecedor } from '../../dominio/consultas';
-import { dataBR, hoje, reais, reaisCurto } from '../../dominio/formato';
+import { dataBR, hoje, reais, reaisCartao } from '../../dominio/formato';
 import { contasComSaldo, sobraSePagarTudo } from '../../dominio/saldos';
 import { EstadoVazio } from '../../componentes/EstadoVazio';
 import type { Custo, Obra } from '../../dominio/tipos';
@@ -36,21 +36,21 @@ export function ObraD({ id, aoLancar, aoAbrirCusto, aoAtualizarSaldo, aoNovaCont
   const estourou = obra.orcamento > 0 && r.saldo < 0;
   return (
     <div className="d-grade-12">
-      <div className="d-kpis span-12">
-        <Kpi rotulo="Gasto até agora" valor={reaisCurto(r.gasto)}
-          detalhe={`${reais(r.gasto)} · ${meus.length} lançamento${meus.length === 1 ? '' : 's'}`} />
-        <Kpi rotulo="Orçamento" valor={obra.orcamento > 0 ? reaisCurto(obra.orcamento) : '—'}
+      <div className="d-kpis seis span-12">
+        <Kpi rotulo="Gasto até agora" valor={reaisCartao(r.gasto)}
+          detalhe={`${Math.abs(r.gasto) >= 100_000_000 ? reais(r.gasto) + ' · ' : ''}${meus.length} lançamento${meus.length === 1 ? '' : 's'}`} />
+        <Kpi rotulo="Orçamento" valor={obra.orcamento > 0 ? reaisCartao(obra.orcamento) : '—'}
           detalhe={obra.orcamento > 0
             ? <><UsoOrcamento gasto={r.gasto} orcamento={obra.orcamento} /></>
             : 'cadastre em “Editar obra”'} />
         <Kpi rotulo={estourou ? 'Acima do orçamento' : 'Saldo'} tom={estourou ? 'alerta' : undefined}
-          valor={obra.orcamento > 0 ? reaisCurto(Math.abs(r.saldo)) : '—'}
+          valor={obra.orcamento > 0 ? reaisCartao(Math.abs(r.saldo)) : '—'}
           detalhe={obra.orcamento > 0 ? (estourou ? 'gasto passou do orçado' : 'ainda disponível') : 'sem orçamento'} />
         <Kpi rotulo="Custo por m²" valor={r.custoM2 !== null ? reais(r.custoM2) : '—'}
           detalhe={obra.areaM2 ? `${obra.areaM2.toLocaleString('pt-BR')} m²` : 'informe a área da obra'} />
-        <Kpi rotulo="A pagar" valor={reaisCurto(r.aPagar)} detalhe={r.aPagar > 0 ? 'lançado e não pago' : 'nada pendente'} />
+        <Kpi rotulo="A pagar" valor={reaisCartao(r.aPagar)} detalhe={r.aPagar > 0 ? 'lançado e não pago' : 'nada pendente'} />
         <Kpi rotulo="Saldo da conta" tom={sobra && sobra.sobra < 0 ? 'alerta' : undefined}
-          valor={conta[0]?.saldo ? reaisCurto(conta[0].saldo.valor) : '—'}
+          valor={conta[0]?.saldo ? reaisCartao(conta[0].saldo.valor) : '—'}
           detalhe={conta[0] ? (
             <>
               <span>
