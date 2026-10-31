@@ -16,9 +16,17 @@ describe('política de conteúdo (CSP) do build', () => {
     // 'unsafe-eval' puro: o texto antes de "unsafe-eval" não pode ser "wasm-".
     expect(/(?<!wasm-)unsafe-eval/.test(politica)).toBe(false);
     for (const proibido of ['blob:', 'data:text', 'strict-dynamic', ' *']) {
+      expect(script.includes(proibido), proibido).toBe(false);
+    }
+    for (const proibido of ['data:text', 'strict-dynamic', ' *']) {
       expect(politica.includes(proibido), proibido).toBe(false);
     }
     expect((politica.match(/wasm-unsafe-eval/g) ?? []).length).toBe(1);
+  });
+  // blob: só para mostrar fotos e vídeos do Diário guardados no aparelho (docs/diario.md).
+  it('blob: só em img-src e media-src', () => {
+    const diretivas = politica.split(',').map((d) => d.trim().replace(/^["`]|["`]$/g, '')).filter((d) => d.includes('blob:'));
+    expect(diretivas.map((d) => d.split(' ')[0]).sort()).toEqual(['img-src', 'media-src']);
   });
   it("worker só do próprio endereço (worker-src 'self') e nada de object/frame liberado", () => {
     expect(politica).toContain(`"worker-src 'self'"`);
