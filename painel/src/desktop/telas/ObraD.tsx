@@ -7,7 +7,7 @@ import { contasComSaldo, sobraSePagarTudo } from '../../dominio/saldos';
 import { EstadoVazio } from '../../componentes/EstadoVazio';
 import type { Custo, Obra } from '../../dominio/tipos';
 import { IconeD, Kpi, Painel, Vazio } from '../componentes/Base';
-import { BarrasCategoria, ColunasMes, UsoOrcamento } from '../componentes/Graficos';
+import { BarrasCategoria, LinhaMes, UsoOrcamento } from '../componentes/Graficos';
 import { TabelaLancamentos } from '../componentes/TabelaLancamentos';
 import { linkD } from '../rotas';
 
@@ -67,8 +67,8 @@ export function ObraD({ id, aoLancar, aoAbrirCusto, aoAtualizarSaldo, aoNovaCont
           )} />
       </div>
 
-      <Painel className="span-8" titulo="Gasto por mês · últimos 12 meses">
-        <ColunasMes meses={meses} altura={200} />
+      <Painel className="span-8" titulo="Gasto por mês">
+        <LinhaMes meses={meses} altura={200} />
       </Painel>
       <Painel className="span-4" titulo="Dados da obra">
         <Ficha obra={obra} ultimo={r.ultimoLancamento} />

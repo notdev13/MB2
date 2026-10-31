@@ -1,6 +1,6 @@
 import type { SaldoConta } from './tipos';
 
-// Contas dos painéis da Visão geral (gasto do período, pico, tendência dos saldos).
+// Contas dos gráficos (gasto do período, pico, escala do eixo, tendência dos saldos, barras do orçamento).
 
 export const PERIODOS = { '3M': 3, '6M': 6, '1A': 12 } as const;
 export type Periodo = keyof typeof PERIODOS;
@@ -31,6 +31,18 @@ export function variacaoSerie(serie: number[]): number | null {
   return ((serie[serie.length - 1] - serie[0]) / Math.abs(serie[0])) * 100;
 }
 
-// Parte do gasto já usada do orçamento, de 0 a 1 (para desenhar a barra). 0 sem orçamento.
-export const usoLimitado = (gasto: number, orcamento: number) =>
-  orcamento > 0 ? Math.min(Math.max(gasto / orcamento, 0), 1) : 0;
+// Comprimento das duas barras do orçamento (cheia = gasto, tracejada = orçamento), de 0 a 1.
+// A maior das duas ocupa a largura toda: quando a obra passa do orçamento, a cheia ultrapassa a tracejada.
+export function barrasOrcamento(gasto: number, orcamento: number): { gasto: number; orcamento: number } {
+  const g = Math.max(gasto, 0), o = Math.max(orcamento, 0), base = Math.max(g, o);
+  return base === 0 ? { gasto: 0, orcamento: 0 } : { gasto: g / base, orcamento: o / base };
+}
+
+// Passo da grade do eixo: 1, 2 ou 5 vezes uma potência de 10, para cair em números redondos (cerca de 4 linhas).
+export function passoDaEscala(max: number): number {
+  if (max <= 0) return 1;
+  const bruto = max / 4;
+  const pot = 10 ** Math.floor(Math.log10(bruto));
+  const n = bruto / pot;
+  return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * pot;
+}
