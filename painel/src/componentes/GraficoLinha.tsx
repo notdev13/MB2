@@ -37,7 +37,7 @@ export function GraficoLinha({ meses, eixo = false, altura = 150 }: {
       </div>
       <div className="lg-corpo">
         {eixo && <div className="lg-eixo" aria-hidden="true">{grade.map((v) => <span key={v}>{compacto.format(v / 100)}</span>)}</div>}
-        <div className="lg-area" style={{ height: altura }} role="img" aria-label={`Gasto por mês, ${NOME_PERIODO[periodo]}`}>
+        <div className="lg-area" style={{ minHeight: altura }} role="img" aria-label={`Gasto por mês, ${NOME_PERIODO[periodo]}`}>
           {grade.map((v) => <i key={v} className="lg-grade" style={{ bottom: `${(v / topo) * 100}%` }} />)}
           <svg viewBox={`0 0 ${L} ${altura}`} preserveAspectRatio="none" aria-hidden="true">
             <path d={c.d} fill="none" stroke="var(--linha)" strokeWidth="2" strokeLinecap="round" vectorEffect="non-scaling-stroke" />

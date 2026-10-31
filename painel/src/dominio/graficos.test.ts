@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { barrasOrcamento, historicoSaldo, mesDoPico, passoDaEscala, totalDoPeriodo, variacaoSerie } from './graficos';
+import { agruparCategorias, barrasOrcamento, historicoSaldo, mesDoPico, passoDaEscala, totalDoPeriodo, variacaoSerie } from './graficos';
+import type { FatiaCategoria } from './calculos';
 import type { SaldoConta } from './tipos';
 
 const saldo = (contaId: string, data: string, valor: number, criadoEm = '2026-10-01T10:00:00Z'): SaldoConta =>
@@ -53,4 +54,17 @@ describe('passoDaEscala', () => {
     expect(passoDaEscala(30)).toBe(10);
   });
   it('sem valor, passo 1', () => expect(passoDaEscala(0)).toBe(1));
+});
+
+describe('agruparCategorias', () => {
+  const f = (categoria: string, total: number, parte: number) => ({ categoria, total, parte }) as FatiaCategoria;
+  const fatias = [f('Materiais (M)', 50, 0.5), f('Mão de obra', 30, 0.3), f('Consórcio', 15, 0.15), f('Impostos e taxas', 5, 0.05)];
+  it('cabendo no limite, fica igual', () => expect(agruparCategorias(fatias, 4)).toEqual(fatias));
+  it('o que passa do limite vira "Demais"', () => {
+    const r = agruparCategorias(fatias, 2);
+    expect(r).toHaveLength(3);
+    expect(r[2].categoria).toBe('Demais (2)');
+    expect(r[2].total).toBe(20);
+    expect(r[2].parte).toBeCloseTo(0.2);
+  });
 });
