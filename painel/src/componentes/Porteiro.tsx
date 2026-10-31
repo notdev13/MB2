@@ -1,3 +1,4 @@
+import { Logo } from './Logo';
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { useCasca } from '../casca';
 import { criarRepositorioLocal } from '../dados/indexeddb';
@@ -58,7 +59,7 @@ function OutraConta({ anterior, nova, aceitar, sair }: { anterior: string; nova:
   return (
     <Moldura>
       <div className="porteiro-cartao">
-        <p className="porteiro-marca">MB²</p>
+        <Logo altura={88} className="porteiro-logo" />
         <h1>Outra conta</h1>
         <p className="porteiro-sub">
           Este aparelho já foi usado com a conta <strong>{anterior}</strong>. Você entrou como <strong>{nova}</strong>.
@@ -116,7 +117,7 @@ function Entrada({ nuvem }: { nuvem: Nuvem }) {
     <Moldura>
       <form className="porteiro-cartao" onSubmit={enviar}
         onKeyDown={(e) => { if (e.key === 'Enter' && espera > 0) { e.preventDefault(); esperar(); } }}>
-        <p className="porteiro-marca">MB²</p>
+        <Logo altura={88} className="porteiro-logo" />
         <h1>Entrar</h1>
         <p className="porteiro-sub">Painel de gestão de obras. Entre com seu e-mail e sua senha.</p>
         <div className="campo">

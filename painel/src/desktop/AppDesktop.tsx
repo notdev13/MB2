@@ -1,3 +1,4 @@
+import { Logo } from '../componentes/Logo';
 import { TituloItalico } from '../componentes/TituloItalico';
 import { useCallback, useEffect, useState } from 'react';
 import { AvisoProvider } from '../componentes/Aviso';
@@ -106,7 +107,7 @@ function Casca() {
       <div className="d-app" inert={gaveta !== null}>
         <aside className="d-lateral">
           <a className="d-marca" href={linkD({ tela: 'visao' })} aria-label="MB2 Painel, visão geral">
-            <b>MB<sup>²</sup></b>
+            <Logo altura={56} />
             <span>PAINEL DE OBRAS</span>
           </a>
           <button type="button" className="d-botao primario largo" onClick={lancar}>

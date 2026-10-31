@@ -26,6 +26,7 @@
   --sans: 'Inter', -apple-system, system-ui, sans-serif;
   --mono: 'Roboto Mono', ui-monospace, Menlo, monospace;
   --raio-ctl: 8px; --raio-cartao: 16px; --raio-bloco: 30px;
+  --logo: #ffffff; --logo-detalhe: #e8e8e8;
   color-scheme: dark;
 }
 :root[data-tema='claro'] {
@@ -43,6 +44,7 @@
   --gilded: linear-gradient(90deg, #1d1e23, #1d1e23);
   --alerta: #c9302c; --alerta-borda: rgba(201, 48, 44, 0.4); --ok: #1d8a50;
   --on-primary: #ffffff; --barra: rgba(243, 242, 238, 0.9); --veu: rgba(20, 20, 24, 0.35);
+  --logo: #000000; --logo-detalhe: #000000;
   color-scheme: light;
 }
 
@@ -58,8 +60,12 @@ a { color: inherit; }
 /* Cabeçalho */
 .topo { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 28px; min-height: 40px; }
 .marca { display: flex; align-items: baseline; gap: 10px; }
-.marca b { font-weight: 600; font-size: 20px; letter-spacing: -0.04em; color: var(--white); }
-.marca sup { font-size: 11px; color: var(--fog); margin-left: 1px; }
+/* Logo oficial: branco no tema escuro, preto no claro */
+.logo { display: block; flex: none; }
+.logo-a { fill: var(--logo); }
+.logo-b { fill: var(--logo-detalhe); }
+.marca { align-items: flex-end; }
+.porteiro-logo { margin: 0 0 20px; max-width: 100%; height: auto; }
 .marca span { font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em; color: var(--fog); font-weight: 400; }
 .voltar { background: none; border: 0; padding: 8px 0; color: var(--fog); font-weight: 500; font-size: 14px; display: flex; align-items: center; gap: 4px; }
 .voltar:hover { color: var(--white); }
@@ -298,7 +304,6 @@ h2 i { font-style: italic; }
 /* ---------- Porteiro (tela de entrada). Celular primeiro; o cartão do computador fica em desktop.css ---------- */
 .porteiro { min-height: 100dvh; display: flex; flex-direction: column; justify-content: center; max-width: 480px; margin: 0 auto;
   padding: calc(env(safe-area-inset-top) + 24px) 20px calc(env(safe-area-inset-bottom) + 24px); }
-.porteiro-marca { font-family: var(--serif); font-weight: 400; font-size: 30px; color: var(--white); margin: 0 0 18px; letter-spacing: 0.02em; }
 .porteiro-sub { color: var(--mist); font-size: 16px; margin: 0 0 24px; }
 .porteiro .campo > label { font-size: 13px; font-weight: 500; color: var(--fog); padding-left: 4px; }
 .porteiro-senha { position: relative; }
