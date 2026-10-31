@@ -364,3 +364,16 @@ h1 i, .d-cabecalho h1 i { font-style: italic; }
 .porteiro:not(.dk .porteiro) .porteiro-cartao { text-align: center; }
 .porteiro:not(.dk .porteiro) .porteiro-logo { margin-left: auto; margin-right: auto; }
 .porteiro:not(.dk .porteiro) .campo > label { padding-left: 0; text-align: center; }
+/* Celular: Obras, detalhe da obra e formulários com títulos e textos centralizados (computador fica como está).
+   Listas de lançamentos e linhas de valores continuam alinhadas nas laterais para ler fácil. */
+.app .obra-topo { text-align: center; }
+.app .grade .cartao { text-align: center; }
+.app .grade .cartao .botao { margin-left: auto; margin-right: auto; }
+.app .vazio, .app .estado-vazio { text-align: center; }
+.app main > .sub { text-align: center; }
+.app .lista .cartao.clicavel > .nota { text-align: center; }
+.folha:not(.dk .folha) header::before { content: ''; width: 44px; flex: none; }
+.folha:not(.dk .folha) header h1 { flex: 1; text-align: center; }
+.folha:not(.dk .folha) .campo > span, .folha:not(.dk .folha) .falar-estado, .folha:not(.dk .folha) .falar .nota, .folha:not(.dk .folha) .campo > label, .folha:not(.dk .folha) .rotulo { padding-left: 0; text-align: center; display: block; }
+.folha:not(.dk .folha) > h2, .folha:not(.dk .folha) h2, .folha:not(.dk .folha) h3 { text-align: center; }
+.folha:not(.dk .folha) .campo.valor input { text-align: center; }

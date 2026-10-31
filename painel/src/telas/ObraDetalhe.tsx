@@ -34,7 +34,7 @@ export function ObraDetalhe({ id, aoEditar, aoLancar, aoAbrirCusto, aoAtualizarS
 
   return (
     <>
-      <div style={{ marginBottom: 14 }}>
+      <div className="obra-topo" style={{ marginBottom: 14 }}>
         <span className={'selo' + (obra.status === 'em_andamento' ? ' ativo' : obra.status === 'planejamento' ? '' : ' neutro')}>
           {STATUS_OBRA[obra.status]}
         </span>
@@ -111,16 +111,16 @@ export function ObraDetalhe({ id, aoEditar, aoLancar, aoAbrirCusto, aoAtualizarS
         <button className="botao secundario" onClick={() => aoEditar(obra)}>Editar obra</button>
       </div>
 
-      {obra.observacoes && (<><h2>Observações</h2><div className="cartao" style={{ whiteSpace: 'pre-wrap', color: 'var(--mist)' }}>{obra.observacoes}</div></>)}
+      {obra.observacoes && (<><h2 className="centro">Observações</h2><div className="cartao" style={{ whiteSpace: 'pre-wrap', color: 'var(--mist)' }}>{obra.observacoes}</div></>)}
 
       {fatias.length > 0 && (
         <>
-          <h2>Por categoria</h2>
+          <h2 className="centro">Por categoria</h2>
           <div className="cartao"><PorCategoria fatias={fatias} limite={8} /></div>
         </>
       )}
 
-      <h2>Lançamentos ({daObra.length})</h2>
+      <h2 className="centro">Lançamentos ({daObra.length})</h2>
       {daObra.length === 0 ? (
         <EstadoVazio icone="recibo" titulo="Nenhum custo lançado"
           texto="Registre o primeiro gasto desta obra para acompanhar o saldo.">
