@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Conta, Custo, NovaConta, NovaObra, NovoCusto, NovoSaldo, Obra, SaldoConta } from '../dominio/tipos';
+import { NOMES_OFICIAIS, obrasParaRenomear } from '../dominio/nomesObras';
 import { validarBackup } from './backup';
 import { criarRepositorioLocal, type RepositorioLocal } from './indexeddb';
 import { ErroNuvem, nuvemDoBuild, type Nuvem } from './nuvem';
@@ -83,7 +84,7 @@ export function DadosProvider({ children, repo, nuvem: nuvemDada }: {
   }, [repositorio]);
 
   useEffect(() => {
-    semear(repositorio).finally(recarregar);
+    semear(repositorio).then(() => renomear(repositorio)).finally(recarregar);
   }, [repositorio, recarregar]);
 
   // ---- Nuvem ----
@@ -249,6 +250,16 @@ async function semear(repo: Repositorio) {
     const v = validarBackup(semente);
     if (v.ok && (await repo.listarObras()).length === 0) await repo.substituirTudo(v.backup, { semCopia: true });
   } catch { /* sem banco disponível: o erro aparece no carregamento normal */ }
+}
+
+// Corrige o nome das obras da MB2 já guardadas no aparelho (mesma identificação, só o nome muda).
+async function renomear(repo: Repositorio) {
+  try {
+    for (const o of obrasParaRenomear(await repo.listarObras())) {
+      const { id, criadoEm, atualizadoEm, ...dados } = o;
+      await repo.salvarObra({ ...dados, nome: NOMES_OFICIAIS[id] }, id);
+    }
+  } catch { /* o erro aparece no carregamento normal */ }
 }
 
 export function useDados(): Dados {
