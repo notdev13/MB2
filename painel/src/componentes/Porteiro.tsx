@@ -119,6 +119,7 @@ function Entrada({ nuvem }: { nuvem: Nuvem }) {
         onKeyDown={(e) => { if (e.key === 'Enter' && espera > 0) { e.preventDefault(); esperar(); } }}>
         <Logo altura={88} className="porteiro-logo" />
         <h1 className="porteiro-titulo">Entrar</h1>
+        {!desktop && <p className="porteiro-sub">Painel de gestão de obras. Entre com seu e-mail e sua senha.</p>}
         <div className="campo">
           <label htmlFor="porteiro-email">E-mail</label>
           <input id="porteiro-email" type="email" name="email" value={email} required autoFocus={desktop}
