@@ -407,3 +407,65 @@ h1 i, .d-cabecalho h1 i { font-style: italic; }
 .diario-pe .nota { text-wrap: balance; }
 .ver-midia { display: grid; place-items: center; background: #000; border-radius: 12px; overflow: hidden; }
 .ver-midia img, .ver-midia video { max-width: 100%; max-height: 65vh; display: block; }
+
+/* Liquid glass no tema escuro (celular e computador): as superfícies mais escuras (cartões, barra de baixo,
+   folhas, menu lateral, campos) viram vidro translúcido com desfoque, brilho na borda de cima e reflexo suave.
+   Um brilho de fundo bem discreto dá o que o vidro refratar. Tema claro não muda. Quem pede menos
+   transparência no aparelho (prefers-reduced-transparency) fica com superfícies sólidas. */
+:root:not([data-tema='claro']) {
+  --vidro: linear-gradient(180deg, rgba(255, 255, 255, 0.085) 0%, rgba(255, 255, 255, 0.025) 55%, rgba(255, 255, 255, 0.04) 100%);
+  --vidro-borda: rgba(255, 255, 255, 0.12);
+  --vidro-brilho: inset 0 1px 0 rgba(255, 255, 255, 0.16), inset 0 -1px 0 rgba(255, 255, 255, 0.03), inset 0 0 24px rgba(255, 255, 255, 0.02);
+  --vidro-desfoque: blur(22px) saturate(170%);
+  --cartao: var(--vidro);
+  --cartao-borda: var(--vidro-borda);
+  --sombra-cartao: var(--vidro-brilho), 0 24px 48px -28px rgba(0, 0, 0, 0.8);
+  --barra: rgba(22, 22, 24, 0.7);
+}
+:root:not([data-tema='claro']) body {
+  background:
+    radial-gradient(60vmax 50vmax at 12% -8%, rgba(142, 170, 210, 0.13), transparent 60%),
+    radial-gradient(55vmax 45vmax at 105% 30%, rgba(200, 200, 215, 0.08), transparent 60%),
+    radial-gradient(70vmax 50vmax at 40% 115%, rgba(120, 150, 140, 0.09), transparent 60%),
+    var(--obsidian);
+  background-attachment: fixed;
+}
+:root:not([data-tema='claro']) .cartao,
+:root:not([data-tema='claro']) .d-painel,
+:root:not([data-tema='claro']) .d-kpi,
+:root:not([data-tema='claro']) .porteiro-cartao {
+  -webkit-backdrop-filter: var(--vidro-desfoque); backdrop-filter: var(--vidro-desfoque);
+}
+:root:not([data-tema='claro']) .abas {
+  -webkit-backdrop-filter: blur(28px) saturate(180%); backdrop-filter: blur(28px) saturate(180%);
+  border-top-color: var(--vidro-borda); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+:root:not([data-tema='claro']) .folha {
+  background: linear-gradient(180deg, rgba(40, 40, 44, 0.72) 0%, rgba(18, 18, 20, 0.78) 100%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%); backdrop-filter: blur(32px) saturate(180%);
+  border-color: var(--vidro-borda); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+:root:not([data-tema='claro']) .fundo { background: rgba(0, 0, 0, 0.45); }
+:root:not([data-tema='claro']) .d-lateral {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+  -webkit-backdrop-filter: blur(28px) saturate(170%); backdrop-filter: blur(28px) saturate(170%);
+  border-right-color: var(--vidro-borda); box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.04);
+}
+:root:not([data-tema='claro']) .campo input,
+:root:not([data-tema='claro']) .campo select,
+:root:not([data-tema='claro']) .campo textarea,
+:root:not([data-tema='claro']) .d-campo,
+:root:not([data-tema='claro']) .d-select,
+:root:not([data-tema='claro']) .d-busca,
+:root:not([data-tema='claro']) .d-segmentos {
+  background-color: rgba(255, 255, 255, 0.045); border-color: rgba(255, 255, 255, 0.14);
+}
+:root:not([data-tema='claro']) .campo.valor input { background-color: transparent; border-color: var(--white); }
+@media (prefers-reduced-transparency: reduce) {
+  :root:not([data-tema='claro']) {
+    --cartao: linear-gradient(180deg, #252626 0%, #1b1c1c 100%); --barra: rgba(10, 10, 11, 0.96);
+  }
+  :root:not([data-tema='claro']) body { background: var(--obsidian); }
+  :root:not([data-tema='claro']) .folha { background: var(--obsidian); }
+  :root:not([data-tema='claro']) .d-lateral { background: var(--obsidian); }
+}
