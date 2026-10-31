@@ -1,3 +1,4 @@
+import { Logo } from './componentes/Logo';
 import { TituloItalico } from './componentes/TituloItalico';
 import { useCallback, useEffect, useState } from 'react';
 import { AvisoProvider } from './componentes/Aviso';
@@ -69,7 +70,7 @@ function Conteudo() {
             </button>
           ) : (
             <div className="marca" aria-label="MB2 Painel">
-              <b>MB<sup>²</sup></b>
+              <Logo altura={34} />
               <span>PAINEL</span>
             </div>
           )}

@@ -29,9 +29,7 @@
 
 .d-lateral { display: flex; flex-direction: column; gap: 20px; padding: 24px 16px 18px; border-right: 1px solid var(--cartao-borda);
   background: var(--obsidian); overflow-y: auto; }
-.d-marca { display: flex; flex-direction: column; gap: 2px; text-decoration: none; padding: 4px 10px 8px; }
-.d-marca b { font-weight: 600; font-size: 24px; letter-spacing: -0.04em; color: var(--white); line-height: 1; }
-.d-marca sup { font-size: 12px; color: var(--fog); margin-left: 1px; }
+.d-marca { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-decoration: none; padding: 4px 10px 8px; }
 .d-marca span { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.18em; color: var(--fog); font-weight: 400; }
 .d-lateral nav { display: flex; flex-direction: column; gap: 2px; }
 .d-menu { display: flex; align-items: center; gap: 12px; padding: 9px 12px; border-radius: var(--d-raio-p); color: var(--fog);
