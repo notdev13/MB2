@@ -231,7 +231,7 @@ export function Ajustes({ tema, alternarTema, centralizar = false }: { tema: Tem
             <ol className="passos">
               <li>Abra este endereço no <strong>Safari</strong>.</li>
               <li>Toque em <span className="icone-compartilhar" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M8 10H6.5A1.5 1.5 0 0 0 5 11.5v8A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5v-8A1.5 1.5 0 0 0 17.5 10H16" /><path d="M12 15V3" /><path d="M8.5 6.5 12 3l3.5 3.5" /></svg></span> <strong>Compartilhar</strong>.</li>
-              <li>Escolha <strong>Adicionar à Tela de Início</strong> e toque em <strong>Adicionar</strong>.</li>
+              <li><strong>Adicionar à Tela de Início</strong> e <strong>Adicionar</strong>.</li>
             </ol>
           </div>
         </>
