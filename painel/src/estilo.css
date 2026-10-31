@@ -116,6 +116,7 @@ h2 i { font-style: italic; }
 .cat .categoria { color: var(--bone); font-size: 15px; }
 
 /* Gráfico de linha (celular e computador): total em cima, linha verde, ponto no último mês, abas de período */
+.lg { position: relative; }
 .lg-topo { display: flex; flex-direction: column; gap: 2px; }
 .lg-apoio { font-size: 13px; color: var(--fog); }
 .lg-total { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; }
@@ -236,7 +237,9 @@ h2 i { font-style: italic; }
 
 .passos { margin: 10px 0 0; padding-left: 20px; font-size: 14px; line-height: 1.7; color: var(--mist); }
 .passos strong { color: var(--white); font-weight: 500; }
-.esconder { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+/* Só para leitor de tela. top/left 0: uma tabela escondida cresce com o conteúdo (ignora height) e, posta
+   onde estava no fluxo, esticava a página do computador e criava uma segunda barra de rolagem. */
+.esconder { position: absolute; top: 0; left: 0; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
 
 /* Pergunta de confirmação */
 .fundo.centro { align-items: center; z-index: 40; padding: 16px; }
