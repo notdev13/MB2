@@ -127,7 +127,7 @@ function Sincronizacao() {
   );
 }
 
-export function Ajustes({ tema, alternarTema }: { tema: Tema; alternarTema: () => void }) {
+export function Ajustes({ tema, alternarTema, centralizar = false }: { tema: Tema; alternarTema: () => void; centralizar?: boolean }) {
   const { obras, custos, exportar, restaurar, copiaAnterior, desfazerRestauracao, nuvem } = useDados();
   const avisar = useAviso();
   const confirmar = useConfirmar();
@@ -194,7 +194,7 @@ export function Ajustes({ tema, alternarTema }: { tema: Tema; alternarTema: () =
   }
 
   return (
-    <>
+    <div className={centralizar ? 'ajustes-centro' : undefined}>
       <h2 className="titulo-centro" style={{ marginTop: 0 }}>Aparência</h2>
       <label className="alternar">
         <span>Tema claro</span>
@@ -249,6 +249,6 @@ export function Ajustes({ tema, alternarTema }: { tema: Tema; alternarTema: () =
       </div>
 
       <p className="nota" style={{ textAlign: 'center', marginTop: 28 }}>Painel MB² · versão 1.2</p>
-    </>
+    </div>
   );
 }

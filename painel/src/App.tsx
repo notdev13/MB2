@@ -89,7 +89,7 @@ function Conteudo() {
                 aoEditar={(o) => setFolha({ tipo: 'obra', obra: o })}
                 aoLancar={(obraId) => setFolha({ tipo: 'custo', obraId })} />
             )}
-            {rota.tela === 'ajustes' && <Ajustes tema={tema} alternarTema={alternarTema} />}
+            {rota.tela === 'ajustes' && <Ajustes tema={tema} alternarTema={alternarTema} centralizar />}
           </main>
         )}
       </div>

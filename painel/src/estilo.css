@@ -231,6 +231,12 @@ h2.centro { text-align: center; }
 .campo.valor input { font-family: var(--serif); font-size: 44px; font-weight: 400; letter-spacing: -0.02em; padding: 6px 22px; min-height: 68px; background: transparent; border-color: var(--white); }
 .dupla { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .alternar { display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--slate); border-radius: var(--raio-ctl); padding: 10px 12px 10px 18px; margin-bottom: 14px; font-weight: 500; min-height: 48px; color: var(--white); }
+.ajustes-centro h2, .ajustes-centro .cartao, .ajustes-centro .cartao .sub, .ajustes-centro .cartao .nota { text-align: center; }
+/* Tema claro centralizado: um espaço vazio à esquerda do mesmo tamanho do interruptor mantém o texto no meio */
+.ajustes-centro .alternar::before { content: ''; width: 22px; flex: none; }
+.ajustes-centro .alternar span { flex: 1; text-align: center; }
+.ajustes-centro .alternar { padding-left: 12px; }
+.ajustes-centro .passos { text-align: left; }
 .alternar input { width: 22px; height: 22px; accent-color: var(--white); }
 .acoes { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
 
