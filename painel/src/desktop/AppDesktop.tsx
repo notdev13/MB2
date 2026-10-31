@@ -141,7 +141,7 @@ function Casca() {
         </aside>
 
         <div className="d-conteudo">
-          <header className="d-cabecalho centralizado">
+          <header className={'d-cabecalho' + (rota.tela === 'obra' ? '' : ' centralizado')}>
             <div>
               {rota.tela === 'obra' && (
                 <nav className="d-trilha" aria-label="Caminho">
