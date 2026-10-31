@@ -186,7 +186,7 @@ function Casca() {
               {rota.tela === 'lancamentos' && <LancamentosD aoAbrirCusto={abrirCusto} />}
               {rota.tela === 'ajustes' && (
                 <div className="d-coluna-estreita">
-                  <Ajustes tema={tema} alternarTema={alternarTema} />
+                  <Ajustes tema={tema} alternarTema={alternarTema} centralizar />
                 </div>
               )}
             </main>
