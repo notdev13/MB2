@@ -64,11 +64,11 @@ export const HOJE = '2026-10-28'; // quarta-feira
 export const CONTEXTO = {
   hoje: HOJE,
   obras: [
-    obra('l39', 'Obra Geminada JD Campeche – Lote 39'),
+    obra('l39', 'Jardim Campeche Geminada 39'),
     obra('l12', 'Casa 12 Rio Tavares'),
-    obra('eco', 'Terreno Ecovillas'),
+    obra('eco', 'Ecovillas'),
     obra('oli', 'Olindina Maria Lopes'),
-    obra('lau', 'Projeto Laureano'),
+    obra('lau', 'Laureano'),
   ],
   custos: [
     custo('Mão de obra', 'MÃO DE OBRA – ULISSES', 'Ulisses'),
