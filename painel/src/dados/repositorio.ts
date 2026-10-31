@@ -70,6 +70,8 @@ export interface FilaLocal {
   aplicarDaNuvem(registros: RegistroNuvem[]): Promise<number>;
   // Primeira sincronização: põe tudo o que já existe no aparelho na fila de envio.
   enfileirarTudo(): Promise<void>;
+  // Proteção contra "apagar tudo": quantos registros há aqui e quantos destes a nuvem apagaria.
+  contarExclusoes(registros: RegistroNuvem[]): Promise<{ total: number; apagariam: number }>;
   lerMarca(): Promise<string | null>;
   gravarMarca(marca: string | null): Promise<void>;
 }

@@ -104,6 +104,23 @@ function Sincronizacao() {
       </p>
       {situacao && <p className="nota">{situacao}</p>}
       {nuvem.erro && !nuvem.sincronizando && <div className="aviso">{nuvem.erro}</div>}
+      {nuvem.exclusaoEmMassa && !nuvem.sincronizando && (
+        <div className="acoes">
+          <button className="botao secundario cheio" onClick={async () => {
+            const n = nuvem.exclusaoEmMassa!.quantidade;
+            const ok = await confirmar({
+              texto: nuvem.exclusaoEmMassa!.direcao === 'enviar'
+                ? `Apagar ${n} registros na nuvem e em todos os aparelhos? Antes, faça um backup deste aparelho.`
+                : `Apagar ${n} registros deste aparelho, como já estão na nuvem? Antes, faça um backup deste aparelho.`,
+              acao: 'Apagar mesmo assim',
+              perigo: true,
+            });
+            if (ok) await nuvem.confirmarExclusao();
+          }}>
+            Confirmar a exclusão
+          </button>
+        </div>
+      )}
       {nuvem.pendentes > 0 && !nuvem.sincronizando && (
         <p className="nota">{nuvem.pendentes} mudança(s) deste aparelho esperando para subir.</p>
       )}

@@ -356,6 +356,16 @@ export function criarRepositorioLocal(fabrica: IDBFactory = indexedDB, relogio: 
       for (const s of saldos) if (!ja.has(chavePendente('saldo', s.id))) enfileirar(tx, 'saldo', s.id, false, s.criadoEm);
       await concluir(tx);
     },
+    async contarExclusoes(registros) {
+      const tx = await transacao(['obras', 'custos', 'contas', 'saldos'], 'readonly');
+      const contagens = await Promise.all((['obras', 'custos', 'contas', 'saldos'] as const).map((l) => pedido(tx.objectStore(l).count())));
+      let apagariam = 0;
+      for (const r of registros) {
+        if (!(r.excluido || !r.dados) || !Object.hasOwn(LOJA, r.tipo)) continue;
+        if (await pedido(tx.objectStore(LOJA[r.tipo]).getKey(r.id))) apagariam++;
+      }
+      return { total: contagens.reduce((a, b) => a + b, 0), apagariam };
+    },
     async lerMarca() {
       const tx = await transacao('meta', 'readonly');
       return ((await pedido(tx.objectStore('meta').get(CHAVE_MARCA))) as string | undefined) ?? null;
