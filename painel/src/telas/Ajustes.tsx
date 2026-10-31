@@ -144,6 +144,16 @@ function Sincronizacao() {
   );
 }
 
+// Os 3 passos para instalar no iPhone: mesma estrutura em todos (número, ícone, ação, nome do botão).
+const PASSOS_IPHONE = [
+  { acao: 'Abra o painel no', titulo: 'Safari',
+    icone: <><circle cx="12" cy="12" r="9" /><path d="m15.5 8.5-2.2 4.8-4.8 2.2 2.2-4.8z" /></> },
+  { acao: 'Toque em', titulo: 'Compartilhar',
+    icone: <><path d="M8 10H6.5A1.5 1.5 0 0 0 5 11.5v8A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5v-8A1.5 1.5 0 0 0 17.5 10H16" /><path d="M12 15V3" /><path d="M8.5 6.5 12 3l3.5 3.5" /></> },
+  { acao: 'Toque em', titulo: 'Adicionar à Tela de Início e Adicionar',
+    icone: <><rect x="4" y="4" width="16" height="16" rx="4" /><path d="M12 8.5v7M8.5 12h7" /></> },
+];
+
 export function Ajustes({ tema, alternarTema, centralizar = false }: { tema: Tema; alternarTema: () => void; centralizar?: boolean }) {
   const { obras, custos, exportar, restaurar, copiaAnterior, desfazerRestauracao, nuvem } = useDados();
   const avisar = useAviso();
@@ -228,10 +238,21 @@ export function Ajustes({ tema, alternarTema, centralizar = false }: { tema: Tem
             <p className="sub" style={{ color: 'var(--bone)' }}>
               Instale o painel como app: abre em tela cheia, funciona sem internet e o iPhone guarda os dados com segurança.
             </p>
-            <ol className="passos">
-              <li>Abra este endereço no <strong>Safari</strong>.</li>
-              <li>Toque em <span className="icone-compartilhar" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M8 10H6.5A1.5 1.5 0 0 0 5 11.5v8A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5v-8A1.5 1.5 0 0 0 17.5 10H16" /><path d="M12 15V3" /><path d="M8.5 6.5 12 3l3.5 3.5" /></svg></span> <strong>Compartilhar</strong>.</li>
-              <li><strong>Adicionar à Tela de Início</strong> e <strong>Adicionar</strong>.</li>
+            <ol className="passos-iphone">
+              {PASSOS_IPHONE.map((p, i) => (
+                <li key={p.titulo}>
+                  <span className="passo-num" aria-hidden="true">{i + 1}</span>
+                  <span className="passo-icone" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                      {p.icone}
+                    </svg>
+                  </span>
+                  <span className="passo-texto">
+                    <span className="passo-acao">{p.acao}</span>
+                    <strong className="passo-titulo">{p.titulo}</strong>
+                  </span>
+                </li>
+              ))}
             </ol>
           </div>
         </>
