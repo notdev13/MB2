@@ -7,10 +7,10 @@ const obra = (id: string, nome: string): Obra => ({
   status: 'em_andamento', observacoes: '', criadoEm: '', atualizadoEm: '',
 });
 const obras = [
-  obra('l39', 'Obra Geminada JD Campeche – Lote 39'),
-  obra('eco', 'Terreno Ecovillas'),
+  obra('l39', 'Jardim Campeche Geminada 39'),
+  obra('eco', 'Ecovillas'),
   obra('oli', 'Olindina Maria Lopes'),
-  obra('lau', 'Projeto Laureano'),
+  obra('lau', 'Laureano'),
   obra('jbp', 'Servidão João Batista Pires'),
 ];
 let n = 0;
