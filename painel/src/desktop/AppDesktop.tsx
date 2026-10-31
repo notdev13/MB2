@@ -124,7 +124,7 @@ function Casca() {
           </nav>
           {obras.length > 0 && (
             <div className="d-atalhos">
-              <span className="d-rotulo">Obras em aberto</span>
+              <span className="d-rotulo">Obras</span>
               {obras.filter((o) => o.status !== 'concluida').map((o) => (
                 <a key={o.id} href={linkD({ tela: 'obra', id: o.id })} className="d-menu sub d-corta"
                   aria-current={rota.tela === 'obra' && rota.id === o.id ? 'page' : undefined}>{o.nome}</a>
