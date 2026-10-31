@@ -138,7 +138,7 @@ export function Visao({ aoNovaObra, aoLancar, aoAbrirCusto, aoAtualizarSaldo, ao
         </div>
       )}
 
-      <h2><TituloItalico texto="Obras em aberto" /></h2>
+      <h2 className="centro"><TituloItalico texto="Obras em aberto" /></h2>
       <div className="lista">
         {ativas.length === 0 && (
           <EstadoVazio icone="obras" titulo="Nenhuma obra em aberto"
@@ -166,7 +166,7 @@ export function Visao({ aoNovaObra, aoLancar, aoAbrirCusto, aoAtualizarSaldo, ao
         ))}
       </div>
 
-      <h2><TituloItalico texto="Gasto por mês" /></h2>
+      <h2 className="centro"><TituloItalico texto="Gasto por mês" /></h2>
       {custos.length === 0 ? (
         <EstadoVazio icone="grafico" titulo="Ainda sem gastos"
           texto="Lance o primeiro custo e o gráfico mês a mês aparece aqui.">
@@ -178,10 +178,10 @@ export function Visao({ aoNovaObra, aoLancar, aoAbrirCusto, aoAtualizarSaldo, ao
 
       {custos.length > 0 && (
         <>
-          <h2><TituloItalico texto="Para onde vai o dinheiro" /></h2>
+          <h2 className="centro"><TituloItalico texto="Para onde vai o dinheiro" /></h2>
           <div className="cartao"><PorCategoria fatias={porCategoria(custos)} /></div>
 
-          <h2><TituloItalico texto="Últimos lançamentos" /></h2>
+          <h2 className="centro"><TituloItalico texto="Últimos lançamentos" /></h2>
           <Lancamentos custos={custos.slice(0, 6)} nomeObra={nomeObra} aoAbrir={aoAbrirCusto} agrupar={false} />
         </>
       )}

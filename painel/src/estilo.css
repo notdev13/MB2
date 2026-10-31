@@ -231,6 +231,12 @@ h2.centro { text-align: center; }
 .campo.valor input { font-family: var(--serif); font-size: 44px; font-weight: 400; letter-spacing: -0.02em; padding: 6px 22px; min-height: 68px; background: transparent; border-color: var(--white); }
 .dupla { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .alternar { display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--slate); border-radius: var(--raio-ctl); padding: 10px 12px 10px 18px; margin-bottom: 14px; font-weight: 500; min-height: 48px; color: var(--white); }
+.ajustes-centro h2, .ajustes-centro .cartao, .ajustes-centro .cartao .sub, .ajustes-centro .cartao .nota { text-align: center; }
+/* Tema claro centralizado: um espaço vazio à esquerda do mesmo tamanho do interruptor mantém o texto no meio */
+.ajustes-centro .alternar::before { content: ''; width: 22px; flex: none; }
+.ajustes-centro .alternar span { flex: 1; text-align: center; }
+.ajustes-centro .alternar { padding-left: 12px; }
+.ajustes-centro .passos { text-align: left; }
 .alternar input { width: 22px; height: 22px; accent-color: var(--white); }
 .acoes { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
 
@@ -249,6 +255,7 @@ h2.centro { text-align: center; }
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom) + 90px); z-index: 30; background: var(--carbon); border: 1px solid var(--slate); color: var(--white); padding: 10px 18px; border-radius: 9999px; font-weight: 500; font-size: 14px; animation: aparecer 0.15s; max-width: calc(100% - 32px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .passos { margin: 10px 0 0; padding-left: 20px; font-size: 14px; line-height: 1.7; color: var(--mist); }
+.icone-compartilhar { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; margin: 0 2px; vertical-align: -7px; border-radius: 6px; background: var(--graphite); color: var(--white); }
 .passos strong { color: var(--white); font-weight: 500; }
 /* Só para leitor de tela. top/left 0: uma tabela escondida cresce com o conteúdo (ignora height) e, posta
    onde estava no fluxo, esticava a página do computador e criava uma segunda barra de rolagem. */
