@@ -74,7 +74,7 @@ function Conteudo() {
             </div>
           )}
         </header>
-        {rota.tela !== 'obra' && <h1 style={{ marginBottom: 16 }}><TituloItalico texto={TITULOS[rota.tela]} /></h1>}
+        {rota.tela !== 'obra' && rota.tela !== 'visao' && <h1 style={{ marginBottom: 16 }}><TituloItalico texto={TITULOS[rota.tela]} /></h1>}
 
         {erro && <div className="aviso" role="alert">{erro}</div>}
         {!carregando && !erro && (
