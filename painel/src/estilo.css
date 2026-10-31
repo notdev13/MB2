@@ -83,6 +83,10 @@ h2 i { font-style: italic; }
 .cartao > .rotulo:first-child { margin: -2px -20px 16px; padding: 0 20px 14px; border-bottom: 1px solid var(--cartao-borda); }
 .grade { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .grade .largo { grid-column: 1 / -1; }
+/* Visão geral do celular: rótulos, valores e nota centralizados nos cartões de resumo */
+.resumo-centro .cartao { text-align: center; }
+.resumo-centro .nota { text-wrap: balance; }
+h2.centro { text-align: center; }
 .numero { font-family: var(--sans); font-weight: 300; font-size: 40px; line-height: 1; letter-spacing: -0.02em; color: var(--white); font-variant-numeric: lining-nums tabular-nums; margin: 6px 0 4px; }
 .numero.menor { font-size: 24px; font-weight: 400; letter-spacing: -0.01em; margin: 4px 0 0; }
 .rotulo { font-family: var(--mono); font-size: 11px; color: var(--fog); font-weight: 400; letter-spacing: 0.18em; text-transform: uppercase; }

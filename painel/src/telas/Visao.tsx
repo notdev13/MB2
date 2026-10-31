@@ -42,7 +42,7 @@ export function Visao({ aoNovaObra, aoLancar, aoAbrirCusto, aoAtualizarSaldo, ao
 
   return (
     <>
-      <div className="grade">
+      <div className="grade resumo-centro">
         <div className="cartao largo destaque">
           <div className="rotulo">Gasto nas obras em aberto</div>
           <div className="numero">{reaisCurto(geral.gastoAtivas)}</div>
@@ -74,7 +74,7 @@ export function Visao({ aoNovaObra, aoLancar, aoAbrirCusto, aoAtualizarSaldo, ao
         </div>
       )}
 
-      <h2><TituloItalico texto="Dinheiro em conta" /></h2>
+      <h2 className="centro"><TituloItalico texto="Dinheiro em conta" /></h2>
       {itensConta.every((i) => !i.saldo) ? (
         <EstadoVazio icone="recibo" titulo="Dinheiro em conta"
           texto="Ainda não sei quanto tem em conta. Digite o saldo de hoje.">
