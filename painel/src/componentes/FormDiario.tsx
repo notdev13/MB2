@@ -118,6 +118,7 @@ export function FormDiario({ registro, obraId, aoFechar }: { registro?: Registro
   return (
     <Folha titulo={registro ? 'Editar registro' : 'Registrar o dia'} aoFechar={aoFechar}>
       <form className="form-diario" onSubmit={(e) => { e.preventDefault(); gravar(); }} noValidate>
+        <div className="diario-topo">
         <label className="campo">
           <span>Obra</span>
           <select value={obra} onChange={(e) => setObra(e.target.value)}>
@@ -130,6 +131,7 @@ export function FormDiario({ registro, obraId, aoFechar }: { registro?: Registro
           <span>Data</span>
           <input type="date" value={data} max={hoje()} onChange={(e) => setData(e.target.value)} required />
         </label>
+        </div>
         <Falar aoEntender={(t) => setResumo(t)} rotulo="Fale ou escreva o resumo do dia"
           exemplo="Ex.: hoje concretamos a laje, a equipe do Adriano fechou as paredes do segundo andar"
           fraseOuvindo="Ouvindo… conte o que foi feito, quem trabalhou e o que faltou. Toque no microfone para terminar."
@@ -140,7 +142,7 @@ export function FormDiario({ registro, obraId, aoFechar }: { registro?: Registro
             placeholder="O que foi feito, quem trabalhou, material que chegou, problemas…" />
         </label>
 
-        <div className="campo">
+        <div className="campo diario-midias">
           <span>Fotos e vídeos</span>
           <div className="diario-botoes">
             <button type="button" className="botao secundario" onClick={() => camera.current?.click()}>Tirar foto</button>
@@ -150,7 +152,7 @@ export function FormDiario({ registro, obraId, aoFechar }: { registro?: Registro
           <input ref={camera} type="file" accept="image/*" capture="environment" hidden onChange={(e) => { adicionar(e.target.files); e.target.value = ''; }} />
           <input ref={video} type="file" accept="video/*" capture="environment" hidden onChange={(e) => { adicionar(e.target.files); e.target.value = ''; }} />
           <input ref={galeria} type="file" accept="image/*,video/*" multiple hidden onChange={(e) => { adicionar(e.target.files); e.target.value = ''; }} />
-          <p className="nota">Vídeos de até {LIMITES_DIARIO.videoMaxSeg} segundos. As fotos são reduzidas para ocupar menos espaço. Tudo fica guardado neste aparelho.</p>
+          <p className="nota diario-limites">Vídeos de até {LIMITES_DIARIO.videoMaxSeg} segundos. As fotos são reduzidas para ocupar menos espaço. Tudo fica guardado neste aparelho.</p>
           {preparando > 0 && <p className="nota" role="status">Preparando {preparando === 1 ? 'arquivo' : `${preparando} arquivos`}…</p>}
           {midias.length > 0 && (
             <>
