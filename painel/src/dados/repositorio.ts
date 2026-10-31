@@ -73,3 +73,19 @@ export interface FilaLocal {
   lerMarca(): Promise<string | null>;
   gravarMarca(marca: string | null): Promise<void>;
 }
+
+// ---- Diário da obra ----
+// Fica num banco próprio do aparelho (mb2-diario), separado de obras e custos: fotos e vídeos são
+// grandes e não entram no backup em arquivo nem na sincronização (ver docs/diario.md).
+export interface RepositorioDiario {
+  listar(): Promise<import('../dominio/diario').RegistroDiario[]>;
+  // Grava o registro e os arquivos novos juntos. Mídias tiradas do registro têm o arquivo apagado.
+  salvar(
+    dados: import('../dominio/diario').NovoRegistroDiario,
+    arquivosNovos: Record<string, Blob>,
+    id?: string,
+  ): Promise<import('../dominio/diario').RegistroDiario>;
+  excluir(id: string): Promise<void>; // apaga também as fotos e vídeos
+  arquivo(midiaId: string): Promise<Blob | null>;
+  excluirDaObra(obraId: string): Promise<void>;
+}

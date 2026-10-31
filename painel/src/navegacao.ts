@@ -5,6 +5,7 @@ export type Rota =
   | { tela: 'visao' }
   | { tela: 'obras' }
   | { tela: 'obra'; id: string }
+  | { tela: 'diario' }
   | { tela: 'ajustes' };
 
 export function lerRota(hash: string): Rota {
@@ -13,6 +14,7 @@ export function lerRota(hash: string): Rota {
   if (tela === 'obras') return { tela: 'obras' };
   if (tela === 'obra' && id) return { tela: 'obra', id: decodeURIComponent(id) };
   if (tela === 'ajustes') return { tela: 'ajustes' };
+  if (tela === 'diario') return { tela: 'diario' };
   return { tela: 'visao' };
 }
 

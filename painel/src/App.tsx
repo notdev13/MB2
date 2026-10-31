@@ -3,6 +3,7 @@ import { TituloItalico } from './componentes/TituloItalico';
 import { useCallback, useEffect, useState } from 'react';
 import { AvisoProvider } from './componentes/Aviso';
 import { ConfirmarProvider } from './componentes/Confirmar';
+import { FormDiario } from './componentes/FormDiario';
 import { FormCusto } from './componentes/FormCusto';
 import { FormConta } from './componentes/FormConta';
 import { FormImportar } from './componentes/FormImportar';
@@ -17,6 +18,8 @@ import { Ajustes } from './telas/Ajustes';
 import { ObraDetalhe } from './telas/ObraDetalhe';
 import { Obras } from './telas/Obras';
 import { Visao } from './telas/Visao';
+import { Diario } from './telas/Diario';
+import type { RegistroDiario } from './dominio/diario';
 
 type FolhaAberta =
   | { tipo: 'custo'; custo?: Custo; obraId?: string }
@@ -24,11 +27,13 @@ type FolhaAberta =
   | { tipo: 'saldo'; contaId?: string }
   | { tipo: 'conta' }
   | { tipo: 'importar' }
+  | { tipo: 'diario'; registro?: RegistroDiario; obraId?: string }
   | null;
 
 const TITULOS: Record<Exclude<Rota['tela'], 'obra'>, string> = {
   visao: 'Visão geral',
   obras: 'Obras',
+  diario: 'Diário da obra',
   ajustes: 'Ajustes',
 };
 
@@ -89,6 +94,8 @@ function Conteudo() {
                 aoEditar={(o) => setFolha({ tipo: 'obra', obra: o })}
                 aoLancar={(obraId) => setFolha({ tipo: 'custo', obraId })} />
             )}
+            {rota.tela === 'diario' && <Diario aoNovo={(obraId) => setFolha({ tipo: 'diario', obraId })}
+              aoEditar={(registro) => setFolha({ tipo: 'diario', registro })} />}
             {rota.tela === 'ajustes' && <Ajustes tema={tema} alternarTema={alternarTema} centralizar />}
           </main>
         )}
@@ -103,6 +110,7 @@ function Conteudo() {
             <span className="mais"><Icone nome="mais" /></span>
             Lançar
           </button>
+          <Aba rota={{ tela: 'diario' }} atual={rota} icone="diario" rotulo="Diário" />
           <Aba rota={{ tela: 'ajustes' }} atual={rota} icone="ajustes" rotulo="Ajustes" />
         </nav>
       </div>
@@ -110,6 +118,7 @@ function Conteudo() {
       {folha?.tipo === 'saldo' && <FormSaldo contaId={folha.contaId} aoFechar={fechar} />}
       {folha?.tipo === 'conta' && <FormConta aoFechar={fechar} />}
       {folha?.tipo === 'importar' && <FormImportar aoFechar={fechar} aoDigitarSaldo={() => setFolha({ tipo: 'saldo' })} />}
+      {folha?.tipo === 'diario' && <FormDiario registro={folha.registro} obraId={folha.obraId} aoFechar={fechar} />}
       {folha?.tipo === 'custo' && <FormCusto custo={folha.custo} obraId={folha.obraId} aoFechar={fechar} />}
       {folha?.tipo === 'obra' && (
         <FormObra obra={folha.obra} aoFechar={fechar}
