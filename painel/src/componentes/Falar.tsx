@@ -17,7 +17,11 @@ const FRASE: Record<EstadoVoz, string> = {
   erro: '',
 };
 
-export function Falar({ aoEntender }: { aoEntender: (texto: string) => void }) {
+// rotulo, exemplo e fraseOuvindo trocam os textos para outro uso (ex.: o resumo do Diário).
+export function Falar({ aoEntender, rotulo = 'Fale ou escreva o lançamento', exemplo = 'Ex.: paguei 360 de cimento no Lote 39 ontem, no pix',
+  fraseOuvindo, rotuloBotao = 'Preencher com este texto' }: {
+  aoEntender: (texto: string) => void; rotulo?: string; exemplo?: string; fraseOuvindo?: string; rotuloBotao?: string;
+}) {
   const [v, setV] = useState<Visao>({ texto: '', estado: 'pronto', erro: null });
   const ctl = useRef<ControleFalar | null>(null);
   const rolagem = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -60,16 +64,16 @@ export function Falar({ aoEntender }: { aoEntender: (texto: string) => void }) {
     rolagem.current = setTimeout(() => el.scrollIntoView?.({ block: 'nearest' }), 350);
   }
 
-  const frase = erro ?? FRASE[estado];
-  const rotuloMic = escutando ? 'Parar de ouvir' : temTexto ? 'Ouvir de novo e acrescentar' : 'Falar o lançamento';
+  const frase = erro ?? (estado === 'ouvindo' && fraseOuvindo ? fraseOuvindo : FRASE[estado]);
+  const rotuloMic = escutando ? 'Parar de ouvir' : temTexto ? 'Ouvir de novo e acrescentar' : 'Falar';
 
   return (
     <div className="falar">
       <div className="falar-linha">
         <label className="campo" style={{ flex: 1, margin: 0 }}>
-          <span>Fale ou escreva o lançamento</span>
+          <span>{rotulo}</span>
           <textarea rows={2} value={texto} enterKeyHint="done"
-            placeholder="Ex.: paguei 360 de cimento no Lote 39 ontem, no pix"
+            placeholder={exemplo}
             onFocus={(e) => aoFocarCampo(e.currentTarget)}
             onChange={(e) => ctl.current?.digitar(e.target.value)}
             onKeyDown={(e) => {
@@ -91,7 +95,7 @@ export function Falar({ aoEntender }: { aoEntender: (texto: string) => void }) {
       {!escutando && estado !== 'processando' && temTexto && (
         <div className="falar-acoes">
           <button type="button" className="botao secundario" onClick={() => ctl.current?.preencher()}>
-            Preencher com este texto
+            {rotuloBotao}
           </button>
           {temVoz && (
             <button type="button" className="botao secundario" onClick={() => ctl.current?.ouvir()}>

@@ -9,6 +9,7 @@ const caminhos = {
   recibo: 'M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6',
   grafico: 'M4 20h16M7 20v-6M12 20V8M17 20v-9',
   filtro: 'M4 6h16M7 12h10M10 18h4',
+  diario: 'M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17a3 3 0 0 1 3-3h11M9 8h6',
   microfone: 'M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3',
 } as const;
 

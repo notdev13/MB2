@@ -61,7 +61,7 @@ function politicaDeConteudo(urlNuvem: string | undefined): Plugin {
   try { if (urlNuvem) origem = new URL(urlNuvem).origin; } catch { /* sem nuvem: só o próprio endereço */ }
   const politica = [
     "default-src 'self'", "script-src 'self' 'wasm-unsafe-eval'", "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data:", "font-src 'self' data:", `connect-src 'self'${origem ? ' ' + origem : ''}`,
+    "img-src 'self' data: blob:", "media-src 'self' blob:", "font-src 'self' data:", `connect-src 'self'${origem ? ' ' + origem : ''}`,
     "manifest-src 'self'", "worker-src 'self'", "base-uri 'none'", "form-action 'none'",
   ].join('; ');
   return {
