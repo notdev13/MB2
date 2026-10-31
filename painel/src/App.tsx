@@ -70,7 +70,7 @@ function Conteudo() {
             </button>
           ) : (
             <div className="marca" aria-label="MB2 Painel">
-              <Logo altura={40} />
+              <Logo altura={60} />
             </div>
           )}
         </header>}
