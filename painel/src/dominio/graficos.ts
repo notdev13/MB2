@@ -1,3 +1,4 @@
+import type { FatiaCategoria } from './calculos';
 import type { SaldoConta } from './tipos';
 
 // Contas dos gráficos (gasto do período, pico, escala do eixo, tendência dos saldos, barras do orçamento).
@@ -45,4 +46,16 @@ export function passoDaEscala(max: number): number {
   const pot = 10 ** Math.floor(Math.log10(bruto));
   const n = bruto / pot;
   return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * pot;
+}
+
+// As `limite` maiores categorias e, se sobrar, uma linha "Demais (n)" somando o resto.
+export type LinhaCategoria = Omit<FatiaCategoria, 'categoria'> & { categoria: string };
+export function agruparCategorias(fatias: FatiaCategoria[], limite: number): LinhaCategoria[] {
+  if (fatias.length <= limite) return fatias;
+  const resto = fatias.slice(limite);
+  return [...fatias.slice(0, limite), {
+    categoria: `Demais (${resto.length})`,
+    total: resto.reduce((t, f) => t + f.total, 0),
+    parte: resto.reduce((t, f) => t + f.parte, 0),
+  }];
 }

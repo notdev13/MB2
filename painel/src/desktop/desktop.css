@@ -59,12 +59,17 @@
 .d-coluna-estreita { max-width: 720px; }
 
 /* Grade de 12 colunas */
-.d-grade-12 { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: var(--d-vao); align-items: start; }
+.d-grade-12 { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: var(--d-vao); align-items: stretch; }
 .span-4 { grid-column: span 4; } .span-6 { grid-column: span 6; } .span-8 { grid-column: span 8; } .span-12 { grid-column: 1 / -1; }
 @media (max-width: 1279px) { .d-grade-12 > .span-4, .d-grade-12 > .span-8 { grid-column: 1 / -1; } }
 
 /* ---------- Componentes ---------- */
 .d-painel { background: var(--cartao); border: 1px solid var(--cartao-borda); border-radius: var(--d-raio); box-shadow: var(--sombra-cartao); min-width: 0; }
+/* Na mesma linha da grade os cartões ficam da mesma altura; o gráfico de linha cresce para ocupar o espaço */
+.d-painel { display: flex; flex-direction: column; }
+.d-painel > .d-painel-corpo { flex: 1; display: flex; flex-direction: column; }
+.dk .lg { flex: 1; display: flex; flex-direction: column; }
+.dk .lg-corpo { flex: 1; }
 .d-painel-topo { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 24px; min-height: 60px; border-bottom: 1px solid var(--cartao-borda); }
 .dk .d-painel h2 { margin: 0; font-family: var(--mono); text-transform: uppercase; font-size: 11px; font-weight: 400; color: var(--fog); letter-spacing: 0.18em; }
 .d-painel-corpo { padding: 20px 24px 24px; }

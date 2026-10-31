@@ -3,7 +3,7 @@ import { GraficoLinha } from '../../componentes/GraficoLinha';
 import { corDaSerie } from '../../componentes/Graficos';
 import { situacaoOrcamento, textoSituacao, type FatiaCategoria } from '../../dominio/calculos';
 import { porcentagem, reais } from '../../dominio/formato';
-import { barrasOrcamento } from '../../dominio/graficos';
+import { agruparCategorias, barrasOrcamento } from '../../dominio/graficos';
 
 // Gráficos do desktop: linha verde no gasto por mês, barras em cores claras (cheia = valor, tracejada = orçamento).
 // Eixos e grade em linhas finas. O gráfico de linha tem uma tabela escondida com os números, para leitor de tela.
@@ -13,11 +13,13 @@ export function LinhaMes({ meses, altura = 220 }: { meses: { mes: string; total:
   return <GraficoLinha meses={meses} eixo altura={altura} />;
 }
 
-export function BarrasCategoria({ fatias }: { fatias: FatiaCategoria[] }) {
-  const max = Math.max(...fatias.map((f) => f.total), 1);
+// As maiores categorias (o resto somado em "Demais"), para o quadro não crescer além do gráfico ao lado.
+export function BarrasCategoria({ fatias, limite = 6 }: { fatias: FatiaCategoria[]; limite?: number }) {
+  const linhas = agruparCategorias(fatias, limite);
+  const max = Math.max(...linhas.map((f) => f.total), 1);
   return (
     <ul className="d-barras">
-      {fatias.map((f, i) => (
+      {linhas.map((f, i) => (
         <li key={f.categoria} title={`${f.categoria}: ${reais(f.total)}`}>
           <span className="categoria">{f.categoria}</span>
           <div className="orc-linha" style={{ '--cor': corDaSerie(i) } as CSSProperties}>
