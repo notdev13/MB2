@@ -1,0 +1,33 @@
+/* Visual 2027 · "Planta": linguagem de desenho técnico sobre a identidade MB2.
+   Só CSS (≈1,5 KB), sem fonte nem JS novos. Vale para celular e computador.
+   Grade pontilhada de prancheta, marcas de canto em cobre, barras em régua.
+   Movimento só com transform/opacity, desligado com "Reduzir movimento". */
+:root { --cobre: #c98a55; --ponto: rgba(255, 255, 255, 0.06); }
+:root[data-tema="claro"] { --cobre: #9a5523; --ponto: rgba(0, 0, 0, 0.07); }
+
+body { background-image: radial-gradient(var(--ponto) 1px, transparent 1.2px); background-size: 16px 16px; background-attachment: fixed; }
+
+/* Cartões: canto mais reto e duas marcas de canto em cobre */
+.cartao, .d-painel, .d-kpi, .dk .d-painel, .dk .d-kpi { position: relative; border-radius: 6px; }
+.cartao::before, .cartao::after, .d-painel::before, .d-painel::after, .d-kpi::before, .d-kpi::after {
+  content: ""; position: absolute; width: 9px; height: 9px; border: 1px solid var(--cobre); pointer-events: none; }
+.cartao::before, .d-painel::before, .d-kpi::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; border-top-left-radius: 6px; }
+.cartao::after, .d-painel::after, .d-kpi::after { bottom: -1px; right: -1px; border-left: 0; border-top: 0; border-bottom-right-radius: 6px; }
+
+/* Rótulos mono com losango cobre */
+.rotulo::before, .d-rotulo::before { content: "◇ "; color: var(--cobre); letter-spacing: 0; }
+
+/* Barras de progresso em régua tracejada */
+.trilho, .d-trilho { border-radius: 0; height: 6px;
+  background: repeating-linear-gradient(90deg, var(--graphite) 0 6px, transparent 6px 8px); }
+.trilho > i, .d-trilho > i { border-radius: 0;
+  -webkit-mask: repeating-linear-gradient(90deg, #000 0 6px, transparent 6px 8px);
+          mask: repeating-linear-gradient(90deg, #000 0 6px, transparent 6px 8px); }
+
+/* Cartões entram em sequência curta ao abrir a tela */
+@keyframes planta-entra { from { opacity: 0; transform: translateY(6px); } }
+.cartao, .d-painel, .d-kpi { animation: planta-entra 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.cartao:nth-child(2), .d-kpi:nth-child(2) { animation-delay: 50ms; }
+.cartao:nth-child(3), .d-kpi:nth-child(3) { animation-delay: 100ms; }
+.cartao:nth-child(n+4), .d-kpi:nth-child(n+4) { animation-delay: 150ms; }
+@media (prefers-reduced-motion: reduce) { .cartao, .d-painel, .d-kpi { animation: none; } }
