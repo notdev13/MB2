@@ -6,6 +6,7 @@ import '@fontsource/playfair-display/latin-400-italic.css';
 import '@fontsource/roboto-mono/latin-400.css';
 import '@fontsource/roboto-mono/latin-500.css';
 import './estilo.css';
+import './planta.css';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import { Porteiro } from './componentes/Porteiro';
